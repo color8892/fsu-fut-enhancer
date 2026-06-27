@@ -278,7 +278,7 @@
       this.contextGuard.warnOnce();
       this.postToPage({
         type: "FSU_EXTENSION_INVALIDATED",
-        message: "Extension was reloaded. Refresh this page to restore FSU."
+        message: "FSU 擴充功能已重新載入，請按 F5 重新整理此頁面以恢復 FSU 功能。"
       });
     }
 

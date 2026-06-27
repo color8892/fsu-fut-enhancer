@@ -357,6 +357,31 @@
     }
   }
 
+  function showExtensionInvalidatedBanner(windowRef, text) {
+    const doc = windowRef.document;
+    if (!doc || doc.getElementById("fsu-extension-invalidated-banner")) return;
+
+    const banner = doc.createElement("div");
+    banner.id = "fsu-extension-invalidated-banner";
+    banner.setAttribute("role", "alert");
+    banner.textContent =
+      text || "FSU extension was reloaded. Press F5 to restore FSU features on this page.";
+    Object.assign(banner.style, {
+      position: "fixed",
+      top: "0",
+      left: "0",
+      right: "0",
+      zIndex: "2147483647",
+      padding: "12px 16px",
+      background: "#b45309",
+      color: "#fff",
+      font: "600 14px/1.4 Arial, sans-serif",
+      textAlign: "center",
+      boxShadow: "0 2px 8px rgba(0,0,0,0.25)"
+    });
+    (doc.body || doc.documentElement).appendChild(banner);
+  }
+
   class PageRuntimeApp {
     constructor(windowRef) {
       this.windowRef = windowRef;
@@ -407,6 +432,11 @@
 
       if (message.type === "GM_XMLHTTP_RESPONSE") {
         this.callbackRegistry.complete(message.requestId, message);
+        return;
+      }
+
+      if (message.type === "FSU_EXTENSION_INVALIDATED") {
+        showExtensionInvalidatedBanner(this.windowRef, message.message);
       }
     }
   }
