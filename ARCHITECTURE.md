@@ -60,6 +60,23 @@ flowchart TB
 
 `page-runtime` 必須在 `userscript` 之前就緒，否則 `GM_*` 未定義。
 
+### 1b. 擴充重載後的失效處理
+
+在 `chrome://extensions` 重新載入 FSU 後，**已開啟的 FUT 分頁**仍跑舊 page script，但 content script 的 `chrome.runtime` 已失效。
+
+```mermaid
+sequenceDiagram
+  participant Page as page-runtime / userscript
+  participant CB as content-bridge
+  Page->>CB: GM_SET_VALUE / GM_XMLHTTP_REQUEST
+  CB->>CB: contextGuard.isValid() === false
+  CB->>Page: FSU_EXTENSION_INVALIDATED
+  CB->>CB: console.warn (warnOnce)
+  Page->>Page: 橘色橫幅提示按 F5
+```
+
+使用者需 **F5** 讓 `content-bridge.boot()` 重新注入整套腳本。這是預期行為，不是 FSU 邏輯 bug。
+
 ### 2. Userscript 入口（`fsu/index.js`）
 
 ```js
@@ -471,7 +488,15 @@ CI / `test:all` 會驗 bundle 含關鍵符號。
 
 ### 7. Extension context invalidated
 
-擴充重新載入後，content script 失效。使用者需 **重新整理 FUT 分頁**（content-bridge 會 `warnOnce`）。
+**觸發時機**：`chrome://extensions` 手動重載、擴充自動更新、開發者 `npm run build` 後重載擴充，但 FUT 分頁未刷新。
+
+**表現**：
+
+- Console：`[FSU extension] Extension was reloaded or updated…`（`content-bridge.js` `warnOnce`，只印一次）
+- 頁面：橘色頂部橫幅（`page-runtime.js` 處理 `FSU_EXTENSION_INVALIDATED`）
+- 功能：storage 寫入、XHR 代理等 GM API 失效
+
+**處理**：FUT 分頁 **F5**。開發流程應為 `build` → 重載擴充 → **F5 分頁**。
 
 ### 8. Patch phase 順序
 
@@ -480,6 +505,10 @@ CI / `test:all` 會驗 bundle 含關鍵符號。
 ### 9. 重複註冊 events
 
 `club-select-events.js` 與 `ui-utils.js` 都定義 `getAcceleRate` 等。後載入者覆蓋前者；新增功能時確認載入順序（見 `installClubAndUi`）。
+
+### 10. `fy(key)` 的 key 不可假設永遠存在
+
+`events.notice(text)`、`changeLoadingText(t)` 等路徑可能傳入 `undefined`。`Localization.js` 對 `null` / `undefined` 回傳 `""`，避免 `key.indexOf` 崩潰，但呼叫端仍應傳入有效 localization key。測試見 `extension/tests/localization.test.mjs`。
 
 ---
 
