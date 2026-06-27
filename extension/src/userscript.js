@@ -2015,9 +2015,9 @@
 
   // src/fsu/patches/unassigned.js
   function installUnassignedPatches(deps) {
-    const { call: call2, events, fy: fy2, cntlr: cntlr2, info, debug: debug2 } = deps;
+    const { call, events, fy: fy2, cntlr: cntlr2, info, debug: debug2 } = deps;
     UTUnassignedItemsViewController.prototype.updateUntradeableDuplicateSectionOptions = function(...args) {
-      call2.view.unassignedUpdateUDSO.call(this, ...args);
+      call.view.unassignedUpdateUDSO.call(this, ...args);
       let section = this.getView().getSection(UTUnassignedItemsViewModel.SECTION.UNTRADABLEDUPLICATES);
       if (section && this.viewmodel) {
         if ("_fsuSendClubCount" in section) {
@@ -2045,7 +2045,7 @@
       }
     };
     UTUnassignedItemsView.prototype.renderSection = function(e2, t, i2) {
-      call2.view.unassignedRenderSection.call(this, e2, t, i2);
+      call.view.unassignedRenderSection.call(this, e2, t, i2);
       let section = this.sections[t];
       let controller = _.find(this.eventDelegates, (ed) => {
         return ed.className && ed.className.includes("UTUnassigned") && ed.className.includes("Controller");
@@ -2361,10 +2361,10 @@
 
   // src/fsu/patches/login.js
   function installLoginPatches(deps) {
-    const { call: call2, events, info, services: services2, debug: debug2, fy: fy2, GM_getValue: GM_getValue2, GM_xmlhttpRequest: GM_xmlhttpRequest2 } = deps;
+    const { call, events, info, services: services2, debug: debug2, fy: fy2, GM_getValue: GM_getValue2, GM_xmlhttpRequest: GM_xmlhttpRequest2 } = deps;
     UTLoginView.prototype._generate = function(...args) {
       if (!this._generated) {
-        call2.view.login.call(this, ...args);
+        call.view.login.call(this, ...args);
         let locale = services2.Localization.locale;
         if (locale.language == "zh") {
           info.language = locale.variant == "Hans" ? 0 : 1;
@@ -2408,15 +2408,15 @@
       }
     };
     EAViewController.prototype.viewDidAppear = function(...args) {
-      call2.view.ea.call(this, ...args);
+      call.view.ea.call(this, ...args);
     };
   }
 
   // src/fsu/patches/navigation.js
   function installNavigationPatches(deps) {
-    const { call: call2, events, info, isPhone: isPhone2, SBCCount } = deps;
+    const { call, events, info, isPhone: isPhone2, SBCCount } = deps;
     UTGameFlowNavigationController.prototype.didPush = function(e2) {
-      call2.view.push.call(this, e2);
+      call.view.push.call(this, e2);
       if (info.douagain.hasOwnProperty("SBCListHtml") && info.set.sbc_headentrance) {
         if (e2.className == "UTSBCSquadSplitViewController" || e2.className == "UTSBCSquadOverviewViewController" && info.douagain.SBCListHtml.style.display == "flex") {
           info.douagain.SBCListHtml.style.display = "none";
@@ -2491,9 +2491,9 @@
 
   // src/fsu/patches/squad-builder.js
   function installSquadBuilderPatches(deps) {
-    const { call: call2, events, fy: fy2, info, build } = deps;
+    const { call, events, fy: fy2, info, build } = deps;
     UTSquadBuilderViewController.prototype.viewDidAppear = function() {
-      call2.view.build.call(this);
+      call.view.build.call(this);
       if (this.squad && this.squad.isSBC()) {
         this.getView().getSortDropDown().setIndexById(3);
         this.getView()._fsuleague = events.createToggle(
@@ -2515,9 +2515,9 @@
 
   // src/fsu/patches/misc-item.js
   function installMiscItemPatch(deps) {
-    const { call: call2, events, fy: fy2, cntlr: cntlr2, info, lock } = deps;
+    const { call, events, fy: fy2, cntlr: cntlr2, info, lock } = deps;
     UTMiscItemView.prototype.renderItem = function(t, e2) {
-      call2.view.miscItem.call(this, t, e2);
+      call.view.miscItem.call(this, t, e2);
       if (t.isPlayerPickItem()) {
         let pickOddo = events.getOddo(t.definitionId);
         if (pickOddo) {
@@ -2561,9 +2561,9 @@
 
   // src/fsu/patches/player-item.js
   function installPlayerItemPatch(deps) {
-    const { call: call2, events, fy: fy2, cntlr: cntlr2, info, lock } = deps;
+    const { call, events, fy: fy2, cntlr: cntlr2, info, lock } = deps;
     UTPlayerItemView.prototype.renderItem = function(p, t) {
-      call2.view.card.call(this, p, t);
+      call.view.card.call(this, p, t);
       if (p.isValid()) {
         setTimeout(() => {
           if (this.__root === null) {
@@ -3238,9 +3238,9 @@
 
   // src/fsu/patches/picks-rewards.js
   function installPicksRewardsPatches(deps) {
-    const { call: call2, events, info, fy: fy2, isPhone: isPhone2, debug: debug2 } = deps;
+    const { call, events, info, fy: fy2, isPhone: isPhone2, debug: debug2 } = deps;
     UTPlayerPicksView.prototype.setCarouselItems = function(e2) {
-      call2.other.picks.setItems.call(this, e2);
+      call.other.picks.setItems.call(this, e2);
       events.loadPlayerInfo(e2, this);
       _.forEach(this._carouselItemsContainer.__carouselItemsContainer.children, (child) => {
         child.style.margin = "1.8rem 1.2rem";
@@ -3285,11 +3285,11 @@
       }
     };
     FCGameRewardsViewController.prototype.checkRewards = function(e2) {
-      call2.other.rewards.check.FC.call(this, e2);
+      call.other.rewards.check.FC.call(this, e2);
       debug2.log(this, e2);
     };
     UTGameRewardsViewController.prototype.checkRewards = function(e2) {
-      call2.other.rewards.check.UT.call(this, e2);
+      call.other.rewards.check.UT.call(this, e2);
       _.map(e2, (t, i2) => {
         if (t.isPack) {
           events.setRewardOddo(this.getView()._rewardsCarousel.getRootElement().querySelectorAll(".reward")[i2], t);
@@ -3300,9 +3300,9 @@
 
   // src/fsu/patches/squad-overview-view.js
   function installSquadOverviewViewPatches(deps) {
-    const { call: call2, events, info, fy: fy2, cntlr: cntlr2, isPhone: isPhone2, repositories: repositories2, services: services2, debug: debug2, SBCEligibilityKey: SBCEligibilityKey2, GM_openInTab: GM_openInTab2 } = deps;
+    const { call, events, info, fy: fy2, cntlr: cntlr2, isPhone: isPhone2, repositories: repositories2, services: services2, debug: debug2, SBCEligibilityKey: SBCEligibilityKey2, GM_openInTab: GM_openInTab2 } = deps;
     UTSquadOverviewViewController.prototype.viewDidAppear = function() {
-      call2.plist.squad.call(this);
+      call.plist.squad.call(this);
       this._fsu ??= {};
       if (info.set.info_squad && !_.has(this._fsu, "squadValueBox")) {
         const squadPrice = _.sumBy(this._squad.getFieldPlayers(), (i2) => events.getCachePrice(i2.item.definitionId, 1).num);
@@ -3678,9 +3678,9 @@
 
   // src/fsu/patches/sectioned-list.js
   function installSectionedListPatches(deps) {
-    const { call: call2, events, info, fy: fy2, cntlr: cntlr2, services: services2, debug: debug2 } = deps;
+    const { call, events, info, fy: fy2, cntlr: cntlr2, services: services2, debug: debug2 } = deps;
     UTSectionedItemListView.prototype.addItems = function(t, e2, i2, r) {
-      call2.plist.sectioned.call(this, t, e2, i2, r);
+      call.plist.sectioned.call(this, t, e2, i2, r);
       events.loadPlayerInfo(_.map(this.listRows, "data"), this);
       if (info.set.player_loas && services2.User.getUser().tradeAccess == TradeAccessLevel.ALLOWED && cntlr2.current().getNavigationTitle() !== services2.Localization.localize("navbar.label.watchlist") && (cntlr2.current().getNavigationTitle() !== services2.Localization.localize("navbar.label.assigncards") || repositories.Item.getPileSize(ItemPile.TRANSFER) - repositories.Item.numItemsInCache(ItemPile.TRANSFER) > 0)) {
         let pn = 0, pr = {}, ln = 0;
@@ -4033,9 +4033,9 @@
     };
   }
   function installPlayerListPatches(deps) {
-    const { call: call2, events, info, cntlr: cntlr2, isPhone: isPhone2, debug: debug2, repositories: repositories2, services: services2, fy: fy2 } = deps;
+    const { call, events, info, cntlr: cntlr2, isPhone: isPhone2, debug: debug2, repositories: repositories2, services: services2, fy: fy2 } = deps;
     UTPaginatedItemListView.prototype.renderItems = function(t) {
-      call2.plist.paginated.call(this, t);
+      call.plist.paginated.call(this, t);
       this._fsu ??= {};
       const currentController = isPhone2() ? cntlr2.current() : cntlr2.right();
       if (currentController instanceof UTAcademyPlayerFromClubViewController) {
@@ -4140,13 +4140,13 @@
       }
     };
     UTClubRepository.prototype.removeClubItem = function(t) {
-      call2.plist.club.call(this, t);
+      call.plist.club.call(this, t);
       if (info.roster.thousand.hasOwnProperty(t.definitionId)) {
         delete info.roster.thousand[t.definitionId];
       }
     };
     UTSquadEntity.prototype.getRating = function() {
-      let r = call2.plist.squadGR.call(this);
+      let r = call.plist.squadGR.call(this);
       let totalElement = document.getElementById("squadValue");
       if (totalElement) {
         totalElement.innerText = _.sumBy(this.getFieldPlayers(), (i2) => events.getCachePrice(i2.item.definitionId, 1).num).toLocaleString();
@@ -4987,7 +4987,7 @@
     };
   }
   function installSbcSquadSubmitPatches(deps) {
-    const { call: call2, events, info, repositories: repositories2, services: services2, cntlr: cntlr2, debug: debug2, fy: fy2 } = deps;
+    const { call, events, info, repositories: repositories2, services: services2, cntlr: cntlr2, debug: debug2, fy: fy2 } = deps;
     registerSbcHeaderEvents({ events, info, services: services2, cntlr: cntlr2, debug: debug2 });
     UTSBCSquadOverviewViewController.prototype._submitChallenge = function _submitChallenge(e2) {
       function valuablePlayerTips(left, controller2, ev) {
@@ -5000,13 +5000,13 @@
             fy2(["valuableplayer.popupm", preciousCount]),
             (t) => {
               if (t == 44408) {
-                call2.squad.submit.call(controller2, ev);
+                call.squad.submit.call(controller2, ev);
               }
             },
             [{ labelEnum: 44408 }, { labelEnum: 44409 }]
           );
         } else {
-          call2.squad.submit.call(controller2, ev);
+          call.squad.submit.call(controller2, ev);
         }
       }
       let controller = this;
@@ -5049,7 +5049,7 @@
       }
     };
     UTSBCSquadOverviewViewController.prototype._onChallengeSubmitted = function _onChallengeSubmitted(e2, t) {
-      call2.squad.submitted.call(this, e2, t);
+      call.squad.submitted.call(this, e2, t);
       if (t.success && t.data.setId) {
         let s2 = services2.SBC.repository.getSetById(t.data.setId);
         if (s2 && Object.keys(s2).length) {
@@ -5555,9 +5555,9 @@
 
   // src/fsu/patches/objectives-hub.js
   function installObjectivesHubPatches(deps) {
-    const { call: call2, events, info, fy: fy2, isPhone: isPhone2, services: services2 } = deps;
+    const { call, events, info, fy: fy2, isPhone: isPhone2, services: services2 } = deps;
     UTObjectivesHubView.prototype.setupNavigation = function(e2) {
-      call2.task.objN.call(this, e2);
+      call.task.objN.call(this, e2);
       if (!info.task.obj || !Object.keys(info.task.obj.stat).length || !info.set.info_obj) {
         return;
       }
@@ -5576,7 +5576,7 @@
       });
     };
     FCObjectiveSeasonView.prototype.setCampaign = function(n) {
-      call2.task.seasonSet.call(this, n);
+      call.task.seasonSet.call(this, n);
       let playersList = [];
       _.forEach(this.levels, (i2) => {
         const rewards = _.flatMap(i2.levelRewards, "rewards");
@@ -5594,7 +5594,7 @@
       events.loadPlayerInfo(playersList);
     };
     UTObjectiveCategoryView.prototype.setCategoryGroups = function(i2, e2, o, n) {
-      call2.task.objG.call(this, i2, e2, o, n);
+      call.task.objG.call(this, i2, e2, o, n);
       let g = this.groups;
       for (let i3 of g) {
         if (!info.task.obj || !Object.keys(info.task.obj.stat).length) {
@@ -5643,7 +5643,7 @@
       }
     };
     UTObjectivesHubTileView.prototype.setSubtitle = function(e2) {
-      call2.task.objSetTitle.call(this, e2);
+      call.task.objSetTitle.call(this, e2);
       let objCountElement = this.getRootElement().querySelector(".fsu-obj-count");
       if (!objCountElement) {
         let rCountStyle;
@@ -5758,10 +5758,10 @@
     };
   }
   function installHomeHubPatches(deps) {
-    const { call: call2, events, info, fy: fy2, cntlr: cntlr2, services: services2, debug: debug2, fsuSC } = deps;
+    const { call, events, info, fy: fy2, cntlr: cntlr2, services: services2, debug: debug2, fsuSC } = deps;
     UTHomeHubView.prototype._generate = function(...args) {
       if (!this._generated) {
-        call2.task.home.call(this, ...args);
+        call.task.home.call(this, ...args);
         GM_addStyle(info.base.sytle ?? FSU_BASE_SYTLE);
         debug2.log(fy2("tile.settitle"));
         this._fsuDodo = events.createTile(fy2("tile.dodotitle"), fy2("tile.dodotext"), () => {
@@ -5831,11 +5831,11 @@
 
   // src/fsu/patches/market.js
   function installMarketPatches(deps) {
-    const { call: call2, events, info, cntlr: cntlr2, isPhone: isPhone2, fy: fy2, debug: debug2, repositories: repositories2, services: services2, GM_setValue: GM_setValue2 } = deps;
+    const { call, events, info, cntlr: cntlr2, isPhone: isPhone2, fy: fy2, debug: debug2, repositories: repositories2, services: services2, GM_setValue: GM_setValue2 } = deps;
     const UTClubSearchResultsViewController_onTableCellSelected = UTClubSearchResultsViewController.prototype.onTableCellSelected;
     const UTClubSearchResultsViewController_refreshPinnedItem = UTClubSearchResultsViewController.prototype.refreshPinnedItem;
     UTTransferMarketPaginationViewModel.prototype.startAuctionUpdates = function(...args) {
-      call2.view.transferMarket.call(this, ...args);
+      call.view.transferMarket.call(this, ...args);
       if (services2.Item.marketRepository.pages.length) {
         _.map(services2.Item.marketRepository.pages, (p) => {
           _.map(p.items, (i2) => {
@@ -5850,7 +5850,7 @@
       }
     };
     UTMarketSearchFiltersView.prototype.setPinnedItem = function(e2, t) {
-      call2.panel.market.call(this, e2, t);
+      call.panel.market.call(this, e2, t);
       let sbc = isPhone2() ? cntlr2.current().squadContext.squad.isSBC() : cntlr2.current()._squad.isSBC();
       if (e2.definitionId && sbc && info.set.sbc_market && e2.concept) {
         let p = events.getCachePrice(e2.definitionId, 1).num, v = this._maxBuyNowPriceRow._currencyInput._currencyInput, f = this._searchFilters.filters;
@@ -5874,7 +5874,7 @@
       }
     };
     UTTransferListViewController.prototype._renderView = function(...args) {
-      call2.view.transfer.call(this, ...args);
+      call.view.transfer.call(this, ...args);
       let sectionKey = [
         UTTransferSectionListViewModel.SECTION.UNSOLD,
         UTTransferSectionListViewModel.SECTION.AVAILABLE
@@ -5915,11 +5915,11 @@
     };
     UTMarketSearchView.prototype._generate = function(...args) {
       if (!this._generated) {
-        call2.view.market.call(this, ...args);
+        call.view.market.call(this, ...args);
       }
     };
     UTClubSearchFiltersViewController.prototype.viewDidAppear = function() {
-      call2.search.club.viewDid.call(this);
+      call.search.club.viewDid.call(this);
       if (this.squad.isActive() || this.squad.isDream()) {
         if (!("_fsuSortInit" in this.getView())) {
           this.getView()._sortDropDown.setIndexById(2);
@@ -5933,10 +5933,10 @@
       }
     };
     UTClubSearchFiltersViewController.prototype.onSearchModeChanged = function(t, e2) {
-      call2.search.club.modeChange.call(this, t, e2);
+      call.search.club.modeChange.call(this, t, e2);
     };
     UTClubSearchResultsView.prototype.setItemsWithChemDiff = function(t, a, s2, l2, c) {
-      call2.search.club.setChemDiff.call(this, t, a, s2, l2, c);
+      call.search.club.setChemDiff.call(this, t, a, s2, l2, c);
       _.map(t, (player, index) => {
         let iconName = "";
         let className = "";
@@ -5962,7 +5962,7 @@
       });
     };
     UTMarketSearchFiltersViewController.prototype.eSearchSelected = function(e2, t, i2) {
-      call2.other.market.eSearch.call(this, e2, t, i2);
+      call.other.market.eSearch.call(this, e2, t, i2);
       if (_.includes(this.className, "UTMarketSearch") && this.pinnedListRowItem == null) {
         let criteria = JSON.parse(JSON.stringify(this.viewmodel.searchCriteria));
         if (criteria.maskedDefId) {
@@ -5985,7 +5985,7 @@
       }
     };
     UTMarketSearchFiltersView.prototype.setFilters = function(e2, t) {
-      call2.other.market.setFilter.call(this, e2, t);
+      call.other.market.setFilter.call(this, e2, t);
       if (e2.searchBucket == 0 && e2.showCategoryTab) {
         debug2.log(info.market);
         if (!("_fsuHistory" in this)) {
@@ -6113,11 +6113,11 @@
   var inPacksController;
   var specialPlayersController;
   function installStorePatches(deps) {
-    const { call: call2, events, info, cntlr: cntlr2, isPhone: isPhone2, fy: fy2, debug: debug2, repositories: repositories2, services: services2, GM_setValue: GM_setValue2, AssetLocationUtils: AssetLocationUtils2, unsafeWindow: unsafeWindow2 } = deps;
+    const { call, events, info, cntlr: cntlr2, isPhone: isPhone2, fy: fy2, debug: debug2, repositories: repositories2, services: services2, GM_setValue: GM_setValue2, AssetLocationUtils: AssetLocationUtils2, unsafeWindow: unsafeWindow2 } = deps;
     const GM_openInTab2 = unsafeWindow2.GM_openInTab;
     UTStoreRevealModalListView.prototype.addItems = function(e2, t, i2, o) {
       const showPlayers = _.orderBy(e2, [(i3) => i3.isPlayer(), "rareflag", "rating"], ["desc", "desc", "desc"]);
-      call2.plist.storeReveal.call(this, showPlayers, t, i2, o);
+      call.plist.storeReveal.call(this, showPlayers, t, i2, o);
       events.loadPlayerInfo(e2);
     };
     events.truncateStrict = (text, maxLength = 26, tail = "...") => {
@@ -6178,7 +6178,7 @@
         ], ["desc", "desc", "desc", "desc"]);
         showList = sorted;
       }
-      call2.other.store.setPacks.call(this, showList, t, i2, o);
+      call.other.store.setPacks.call(this, showList, t, i2, o);
       setTimeout(() => {
         let packTileExists = "_fsuPackTile" in this, SBCTileExists = "_fsuSBCTile" in this, packFilter = "_fsufilter" in this, unassignedTile = "_fsuUnassignedTile" in this, itemListElement = this.__itemList, unassignedItems = repositories2.Item.getUnassignedItems().length;
         this.storePacks.forEach((item) => {
@@ -6553,7 +6553,7 @@
       }
     };
     UTStoreViewController.prototype.setCategory = function(e2) {
-      call2.other.store.setCategory.call(this, e2);
+      call.other.store.setCategory.call(this, e2);
       if (this.viewmodel !== void 0) {
         let conditions = ["UT_STORE_CAT_S_PFU", "FUT_STORE_CAT_SPECIAL_NAME", "FUT_STORE_CAT_PROVISIONS"];
         let searchCategoryIds = _.map(
@@ -7003,7 +7003,7 @@
 
   // src/fsu/patches/search-events.js
   function installSearchPatches(deps) {
-    const { call: call2, events, info, isPhone: isPhone2, cntlr: cntlr2, fy: fy2 } = deps;
+    const { call, events, info, isPhone: isPhone2, cntlr: cntlr2, fy: fy2 } = deps;
     events.playerSearchCountShow = (e2) => {
       if (_.has(e2, "_fsuFiltersCount")) {
         let filterToPlayer = { "nation": "nationId", "league": "leagueId", "club": "teamId", "rarity": "rareflag", "playStyle": "playStyle" }, criteriaDefault = { "nation": -1, "league": -1, "club": -1, "rarity": [], "position": "any", "level": "any", "playStyle": -1 }, excludeCriteria = _.cloneDeep(e2.criteria.searchCriteria);
@@ -7122,7 +7122,7 @@
       }
     };
     UTDropDownControl.prototype.open = function() {
-      call2.search.dropdownOpen.call(this);
+      call.search.dropdownOpen.call(this);
       events.playerSearchCountShow(this);
     };
     events.searchFill = async (e2) => {
@@ -7278,7 +7278,7 @@
       }
     };
     UTPaginatedItemListView.prototype.setPaginationState = function(t, e2) {
-      call2.search.result.call(this, t, e2);
+      call.search.result.call(this, t, e2);
       if (this._interactionState) {
         if (cntlr2.current().hasOwnProperty("_squad")) {
           if (cntlr2.current()._squad.isSBC()) {
@@ -7385,7 +7385,7 @@
     };
   }
   function registerSearchEvents(deps) {
-    const { events, info, cntlr: cntlr2, isPhone: isPhone2 } = deps;
+    const { call, events, info, cntlr: cntlr2, isPhone: isPhone2 } = deps;
     UTItemSearchView.prototype.setFilters = function(e2, t) {
       call.search.filters.call(this, e2, t);
       if (e2.searchCriteria.type == "player" && !isPhone2()) {
@@ -7405,7 +7405,7 @@
 
   // src/fsu/patches/sbc-fill-events.js
   function registerSbcFillEvents(deps) {
-    const { call: call2, events, info, cntlr: cntlr2, isPhone: isPhone2, services: services2, debug: debug2, repositories: repositories2, build, fastSbcService, oneFillCriteriaService, sbcSquadFillService, sbcTemplateService, sbcSquadSaveService } = deps;
+    const { call, events, info, cntlr: cntlr2, isPhone: isPhone2, services: services2, debug: debug2, repositories: repositories2, build, fastSbcService, oneFillCriteriaService, sbcSquadFillService, sbcTemplateService, sbcSquadSaveService } = deps;
     events.fastSBCQuantity = (clubMode, playerPool, criteria) => fastSbcService.calculateQuantity({
       clubMode,
       playerPool,
@@ -7418,7 +7418,7 @@
       }
     });
     UTUnassignedItemsViewController.prototype.renderView = function(...args) {
-      call2.view.unassigned.call(this, ...args);
+      call.view.unassigned.call(this, ...args);
       setTimeout(() => {
         if (this.getViewModel() && this.getViewModel().length === 0 && !document.querySelector(".ut-player-picks-view")) {
           if (isPhone2()) {
@@ -7567,7 +7567,7 @@
 
   // src/fsu/patches/sbc-fill-patches.js
   function installSbcFillPatches(deps) {
-    const { call: call2, events, info, cntlr: cntlr2, isPhone: isPhone2, services: services2, debug: debug2, repositories: repositories2, build, fsuSC, fy: fy2, enums: enums2, GM_setValue: GM_setValue2 } = deps;
+    const { call, events, info, cntlr: cntlr2, isPhone: isPhone2, services: services2, debug: debug2, repositories: repositories2, build, fsuSC, fy: fy2, enums: enums2, GM_setValue: GM_setValue2 } = deps;
     UTSBCService.prototype.loadChallengeData = function(r) {
       var s2 = this, a = new EAObservable();
       return this.sbcDAO.loadChallenge(r.id, r.isInProgress()).observe(this, function(t, e2) {
@@ -7577,7 +7577,7 @@
     };
     UTAppSettingsView.prototype._generate = function(...args) {
       if (!this._generated) {
-        call2.view.setting.call(this, ...args);
+        call.view.setting.call(this, ...args);
         this._fsu ??= {};
         this._fsu.box = events.createElementWithConfig("div", {
           className: "ut-button-group"
@@ -7647,7 +7647,7 @@
       });
     };
     UTSelectItemFromClubViewController.prototype.updateItemList = function(t) {
-      call2.selectClub.updata.call(this, t);
+      call.selectClub.updata.call(this, t);
       if (this.parentViewController._fsuFillType) {
         if (this.parentViewController._fsuFillType % 2) {
           this.parentViewController._fsuFillType++;
@@ -7659,7 +7659,7 @@
       }
     };
     UTSBCChallengeRequirementsView.prototype.renderChallengeRequirements = function(n, r) {
-      call2.squad.requirements.call(this, n, r);
+      call.squad.requirements.call(this, n, r);
       setTimeout(() => {
         const reqItems = this.__requirements?.querySelectorAll("li");
         if (reqItems?.length && n?.squadController?._fsu) {
@@ -7674,11 +7674,11 @@
       }, 50);
     };
     UTSquadEntity.prototype.swapPlayersByIndex = function(t, e2) {
-      call2.squad.swapPlayers.call(this, t, e2);
+      call.squad.swapPlayers.call(this, t, e2);
       events.saveOldSquad(this, true);
     };
     UTSquadEntity.prototype.addItemToSlot = function(t, e2) {
-      call2.squad.addItem.call(this, t, e2);
+      call.squad.addItem.call(this, t, e2);
       if (this.isSBC()) {
         let op = this._fsu.oldSquad[this._fsu.oldSquadCount][t];
         if (op.definitionId == e2.definitionId && op.concept == true) {
@@ -7689,19 +7689,19 @@
       }
     };
     UTSquadEntity.prototype.removeItemFromSlot = function(t) {
-      call2.squad.removeItem.call(this, t);
+      call.squad.removeItem.call(this, t);
       events.saveOldSquad(this, true);
     };
     UTSquadEntity.prototype.removeAllItems = function(t) {
-      call2.squad.removeAll.call(this, t);
+      call.squad.removeAll.call(this, t);
       events.saveOldSquad(this, true);
     };
     UTSquadEntity.prototype.setPlayers = function(t, e2) {
-      call2.squad.setPlayers.call(this, t, e2);
+      call.squad.setPlayers.call(this, t, e2);
       events.saveOldSquad(this, true);
     };
     UTUnassignedTileView.prototype.setNumberOfItems = function(e2) {
-      call2.other.uaTile.call(this, e2);
+      call.other.uaTile.call(this, e2);
       let ball = this.__root.querySelectorAll(".btn-standard");
       ball.forEach((b) => b.remove());
       let type = 1;
@@ -8154,7 +8154,7 @@
 
   // src/fsu/patches/club-select.js
   function installClubSelectPatches(deps) {
-    const { call: call2, events, info, fy: fy2, cntlr: cntlr2, isPhone: isPhone2, repositories: repositories2, services: services2, debug: debug2 } = deps;
+    const { call, events, info, fy: fy2, cntlr: cntlr2, isPhone: isPhone2, repositories: repositories2, services: services2, debug: debug2 } = deps;
     UTSelectItemFromClubViewController.prototype.requestItems = function() {
       if (this.clubViewModel.canShowPage() && !this.clubViewModel.shouldRequestItems()) {
         this.updateItemList(this.clubViewModel.getPageItems());
@@ -8192,7 +8192,7 @@
         }
         if (method) {
           this.searchCriteria.count = 200;
-          call2.selectClub.request.call(this);
+          call.selectClub.request.call(this);
         } else {
           this.handleItemRetrieval(resultPlayers, true);
         }
@@ -8462,7 +8462,7 @@
           }
         }
       }
-      call2.selectClub.handle.call(this, showItems, e2);
+      call.selectClub.handle.call(this, showItems, e2);
     };
   }
 
@@ -8705,7 +8705,7 @@
 
   // src/fsu/patches/club-select-search-patches.js
   function installClubSelectSearchPatches(deps) {
-    const { call: call2, events, info, fy: fy2, cntlr: cntlr2, repositories: repositories2, services: services2 } = deps;
+    const { call, events, info, fy: fy2, cntlr: cntlr2, repositories: repositories2, services: services2 } = deps;
     UTClubSearchResultsViewController.prototype._requestItems = function(r) {
       if ("_fsuLock" in this && this._fsuLock) {
         var s2 = this;
@@ -8767,11 +8767,11 @@
         this.updateItemList(this.clubViewModel.getPageItems(), 1);
         events.hideLoader();
       } else {
-        call2.search.request.call(this, r);
+        call.search.request.call(this, r);
       }
     };
     UTClubSearchResultsViewController.prototype.setupHeader = function(...args) {
-      call2.search.setHeader.call(this, ...args);
+      call.search.setHeader.call(this, ...args);
       if ("_fsuLock" in this && this._fsuLock) {
         this.getNavigationController().setNavigationTitle(fy2("locked.navtilte"));
       }
@@ -8904,10 +8904,10 @@
     };
   }
   function installRewardPatches(deps) {
-    const { call: call2, events, info, fy: fy2, cntlr: cntlr2, repositories: repositories2, debug: debug2 } = deps;
+    const { call, events, info, fy: fy2, cntlr: cntlr2, repositories: repositories2, debug: debug2 } = deps;
     registerRewardEvents({ events, fy: fy2 });
     FCObjectiveDetailsView.prototype.render = function(e2) {
-      call2.other.rewards.objectiveDetail.call(this, e2);
+      call.other.rewards.objectiveDetail.call(this, e2);
       let sum = 0;
       if (e2.rewards.rewards[0].isPack) {
         sum = events.setRewardOddo(
@@ -8944,7 +8944,7 @@
       }
     };
     UTRewardSelectionChoiceViewController.prototype.viewDidAppear = function() {
-      call2.other.rewards.choice.call(this);
+      call.other.rewards.choice.call(this);
       let target = this.getView().__rewardTiles.querySelectorAll(".ut-reward-selection");
       _.map(this.rewardSets, (s2, i2) => {
         let sum = 0;
@@ -8971,7 +8971,7 @@
       });
     };
     UTRewardSelectionChoiceView.prototype.expandRewardSet = function(e2, t) {
-      call2.other.rewards.choiceSet.call(this, e2, t);
+      call.other.rewards.choiceSet.call(this, e2, t);
       let target = this.__expandedReward.querySelectorAll(".reward");
       let sum = 0;
       _.map(t.rewards, (r, i2) => {
@@ -8996,7 +8996,7 @@
       }
     };
     UTGameRewardsViewController.prototype.onButtonTapped = function(e2, t, i2) {
-      call2.other.rewards.popupTapped.call(this, e2, t, i2);
+      call.other.rewards.popupTapped.call(this, e2, t, i2);
       if (this.hasPackReward && cntlr2.current().className == "UTStorePackViewController") {
         cntlr2.current().getStorePacks();
         if (repositories2.Store.myPacks.length == 0) {
@@ -9022,9 +9022,9 @@
 
   // src/fsu/patches/club-hub.js
   function installClubHubPatches(deps) {
-    const { call: call2, events, info, fy: fy2, cntlr: cntlr2, isPhone: isPhone2, repositories: repositories2, services: services2 } = deps;
+    const { call, events, info, fy: fy2, cntlr: cntlr2, isPhone: isPhone2, repositories: repositories2, services: services2 } = deps;
     UTClubHubView.prototype.clearTileContent = function(...args) {
-      call2.view.clubHub.call(this);
+      call.view.clubHub.call(this);
       if (services2.Configuration.checkFeatureEnabled(UTServerSettingsRepository.KEY.STORAGE_PILE_ENABLED)) {
         let v = this;
         let e2 = new UTSearchCriteriaDTO();
@@ -9335,12 +9335,12 @@
 
   // src/fsu/patches/player-meta.js
   function installLocalizationPatch(deps) {
-    const { call: call2 } = deps;
+    const { call } = deps;
     EALocalizationService.prototype.localize = function(t, e2, i2) {
       if (t == "timespan.second") {
         t = "timespan.seconds";
       }
-      let text = call2.other.localize.call(this, t, e2, i2);
+      let text = call.other.localize.call(this, t, e2, i2);
       return text;
     };
   }
@@ -10796,13 +10796,13 @@
 
   // src/fsu/patches/panel-patches.js
   function installPanelPatches(deps) {
-    const { call: call2, events, info, fy: fy2, cntlr: cntlr2, isPhone: isPhone2 } = deps;
+    const { call, events, info, fy: fy2, cntlr: cntlr2, isPhone: isPhone2 } = deps;
     UTQuickListPanelViewController.prototype.renderView = function() {
-      call2.panel.quickRender.call(this);
+      call.panel.quickRender.call(this);
       events.detailsButtonSet(this);
     };
     UTRewardSelectionChoiceView.prototype.expandRewardSet = function(e2, t) {
-      call2.panel.reward.call(this, e2, t);
+      call.panel.reward.call(this, e2, t);
       let reward = t.rewards.find((i2) => i2.count), tn = this._rewardsCarousel._tnsCarousel.__root;
       if (reward.isItem && reward.item.isPlayer() && info.set.player_futbin && tn.classList.length === 2 && tn.classList.contains("slider") && tn.classList.contains("rewards-slider-container")) {
         let player = reward.item;
@@ -10877,9 +10877,9 @@
       installPlayerCardPatches(c.pick("call", "events", "fy", "cntlr", "info", "lock"));
     }
     installTacticsRolePatch() {
-      const { call: call2 } = this.ctx;
+      const { call } = this.ctx;
       UTTacticsRoleSelectViewController.prototype.viewDidAppear = function(...args) {
-        call2.view.tacticsRole.call(this, ...args);
+        call.view.tacticsRole.call(this, ...args);
       };
     }
     installHubAndLists() {
@@ -10953,7 +10953,7 @@
         )
       );
       installSearchPatches(c.pick("call", "events", "info", "isPhone", "cntlr", "fy"));
-      registerSearchEvents(c.pick("events", "info", "cntlr", "isPhone"));
+      registerSearchEvents(c.pick("call", "events", "info", "cntlr", "isPhone"));
       installSbcSquadSubmitPatches(
         c.pick("call", "events", "info", "repositories", "services", "cntlr", "debug", "fy")
       );
@@ -15310,7 +15310,7 @@
 
   // src/fsu/legacy/futweb.js
   function futweb() {
-    var events = {}, info = {}, html = {}, call2 = {}, pdb = {};
+    var events = {}, info = {}, html = {}, call = {}, pdb = {};
     let set, build, lock, SBCCount, futbinId2, fsuSC;
     const patchRegistry = new PatchRegistry();
     const sbcPlayerMatchService = new SbcPlayerMatchService();
@@ -15664,7 +15664,7 @@
       "searchInput": '<input type="text" class="fsu-input" placeholder="{text}" maxlength="50">',
       "uasBtn": '<button class="btn-standard section-header-btn mini call-to-action fsu-getprice" id="uasreset">{uasreset.btntext}</button>'
     };
-    call2.view = patchRegistry.createViewMap({
+    call.view = patchRegistry.createViewMap({
       card: UTPlayerItemView.prototype.renderItem,
       miscItem: UTMiscItemView.prototype.renderItem,
       unassigned: UTUnassignedItemsViewController.prototype.renderView,
@@ -15682,7 +15682,7 @@
       unassignedRenderSection: UTUnassignedItemsView.prototype.renderSection,
       unassignedUpdateUDSO: UTUnassignedItemsViewController.prototype.updateUntradeableDuplicateSectionOptions
     });
-    call2.plist = {
+    call.plist = {
       sectioned: UTSectionedItemListView.prototype.addItems,
       paginated: UTPaginatedItemListView.prototype.renderItems,
       storeReveal: UTStoreRevealModalListView.prototype.addItems,
@@ -15691,12 +15691,12 @@
       squadGR: UTSquadEntity.prototype.getRating,
       squad: UTSquadOverviewViewController.prototype.viewDidAppear
     };
-    call2.selectClub = {
+    call.selectClub = {
       updata: UTSelectItemFromClubViewController.prototype.updateItemList,
       request: UTSelectItemFromClubViewController.prototype.requestItems,
       handle: UTSelectItemFromClubViewController.prototype.handleItemRetrieval
     };
-    call2.other = {
+    call.other = {
       uaTile: UTUnassignedTileView.prototype.setNumberOfItems,
       store: {
         setPacks: UTStoreView.prototype.setPacks,
@@ -15721,7 +15721,7 @@
         setItems: UTPlayerPicksView.prototype.setCarouselItems
       }
     };
-    call2.task = {
+    call.task = {
       sbcT: UTSBCHubView.prototype.populateTiles,
       sbcN: UTSBCHubView.prototype.populateNavigation,
       objN: UTObjectivesHubView.prototype.populateNavigation,
@@ -15732,12 +15732,12 @@
       rewardList: UTSBCGroupRewardListView.prototype.setRewards,
       seasonSet: FCObjectiveSeasonView.prototype.setCampaign
     };
-    call2.panel = {
+    call.panel = {
       quickRender: UTQuickListPanelViewController.prototype.renderView,
       market: UTMarketSearchFiltersView.prototype.setPinnedItem,
       reward: UTRewardSelectionChoiceView.prototype.expandRewardSet
     };
-    call2.search = {
+    call.search = {
       club: {
         viewDid: UTClubSearchFiltersViewController.prototype.viewDidAppear,
         modeChange: UTClubSearchFiltersViewController.prototype.onSearchModeChanged,
@@ -15749,7 +15749,7 @@
       request: UTClubSearchResultsViewController.prototype._requestItems,
       setHeader: UTClubSearchResultsViewController.prototype.setupHeader
     };
-    call2.squad = {
+    call.squad = {
       setPlayers: UTSquadEntity.prototype.setPlayers,
       swapPlayers: UTSquadEntity.prototype.swapPlayersByIndex,
       addItem: UTSquadEntity.prototype.addItemToSlot,
@@ -15763,7 +15763,7 @@
       events,
       info,
       html,
-      call: call2,
+      call,
       pdb,
       cntlr: cntlr2,
       fy: fy2,
@@ -15819,7 +15819,7 @@
       priceService
     });
     if (typeof FSU_DEBUG !== "undefined" && FSU_DEBUG) {
-      unsafeWindow.call = call2;
+      unsafeWindow.call = call;
       unsafeWindow.info = info;
       unsafeWindow.cntlr = cntlr2;
       unsafeWindow.events = events;

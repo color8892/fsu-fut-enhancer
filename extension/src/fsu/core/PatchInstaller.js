@@ -177,7 +177,7 @@ export class PatchInstaller {
       )
     );
     installSearchPatches(c.pick("call", "events", "info", "isPhone", "cntlr", "fy"));
-    registerSearchEvents(c.pick("events", "info", "cntlr", "isPhone"));
+    registerSearchEvents(c.pick("call", "events", "info", "cntlr", "isPhone"));
     installSbcSquadSubmitPatches(
       c.pick("call", "events", "info", "repositories", "services", "cntlr", "debug", "fy")
     );

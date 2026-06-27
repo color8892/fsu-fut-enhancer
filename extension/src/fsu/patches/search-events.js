@@ -406,7 +406,7 @@ events.searchInputEvent = (e) => {
 }
 
 export function registerSearchEvents(deps) {
-  const { events, info, cntlr, isPhone } = deps;
+  const { call, events, info, cntlr, isPhone } = deps;
   UTItemSearchView.prototype.setFilters = function(e, t) {
     call.search.filters.call(this,e, t)
     if(e.searchCriteria.type == "player" && !isPhone()){
