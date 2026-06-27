@@ -1594,13 +1594,17 @@
   // src/fsu/domain/Localization.js
   function createLocalization(getState) {
     const fy2 = function(key) {
+      if (key == null) return "";
+      if (typeof key !== "string" && !Array.isArray(key)) return String(key);
       const state = getState();
       const dictionary = state.localization || {};
       const language = state.language ?? 2;
       let text = "";
       if (Array.isArray(key)) {
         const parts = _.cloneDeep(key);
-        text = dictionary[parts.shift()][language];
+        const dictKey = parts.shift();
+        if (!dictKey || !dictionary[dictKey]) return String(dictKey ?? "");
+        text = dictionary[dictKey][language] ?? "";
         const substitutions = parts.slice();
         for (const index in substitutions) {
           text = text.replace(`%${Number(index) + 1}`, `${substitutions[index]}`);
@@ -1620,6 +1624,7 @@
       return text;
     };
     const eafy = function(key) {
+      if (key == null) return "";
       const state = getState();
       return state.base?.localization?.[key] ?? key;
     };

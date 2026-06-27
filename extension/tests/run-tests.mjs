@@ -8,6 +8,7 @@ import { runSbcChemistryTests } from "./sbc-chemistry.test.mjs";
 import { runSbcServiceTests } from "./sbc-services.test.mjs";
 import { runPlayerSearchTests } from "./player-search.test.mjs";
 import { runFsuContextTests } from "./fsu-context.test.mjs";
+import { runLocalizationTests } from "./localization.test.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
@@ -258,5 +259,6 @@ runSbcChemistryTests();
 runSbcServiceTests();
 runPlayerSearchTests();
 runFsuContextTests();
+runLocalizationTests();
 await assertTabService();
 console.log("All extension tests passed.");

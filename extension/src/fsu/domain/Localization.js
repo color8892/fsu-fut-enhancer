@@ -1,5 +1,8 @@
 export function createLocalization(getState) {
   const fy = function (key) {
+    if (key == null) return "";
+    if (typeof key !== "string" && !Array.isArray(key)) return String(key);
+
     const state = getState();
     const dictionary = state.localization || {};
     const language = state.language ?? 2;
@@ -7,7 +10,9 @@ export function createLocalization(getState) {
 
     if (Array.isArray(key)) {
       const parts = _.cloneDeep(key);
-      text = dictionary[parts.shift()][language];
+      const dictKey = parts.shift();
+      if (!dictKey || !dictionary[dictKey]) return String(dictKey ?? "");
+      text = dictionary[dictKey][language] ?? "";
       const substitutions = parts.slice();
 
       for (const index in substitutions) {
@@ -31,6 +36,7 @@ export function createLocalization(getState) {
   };
 
   const eafy = function (key) {
+    if (key == null) return "";
     const state = getState();
     return state.base?.localization?.[key] ?? key;
   };
