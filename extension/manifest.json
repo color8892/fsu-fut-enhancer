@@ -1,0 +1,41 @@
+{
+  "manifest_version": 3,
+  "name": "FSU EAFC FUT Web Enhancer",
+  "version": "26.9.0",
+  "description": "Chrome extension wrapper for the FSU EAFC FUT Web userscript.",
+  "permissions": ["storage"],
+  "host_permissions": ["<all_urls>"],
+  "background": {
+    "service_worker": "src/background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.ea.com/ea-sports-fc/ultimate-team/web-app/*",
+        "https://www.easports.com/*/ea-sports-fc/ultimate-team/web-app/*",
+        "https://www.ea.com/*/ea-sports-fc/ultimate-team/web-app/*",
+        "https://www.easysbc.io/evolutions*",
+        "https://www.futbin.com/*",
+        "https://www.fut.gg/*"
+      ],
+      "js": ["src/content-bridge.js"],
+      "run_at": "document_end"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "vendor/lodash.min.js",
+        "src/page-runtime.js",
+        "src/userscript.js"
+      ],
+      "matches": [
+        "https://www.ea.com/*",
+        "https://www.easports.com/*",
+        "https://www.easysbc.io/*",
+        "https://www.futbin.com/*",
+        "https://www.fut.gg/*"
+      ]
+    }
+  ]
+}
