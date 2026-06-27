@@ -6,6 +6,7 @@ import { fileURLToPath } from "url";
 import { runPreferencesServiceTests } from "./preferences-services.test.mjs";
 import { runSbcChemistryTests } from "./sbc-chemistry.test.mjs";
 import { runSbcServiceTests } from "./sbc-services.test.mjs";
+import { runPlayerSearchTests } from "./player-search.test.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
@@ -22,7 +23,9 @@ function assertManifest() {
   assert.strictEqual(manifest.manifest_version, 3);
   assert.strictEqual(manifest.background.service_worker, "src/background.js");
   assert.deepStrictEqual(manifest.permissions, ["storage"]);
-  assert.ok(manifest.host_permissions.includes("<all_urls>"));
+  assert.ok(manifest.host_permissions.includes("https://www.ea.com/*"));
+  assert.ok(manifest.host_permissions.includes("https://api.fut.to/*"));
+  assert.ok(!manifest.host_permissions.includes("<all_urls>"));
 
   for (const script of manifest.content_scripts[0].js) {
     assert.ok(fs.existsSync(path.join(root, script)), `Missing content script: ${script}`);
@@ -189,6 +192,9 @@ function assertUserscriptBundle() {
   assert.ok(userscript.includes("registerSbcSubstitutionEvents"));
   assert.ok(userscript.includes("SbcSquadSaveService"));
   assert.ok(userscript.includes("PlayerSearchService"));
+  assert.ok(userscript.includes("PlayerValueService"));
+  assert.ok(userscript.includes("PatchInstaller"));
+  assert.ok(userscript.includes("FSU_BASE_STYLE"));
   assert.ok(userscript.includes("ModuleRegistry"));
   assert.ok(userscript.includes("MarketActionService"));
   assert.ok(userscript.includes("PackService"));
@@ -247,5 +253,6 @@ await assertPriceService();
 runPreferencesServiceTests();
 runSbcChemistryTests();
 runSbcServiceTests();
+runPlayerSearchTests();
 await assertTabService();
 console.log("All extension tests passed.");

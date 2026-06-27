@@ -1,3 +1,6 @@
+import { registerSbcSubPriceEvent } from "./sbc-squad.js";
+import { installSbcChallengesPatch } from "./sbc-challenges.js";
+
 export function registerSbcNavEvents(deps) {
   const { events, info, fy, cntlr, isPhone, repositories, services, futbinId, GM_openInTab } = deps;
   events.squadCount = (reqRating) => {

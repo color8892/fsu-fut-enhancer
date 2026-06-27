@@ -1,5 +1,5 @@
 export function installSearchPatches(deps) {
-  const { call, events, info, isPhone, cntlr } = deps;
+  const { call, events, info, isPhone, cntlr, fy } = deps;
   events.playerSearchCountShow = (e) => {
     if(_.has(e,"_fsuFiltersCount")){
         let filterToPlayer = {"nation":"nationId","league":"leagueId","club":"teamId","rarity":"rareflag","playStyle":"playStyle"},

@@ -4,7 +4,19 @@
   "version": "26.9.0",
   "description": "Chrome extension wrapper for the FSU EAFC FUT Web userscript.",
   "permissions": ["storage"],
-  "host_permissions": ["<all_urls>"],
+  "host_permissions": [
+    "https://www.ea.com/*",
+    "https://www.easports.com/*",
+    "https://www.futbin.com/*",
+    "https://www.futbin.org/*",
+    "https://www.fut.gg/*",
+    "https://www.easysbc.io/*",
+    "https://api.fut.to/*",
+    "https://enhancer-api.futnext.com/*",
+    "https://utas.mob.v5.prd.futc-ext.gcp.ea.com/*",
+    "https://www.futnext.com/*",
+    "https://fut.to/*"
+  ],
   "background": {
     "service_worker": "src/background.js"
   },

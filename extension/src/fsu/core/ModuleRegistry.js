@@ -1,4 +1,5 @@
 import { PlayerSearchService } from "../domain/PlayerSearchService.js";
+import { PlayerValueService } from "../domain/PlayerValueService.js";
 import { SbcRequirementsService } from "../domain/SbcRequirementsService.js";
 import { MarketActionService } from "../domain/MarketActionService.js";
 import { PackService } from "../domain/PackService.js";
@@ -18,6 +19,7 @@ export function registerEarlyModules(deps) {
   registerUiEvents({ events, info, fy });
 
   const playerSearchService = new PlayerSearchService();
+  const playerValueService = new PlayerValueService(() => info);
   events.getItemBy = (type, queryOptions, insertData, replaceData) =>
     playerSearchService.search(type, queryOptions, insertData, replaceData, {
       getClubPlayers: () => repositories.Item.club.items.values(),
@@ -30,6 +32,10 @@ export function registerEarlyModules(deps) {
       repositories: { Item: repositories.Item, Squad: repositories.Squad },
       services: { User: services.User, Squad: services.Squad }
     });
+
+  events.isPrecious = (rating, flag, price, type) =>
+    playerValueService.isPrecious(rating, flag, price, type);
+  events.invalidatePlayerSearchCache = () => playerSearchService.invalidateCache();
 
   const sbcRequirementsService = new SbcRequirementsService();
   events.requirementsToText = (requirement) =>
@@ -45,6 +51,7 @@ export function registerLateModules(deps) {
     cntlr,
     debug,
     fy,
+    eafy,
     futbinId,
     pdb,
     isPhone,
@@ -158,6 +165,7 @@ export function registerLateModules(deps) {
     createElementWithConfig: (...args) => events.createElementWithConfig(...args),
     createDF: (...args) => events.createDF(...args),
     fy,
+    eafy,
     notice: (...args) => events.notice(...args)
   };
   Object.assign(events, new FgRatingService().createFacade(fgHelpers));

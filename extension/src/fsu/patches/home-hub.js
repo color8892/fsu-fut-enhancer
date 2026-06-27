@@ -1,3 +1,5 @@
+import { FSU_BASE_SYTLE } from "../ui/fsu-styles.js";
+
 export function registerHomeHubEvents(deps) {
   const { events, info, cntlr, isPhone, services } = deps;
 
@@ -113,7 +115,7 @@ export function installHomeHubPatches(deps) {
   UTHomeHubView.prototype._generate = function (...args) {
     if (!this._generated) {
       call.task.home.call(this, ...args);
-      GM_addStyle(info.base.sytle);
+      GM_addStyle(info.base.sytle ?? FSU_BASE_SYTLE);
       debug.log(fy("tile.settitle"));
       this._fsuDodo = events.createTile(fy("tile.dodotitle"), fy("tile.dodotext"), () => {
         GM_openInTab(`https://fut.to`, { active: true, insert: true, setParent: true });

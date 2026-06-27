@@ -1,5 +1,5 @@
 export function installLoginPatches(deps) {
-  const { call, events, info, services, debug, GM_getValue, GM_xmlhttpRequest } = deps;
+  const { call, events, info, services, debug, fy, GM_getValue, GM_xmlhttpRequest } = deps;
   //24.20 lodin页面插入已加载提示
 UTLoginView.prototype._generate = function (...args) {
     if (!this._generated) {

@@ -8,9 +8,12 @@
     "build": "node scripts/build-userscript.js",
     "build:all": "npm run prepare:legacy && npm run build",
     "test": "node tests/run-tests.mjs",
-    "test:all": "npm run build && npm test"
+    "test:all": "npm run build && npm test",
+    "lint": "eslint ."
   },
   "devDependencies": {
-    "esbuild": "^0.25.0"
+    "@eslint/js": "^9.28.0",
+    "esbuild": "^0.25.0",
+    "eslint": "^9.28.0"
   }
 }

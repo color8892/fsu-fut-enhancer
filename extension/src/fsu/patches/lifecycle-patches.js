@@ -111,8 +111,11 @@ events.listSortFilter = (controller, config) => {
 }
 }
 
+import { CachePruner } from "../core/CachePruner.js";
+
 export function installLifecyclePatches(deps) {
-  const { events, cntlr, isPhone } = deps;
+  const { events, cntlr, isPhone, info } = deps;
+  const cachePruner = new CachePruner(() => info);
   //26.04 销毁释放资源方法
 events.fsuDispose = function (controller, key) {
     const container = controller?.[key];
@@ -128,6 +131,8 @@ events.fsuDispose = function (controller, key) {
         container[k] = null;
     });
     controller[key] = null;
+    cachePruner?.pruneAll?.();
+    events.invalidatePlayerSearchCache?.();
 };
 
 

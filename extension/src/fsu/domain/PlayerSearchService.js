@@ -1,5 +1,43 @@
+import { TtlCache } from "../core/TtlCache.js";
+
+function stableQueryKey(type, queryOptions, insertData, replaceData) {
+  const normalized = { ...queryOptions };
+  delete normalized.removeSquad;
+  const replaceFingerprint = replaceData
+    ? Array.from(replaceData).slice(0, 5).map((p) => p?.id ?? p?.definitionId)
+    : null;
+  return JSON.stringify({
+    type,
+    query: normalized,
+    insertLen: insertData?.length ?? 0,
+    replaceLen: replaceData ? Array.from(replaceData).length : 0,
+    replaceFingerprint
+  });
+}
+
 export class PlayerSearchService {
+  constructor() {
+    this.cache = new TtlCache({ maxSize: 100, ttlMs: 30 * 1000 });
+  }
+
+  invalidateCache() {
+    this.cache.clear();
+  }
+
   search(type, queryOptions, insertData, replaceData, helpers) {
+    const cacheKey = stableQueryKey(type, queryOptions, insertData, replaceData);
+    let players = this.cache.get(cacheKey);
+    if (!players) {
+      players = this._searchUncached(2, queryOptions, insertData, replaceData, helpers);
+      this.cache.set(cacheKey, players);
+    }
+    if (type === 1) {
+      return players.map((member) => member.definitionId);
+    }
+    return [...players];
+  }
+
+  _searchUncached(type, queryOptions, insertData, replaceData, helpers) {
     const {
       getClubPlayers,
       getStorageItems,

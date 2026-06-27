@@ -1,6 +1,6 @@
 export class FgRatingService {
   fgCalc(player, first = true, shouldStore = true, styleId, helpers) {
-    const { getInfo, getAcceleRate, getBoostedAttribute, debug } = helpers;
+    const { getInfo, getAcceleRate, getBoostedAttribute, debug, eafy } = helpers;
     const info = getInfo();
     if (player && _.has(info, "fgconfig")) {
       const hasMeta = repositories.PlayerMeta.has(player.definitionId);
@@ -284,6 +284,7 @@ export class FgRatingService {
       createElementWithConfig,
       createDF,
       fy,
+      eafy,
       notice,
     } = helpers;
     const info = getInfo();

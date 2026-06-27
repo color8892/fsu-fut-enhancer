@@ -1,5 +1,5 @@
 export function registerPlayerListEvents(deps) {
-  const { events, info, cntlr, debug, futbinId, priceService, GM_setValue } = deps;
+  const { events, info, cntlr, debug, futbinId, priceService, GM_setValue, fy } = deps;
   events.wait = (min,max) => {
     let delay = Math.floor(Math.random() * (max * 1000 - min * 1000 + 1)) + min * 1000;
     return new Promise(resolve => setTimeout(resolve, delay));
@@ -21,7 +21,7 @@ events.changeLoadingText = (t,s) =>{
 }
 
 export function installPlayerListPatches(deps) {
-  const { call, events, info, cntlr, isPhone, debug, repositories, services } = deps;
+  const { call, events, info, cntlr, isPhone, debug, repositories, services, fy } = deps;
   //列表形式(右侧、拍卖行搜索结果、俱乐部)球员列表 读取球员列表查询价格
 UTPaginatedItemListView.prototype.renderItems = function(t) {
     call.plist.paginated.call(this,t);

@@ -1,3 +1,5 @@
+import { PriceRequestQueue } from "../core/PriceRequestQueue.js";
+
 const PRICE_BATCH_SIZE = 23;
 
 export class PriceService {
@@ -7,6 +9,7 @@ export class PriceService {
     this.getInfo = getInfo;
     this.debug = debug;
     this.errorHandler = null;
+    this.requestQueue = new PriceRequestQueue();
   }
 
   setErrorHandler(handler) {
@@ -79,7 +82,13 @@ export class PriceService {
 
   async getPriceForUrl(definitionIds) {
     this.debug.log(definitionIds);
+    const sortedIds = [...definitionIds].sort((a, b) => a - b);
+    const queueKey = `url:${sortedIds.join(",")}`;
 
+    return this.requestQueue.run(queueKey, () => this._fetchPriceForUrl(sortedIds));
+  }
+
+  async _fetchPriceForUrl(definitionIds) {
     try {
       const info = this.getInfo();
       const priceJson = {};
@@ -118,7 +127,7 @@ export class PriceService {
               price = item.price;
             }
 
-            priceJson[item.eaId] = { n: price, y: type };
+            priceJson[item.eaId] = { n: price, y: type, _ts: Date.now() };
           } else {
             this.debug.log("没有这个球员数据:", item.eaId);
           }
@@ -135,7 +144,8 @@ export class PriceService {
           if (item.prices.length) {
             priceJson[item.definitionId] = {
               n: item.prices[0],
-              y: 0
+              y: 0,
+              _ts: Date.now()
             };
           }
         });
@@ -162,7 +172,7 @@ export class PriceService {
         y: originalJson.MinPrice || originalJson.MaxPrice ? 0 : 1
       };
 
-      info.roster.data[playerResourceId] = priceJson;
+      info.roster.data[playerResourceId] = { ...priceJson, _ts: Date.now() };
       return priceJson;
     } catch (error) {
       this.handleError(error);
@@ -192,7 +202,7 @@ export class PriceService {
       type = price == 0 ? 2 : 1;
     }
 
-    info.roster.data[definitionId] = { n: price, y: type };
+    info.roster.data[definitionId] = { n: price, y: type, _ts: Date.now() };
   }
 
   async getFutbinPlayerId(player) {

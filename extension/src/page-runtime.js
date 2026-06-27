@@ -48,6 +48,11 @@
       this.postToContent = postToContent;
     }
 
+    mergeInitialValues(initialValues) {
+      if (!initialValues || typeof initialValues !== "object") return;
+      Object.assign(this.values, initialValues);
+    }
+
     get(key, defaultValue) {
       const stringKey = String(key);
 
@@ -360,13 +365,14 @@
         invoker: new CallbackInvoker(),
         responseNormalizer: new ResponseNormalizer()
       });
+      this.valueStore = null;
       this.handleContentMessage = this.handleContentMessage.bind(this);
     }
 
     boot() {
-      const initialState = this.windowRef.__FSU_EXTENSION_INIT__ || {};
-      const valueStore = new GmValueStore({
-        initialValues: initialState.storage,
+      const legacyState = this.windowRef.__FSU_EXTENSION_INIT__ || {};
+      this.valueStore = new GmValueStore({
+        initialValues: legacyState.storage,
         fallback: new LocalStorageFallback(this.windowRef, STORAGE_PREFIX),
         postToContent: (message) => this.messenger.postToContent(message)
       });
@@ -380,10 +386,12 @@
       new GmApiInstaller({
         windowRef: this.windowRef,
         documentRef: this.windowRef.document,
-        valueStore,
+        valueStore: this.valueStore,
         messenger: this.messenger,
         xhrShim
       }).install();
+
+      this.messenger.postToContent({ type: "FSU_REQUEST_INIT" });
     }
 
     handleContentMessage(event) {
@@ -391,6 +399,11 @@
 
       const message = event.data;
       if (!message || message.source !== CONTENT_SOURCE) return;
+
+      if (message.type === "FSU_INIT_STORAGE" && this.valueStore) {
+        this.valueStore.mergeInitialValues(message.storage);
+        return;
+      }
 
       if (message.type === "GM_XMLHTTP_RESPONSE") {
         this.callbackRegistry.complete(message.requestId, message);

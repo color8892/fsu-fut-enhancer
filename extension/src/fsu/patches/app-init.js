@@ -34,7 +34,24 @@ events.enhanceStyleChange = () => {
 }
 
 export function installAppInitPatches(deps) {
-  const { events, info } = deps;
+  const {
+    events,
+    info,
+    fy,
+    services,
+    cntlr,
+    isPhone,
+    SBCCount,
+    set,
+    build,
+    lock,
+    futbinId,
+    debug,
+    GM_getValue,
+    GM_setValue,
+    GM_xmlhttpRequest,
+    GM_info
+  } = deps;
   events.notice = function(text,type){
     services.Notification.queue([fy(text),type])
 };
