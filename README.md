@@ -82,4 +82,4 @@ extension/
 
 ## License
 
-MIT — 見 [LICENSE](LICENSE)（若尚未加入授權檔，預設以 MIT 發布）。
+MIT — 見 [LICENSE](LICENSE)。

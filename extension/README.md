@@ -8,9 +8,7 @@ Tampermonkey userscript.
 1. Open `chrome://extensions`.
 2. Enable Developer mode.
 3. Click **Load unpacked**.
-4. Select this folder:
-
-   `C:\Users\Tian\Documents\FUT EXTENSION\extension`
+4. Select the **`extension`** folder inside this repository.
 
 ## Files
 
