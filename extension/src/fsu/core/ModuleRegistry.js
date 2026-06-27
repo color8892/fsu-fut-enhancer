@@ -9,29 +9,21 @@ import { FgRatingService } from "../domain/FgRatingService.js";
 import { registerSbcRatingEvents } from "../domain/SbcRatingService.js";
 import { registerSbcDataEvents } from "../domain/SbcDataService.js";
 import { registerUiEvents } from "../ui/UiFactory.js";
+import { createDomainHelpers } from "./DomainHelpers.js";
 
 import { renderPlayerDetailsButtons } from "../patches/player-details.js";
 import { renderSbcSubstitutionPanel } from "../patches/sbc-substitution.js";
 
-export function registerEarlyModules(deps) {
-  const { events, info, repositories, services, debug, fy, SBCEligibilityKey } = deps;
+export function registerEarlyModules(ctx) {
+  const { events, info, debug, fy, SBCEligibilityKey, repositories } = ctx;
+  const helpers = createDomainHelpers(ctx);
 
   registerUiEvents({ events, info, fy });
 
   const playerSearchService = new PlayerSearchService();
   const playerValueService = new PlayerValueService(() => info);
   events.getItemBy = (type, queryOptions, insertData, replaceData) =>
-    playerSearchService.search(type, queryOptions, insertData, replaceData, {
-      getClubPlayers: () => repositories.Item.club.items.values(),
-      getStorageItems: () => repositories.Item.getStorageItems(),
-      getInfo: () => info,
-      getBuild: () => info.build,
-      getSet: () => info.set,
-      getLock: () => info.lock,
-      debug,
-      repositories: { Item: repositories.Item, Squad: repositories.Squad },
-      services: { User: services.User, Squad: services.Squad }
-    });
+    playerSearchService.search(type, queryOptions, insertData, replaceData, helpers.playerSearch());
 
   events.isPrecious = (rating, flag, price, type) =>
     playerValueService.isPrecious(rating, flag, price, type);
@@ -42,48 +34,24 @@ export function registerEarlyModules(deps) {
     sbcRequirementsService.requirementsToText(requirement, SBCEligibilityKey, fy);
 }
 
-export function registerLateModules(deps) {
-  const {
+export function registerLateModules(ctx) {
+  const { events, info, repositories, services, cntlr, debug, fy, isPhone, pdb } = ctx;
+  const helpers = createDomainHelpers(ctx);
+
+  registerSbcDataEvents({
     events,
     info,
-    repositories,
-    services,
-    cntlr,
-    debug,
     fy,
-    eafy,
-    futbinId,
-    pdb,
+    futbinId: ctx.futbinId,
     isPhone,
-    httpClient,
-    priceService
-  } = deps;
-
-  registerSbcDataEvents({ events, info, fy, futbinId, isPhone, cntlr, services, debug });
+    cntlr,
+    services,
+    debug
+  });
   registerSbcRatingEvents({ events, info, debug, fy });
 
   const marketActionService = new MarketActionService();
-  const marketHelpers = () => ({
-    getInfo: () => info,
-    fy,
-    debug,
-    futbinId,
-    getCachePrice: (...args) => events.getCachePrice(...args),
-    createButton: (...args) => events.createButton(...args),
-    pdb,
-    notice: (...args) => events.notice(...args),
-    xmlHttpRequest: GM_xmlhttpRequest,
-    showLoader: () => events.showLoader(),
-    hideLoader: () => events.hideLoader(),
-    changeLoadingText: (...args) => events.changeLoadingText(...args),
-    sendPinEvents: (...args) => events.sendPinEvents(...args),
-    wait: (...args) => events.wait(...args),
-    cardAddBuyErrorTips: (...args) => events.cardAddBuyErrorTips(...args),
-    isPhone,
-    getCurrentController: () => cntlr.current(),
-    getLeftController: () => cntlr.left(),
-    playerGetLimits: (...args) => events.playerGetLimits(...args)
-  });
+  const marketHelpers = helpers.market;
 
   events.getAuction = (e, player) => marketActionService.getAuction(e, player, marketHelpers());
   events.buyConceptPlayer = (players, view) =>
@@ -101,24 +69,7 @@ export function registerLateModules(deps) {
   events.losAuctionCount = (e, t) => marketActionService.losAuctionCount(e, t, marketHelpers());
 
   const packService = new PackService();
-  const packHelpers = () => ({
-    fy,
-    hideLoader: () => events.hideLoader(),
-    showLoader: () => events.showLoader(),
-    createElementWithConfig: (...args) => events.createElementWithConfig(...args),
-    createButton: (...args) => events.createButton(...args),
-    getInfo: () => info,
-    jsonToItemEntity: (...args) => events.jsonToItemEntity(...args),
-    debug,
-    notice: (...args) => events.notice(...args),
-    getOddo: (...args) => events.getOddo(...args),
-    loadPlayerInfo: (...args) => events.loadPlayerInfo(...args),
-    getCurrentController: () => cntlr.current(),
-    externalRequest: (...args) => events.externalRequest(...args),
-    getItemBy: (...args) => events.getItemBy(...args),
-    openFutbinPlayerUrl: (...args) => events.openFutbinPlayerUrl(...args),
-    createDF: (...args) => events.createDF(...args)
-  });
+  const packHelpers = helpers.pack;
 
   events.raelProbability = (pack) => packService.raelProbability(pack, packHelpers());
   events.tryPack = (pack) => packService.tryPack(pack, packHelpers());
@@ -133,42 +84,10 @@ export function registerLateModules(deps) {
   events.openPacksResultPopup = (title, text, players, desc) =>
     packService.openPacksResultPopup(title, text, players, desc, packHelpers());
 
-  const autoBuyHelpers = {
-    getInfo: () => info,
-    getNavigationController: () => cntlr.current()?.getNavigationController?.(),
-    isPhone,
-    getFutbinUrl: (url) => priceService.getFutbinUrl(url),
-    hideLoader: () => events.hideLoader(),
-    debug,
-    createElementWithConfig: (...args) => events.createElementWithConfig(...args),
-    fy,
-    createButton: (...args) => events.createButton(...args)
-  };
-  Object.assign(events, new AutoBuyService().createFacade(autoBuyHelpers));
+  Object.assign(events, new AutoBuyService().createFacade(helpers.autoBuy));
 
-  const academyHelpers = {
-    getInfo: () => info,
-    createElementWithConfig: (...args) => events.createElementWithConfig(...args),
-    fy,
-    notice: (...args) => events.notice(...args)
-  };
-  Object.assign(events, new AcademyCalcService().createFacade(academyHelpers));
-
-  const fgHelpers = {
-    getInfo: () => info,
-    getAcceleRate: (...args) => events.getAcceleRate(...args),
-    getBoostedAttribute: (...args) => events.getBoostedAttribute(...args),
-    debug,
-    getCurrentController: () => cntlr.current(),
-    showLoader: () => events.showLoader(),
-    hideLoader: () => events.hideLoader(),
-    createElementWithConfig: (...args) => events.createElementWithConfig(...args),
-    createDF: (...args) => events.createDF(...args),
-    fy,
-    eafy,
-    notice: (...args) => events.notice(...args)
-  };
-  Object.assign(events, new FgRatingService().createFacade(fgHelpers));
+  Object.assign(events, new AcademyCalcService().createFacade(helpers.academy));
+  Object.assign(events, new FgRatingService().createFacade(helpers.fg));
 
   events.detailsButtonSet = (e) => {
     if (!isPhone() && !cntlr.current().rightController) return;

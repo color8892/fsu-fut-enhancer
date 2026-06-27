@@ -7,6 +7,7 @@ import { runPreferencesServiceTests } from "./preferences-services.test.mjs";
 import { runSbcChemistryTests } from "./sbc-chemistry.test.mjs";
 import { runSbcServiceTests } from "./sbc-services.test.mjs";
 import { runPlayerSearchTests } from "./player-search.test.mjs";
+import { runFsuContextTests } from "./fsu-context.test.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
@@ -204,6 +205,8 @@ function assertUserscriptBundle() {
   assert.ok(userscript.includes("FsuJsonStore"));
   assert.ok(userscript.includes("FsuHttpClient"));
   assert.ok(userscript.includes("FsuUserscriptApp"));
+  assert.ok(userscript.includes("FsuContext"));
+  assert.ok(userscript.includes("createGameInfo"));
   assert.ok(userscript.includes("createFutbinIdFacade"));
   assert.ok(userscript.includes("getPriceForUrl"));
   assert.ok(!userscript.includes("function futgg"));
@@ -254,5 +257,6 @@ runPreferencesServiceTests();
 runSbcChemistryTests();
 runSbcServiceTests();
 runPlayerSearchTests();
+runFsuContextTests();
 await assertTabService();
 console.log("All extension tests passed.");
