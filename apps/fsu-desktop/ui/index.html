@@ -264,6 +264,10 @@
         </div>
       </div>
       <div class="row hidden" id="club-picker-row">
+        <div class="field">
+          <label for="club-min-rating">Min OVR</label>
+          <input id="club-min-rating" type="number" min="45" max="99" placeholder="Any" />
+        </div>
         <div class="field" style="flex: 1; min-width: 16rem">
           <label for="club-player-pick">Insert club player into slot</label>
           <select id="club-player-pick"></select>
@@ -271,6 +275,10 @@
         <div class="field" style="align-self: flex-end">
           <label>&nbsp;</label>
           <button id="insert-club-player" class="secondary">Insert</button>
+        </div>
+        <div class="field" style="align-self: flex-end">
+          <label>&nbsp;</label>
+          <button id="reset-club-picker" class="secondary">Reset</button>
         </div>
       </div>
       <div class="row">
@@ -282,7 +290,7 @@
       </p>
       <p style="margin: 0.25rem 0 0; font-size: 0.75rem" class="muted">
         Tips: click a chemistry candidate or missing rating pill to filter the player picker.
-        Double-click the picker to reset.
+        Use Min OVR or Reset to adjust the list.
       </p>
     </div>
 
@@ -425,6 +433,9 @@
 
       let clubCache = null;
       let clubPlayerPickList = [];
+      let clubPickerOverride = null;
+      let clubPickerMinRating = null;
+      let clubPickerMaxRating = null;
       let clubLeagueMap = null;
       let lastExportPayload = null;
 
@@ -523,34 +534,65 @@
         return `${player.rating} ${pos} — ${player.nation_id}/${player.league_id}/${player.team_id}`;
       }
 
-      function refreshClubPlayerPicker(players = null) {
+      function resolveClubPickerSource() {
+        let source = clubPickerOverride ?? clubCache?.players ?? [];
+        if (clubPickerMinRating != null) {
+          source = source.filter((player) => player.rating >= clubPickerMinRating);
+        }
+        if (clubPickerMaxRating != null) {
+          source = source.filter((player) => player.rating <= clubPickerMaxRating);
+        }
+        return source;
+      }
+
+      function refreshClubPlayerPicker() {
         const row = document.getElementById("club-picker-row");
         const select = document.getElementById("club-player-pick");
-        const source = players ?? clubCache?.players;
-        if (!source?.length) {
+        if (!clubCache?.players?.length) {
           row.classList.add("hidden");
           select.innerHTML = "";
           clubPlayerPickList = [];
-          return;
+          return 0;
         }
 
+        const source = resolveClubPickerSource();
         clubPlayerPickList = [...source].sort((left, right) => right.rating - left.rating);
-        select.innerHTML = clubPlayerPickList
-          .map(
-            (player, index) =>
-              `<option value="${index}">${formatClubPlayerOption(player)}</option>`
-          )
-          .join("");
+        select.innerHTML = clubPlayerPickList.length
+          ? clubPlayerPickList
+              .map(
+                (player, index) =>
+                  `<option value="${index}">${formatClubPlayerOption(player)}</option>`
+              )
+              .join("")
+          : `<option value="">No players match filter</option>`;
         row.classList.remove("hidden");
+        return clubPlayerPickList.length;
+      }
+
+      function resetClubPlayerPicker() {
+        clubPickerOverride = null;
+        clubPickerMinRating = null;
+        clubPickerMaxRating = null;
+        document.getElementById("club-min-rating").value = "";
+        return refreshClubPlayerPicker();
       }
 
       function filterClubPlayerPicker(candidate) {
         if (!clubCache?.players?.length) return 0;
-        const matches = clubCache.players.filter((player) =>
+        clubPickerOverride = clubCache.players.filter((player) =>
           playerMatchesCandidate(player, candidate)
         );
-        refreshClubPlayerPicker(matches);
-        return matches.length;
+        clubPickerMaxRating = null;
+        return refreshClubPlayerPicker();
+      }
+
+      function filterClubPlayerPickerByRating(rating) {
+        if (!clubCache?.players?.length) return 0;
+        clubPickerOverride = null;
+        clubPickerMinRating = rating;
+        clubPickerMaxRating = rating;
+        document.getElementById("club-min-rating").value = String(rating);
+        return refreshClubPlayerPicker();
       }
 
       function setSquadLineAt(slotIndex, nationId, leagueId, teamId) {
@@ -700,13 +742,6 @@
             return `<span class="pill" data-rating="${ratingNumber}"${clickable} style="${cursor}" title="Filter club players by this rating">${rating}×${needCount}</span>${clubHint}`;
           })
           .join("");
-      }
-
-      function filterClubPlayerPickerByRating(rating) {
-        if (!clubCache?.players?.length) return 0;
-        const matches = clubCache.players.filter((player) => player.rating === rating);
-        refreshClubPlayerPicker(matches);
-        return matches.length;
       }
 
       function renderFillRatings(ratings) {
@@ -1414,13 +1449,23 @@
         }
       });
 
-      document
-        .getElementById("club-player-pick")
-        .addEventListener("dblclick", () => {
-          refreshClubPlayerPicker();
+      document.getElementById("reset-club-picker").addEventListener("click", () => {
+        const count = resetClubPlayerPicker();
+        document.getElementById("club-map-status").textContent =
+          `Picker reset — ${count} club player(s) available.`;
+      });
+
+      document.getElementById("club-min-rating").addEventListener("input", () => {
+        const value = Number.parseInt(document.getElementById("club-min-rating").value, 10);
+        clubPickerOverride = null;
+        clubPickerMinRating = Number.isFinite(value) ? value : null;
+        clubPickerMaxRating = null;
+        const count = refreshClubPlayerPicker();
+        if (clubPickerMinRating != null) {
           document.getElementById("club-map-status").textContent =
-            "Picker reset — showing all club players.";
-        });
+            `Picker filtered — ${count} player(s) at OVR ${clubPickerMinRating}+.`;
+        }
+      });
 
       document.getElementById("insert-club-player").addEventListener("click", () => {
         if (!clubPlayerPickList.length) return;
