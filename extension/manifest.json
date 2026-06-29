@@ -18,7 +18,7 @@
     "https://fut.to/*"
   ],
   "background": {
-    "service_worker": "src/background.cjs"
+    "service_worker": "src/background.js"
   },
   "content_scripts": [
     {

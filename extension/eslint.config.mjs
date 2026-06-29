@@ -60,7 +60,7 @@ export default [
     }
   },
   {
-    files: ["src/background.cjs", "src/content-bridge.js", "src/page-runtime.js"],
+    files: ["src/background.js", "src/content-bridge.js", "src/page-runtime.js"],
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: "commonjs",
