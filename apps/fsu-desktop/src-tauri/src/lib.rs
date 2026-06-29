@@ -1,6 +1,5 @@
 use ea_client::{
-    build_club_league_map, ClubPlayer, ClubRatingInventory, ClubSnapshot, EaSession, GamePlatform,
-    UtasClient,
+    ClubPlayer, ClubRatingInventory, ClubSnapshot, EaSession, GamePlatform, UtasClient,
 };
 use fsu_core::{
     fetch_rating_lowprices, need_ratings_count, price_last_diff, team_rating_count, ApiPlatform,
@@ -276,13 +275,6 @@ fn map_club_player(player: ClubPlayer) -> ClubPlayerDto {
     }
 }
 
-fn map_club_players_list(list: ClubPlayersList) -> ClubPlayersListDto {
-    ClubPlayersListDto {
-        total_players: list.total_players,
-        players: list.players.into_iter().map(map_club_player).collect(),
-    }
-}
-
 async fn load_rating_prices(http: &ReqwestHttp, platform: &str) -> HashMap<i32, i32> {
     fetch_rating_lowprices(http.clone(), platform)
         .await
@@ -547,6 +539,7 @@ async fn fetch_player_prices(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use ea_client::build_club_league_map;
 
     #[test]
     fn squad_from_dtos_pads_to_eleven_slots() {
