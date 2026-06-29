@@ -14326,6 +14326,7 @@
           simulatedJson.push({
             ratings: i2,
             sum: _.sum(i2),
+            squadRating: simulatedCount,
             existValue,
             existRatings,
             lackValue,

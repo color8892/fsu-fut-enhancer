@@ -289,7 +289,7 @@
         Club league map not loaded — sync club data for better candidate suggestions.
       </p>
       <p style="margin: 0.25rem 0 0; font-size: 0.75rem" class="muted">
-        Tips: click a chemistry candidate or missing rating pill to filter the player picker.
+        Tips: click missing/fill rating pills or chemistry candidates to filter the player picker.
         Use Min OVR or Reset to adjust the list.
       </p>
     </div>
@@ -744,9 +744,14 @@
           .join("");
       }
 
-      function renderFillRatings(ratings) {
+      function renderFillRatings(ratings, clickable = false) {
         return (ratings || [])
-          .map((rating) => `<span class="pill">${rating}</span>`)
+          .map((rating) => {
+            if (!clickable) {
+              return `<span class="pill">${rating}</span>`;
+            }
+            return `<span class="pill" data-fill-rating="${rating}" style="cursor:pointer" title="Filter club picker to OVR ${rating}">${rating}</span>`;
+          })
           .join("");
       }
 
@@ -1081,7 +1086,7 @@
               <td class="num">${option.sum}</td>
               <td class="num">${formatCoins(option.exist_value)}</td>
               <td class="num">${formatCoins(option.lack_value)}</td>
-              <td>${renderFillRatings(option.ratings)}</td>
+              <td class="fill-cell">${renderFillRatings(option.ratings, Boolean(ratingCounts))}</td>
               <td class="missing-cell">${missing || '<span class="muted">none</span>'}</td>
               <td class="num">${clubFill}</td>
             </tr>`;
@@ -1098,6 +1103,21 @@
               matchCount > 0
                 ? `Picker filtered — ${matchCount} club player(s) at rating ${rating}.`
                 : `No club players at rating ${rating}.`;
+          });
+        });
+
+        optionsBody.querySelectorAll("[data-fill-rating]").forEach((pill) => {
+          pill.addEventListener("click", (event) => {
+            event.stopPropagation();
+            const rating = Number.parseInt(pill.dataset.fillRating, 10);
+            if (!Number.isFinite(rating)) return;
+            clubPickerOverride = null;
+            clubPickerMinRating = rating;
+            clubPickerMaxRating = null;
+            document.getElementById("club-min-rating").value = String(rating);
+            const matchCount = refreshClubPlayerPicker();
+            document.getElementById("club-map-status").textContent =
+              `Picker filtered — ${matchCount} player(s) at OVR ${rating}+.`;
           });
         });
 

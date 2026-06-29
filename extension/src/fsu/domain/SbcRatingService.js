@@ -151,6 +151,7 @@ export class SbcRatingService {
         simulatedJson.push({
           ratings: i,
           sum: _.sum(i),
+          squadRating: simulatedCount,
           existValue,
           existRatings,
           lackValue,
