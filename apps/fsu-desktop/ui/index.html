@@ -212,6 +212,7 @@
       <div class="row">
         <button id="plan-rating">Plan (offline)</button>
         <button id="plan-with-club">Plan with club</button>
+        <button id="sync-and-plan">Sync &amp; plan</button>
         <button id="sync-club" class="secondary">Sync club data</button>
         <button id="fetch-club" class="secondary">Show inventory</button>
         <button id="fetch-club-players" class="secondary">Show players</button>
@@ -1371,10 +1372,19 @@
         );
       });
 
-      document.getElementById("plan-with-club").addEventListener("click", async () => {
+      async function planWithClub({ forceSync = false } = {}) {
         const { target, brickCount, existingRatings, accessToken, platform } = plannerArgs();
 
-        await ensureClubReady();
+        if (!accessToken.trim()) {
+          showRawOutput("Paste X-UT-SID to plan with club inventory.");
+          return;
+        }
+
+        if (forceSync) {
+          await syncClubData();
+        } else {
+          await ensureClubReady();
+        }
 
         if (clubCache) {
           invokeRust(
@@ -1386,21 +1396,22 @@
               ratingCounts: clubCache.ratingCounts,
               platform,
             },
-            { target, kind: "club-cached" }
+            { target, kind: forceSync ? "club-sync" : "club-cached" }
           );
           return;
         }
 
-        if (!accessToken.trim()) {
-          showRawOutput("Paste X-UT-SID to plan with club inventory.");
-          return;
-        }
         invokeRust(
           "plan_rating_with_club",
           { accessToken, platform, target, existingRatings, brickCount },
           { target, kind: "club" }
         );
-      });
+      }
+
+      document.getElementById("plan-with-club").addEventListener("click", () => planWithClub());
+      document.getElementById("sync-and-plan").addEventListener("click", () =>
+        planWithClub({ forceSync: true })
+      );
 
       document.getElementById("sync-club").addEventListener("click", () => {
         syncClubData({ showResults: true });

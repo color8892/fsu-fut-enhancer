@@ -10,6 +10,7 @@ import { runPlayerSearchTests } from "./player-search.test.mjs";
 import { runFsuContextTests } from "./fsu-context.test.mjs";
 import { runLocalizationTests } from "./localization.test.mjs";
 import { runRatingPricesTests } from "./rating-prices.test.mjs";
+import { runSbcRatingTests } from "./sbc-rating.test.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
@@ -262,5 +263,6 @@ runPlayerSearchTests();
 runFsuContextTests();
 runLocalizationTests();
 runRatingPricesTests();
+runSbcRatingTests();
 await assertTabService();
 console.log("All extension tests passed.");
