@@ -226,16 +226,17 @@
         <button id="plan-with-club">Plan with club</button>
         <button id="sync-and-plan">Sync &amp; plan</button>
         <button id="sync-club" class="secondary">Sync club data</button>
+        <button id="clear-club-cache" class="secondary">Clear cache</button>
         <button id="fetch-club" class="secondary">Show inventory</button>
         <button id="fetch-club-players" class="secondary">Show players</button>
         <button id="open-fut-planner" class="secondary">Open FUT Web App</button>
       </div>
       <p id="club-sync-status" style="margin: 0.35rem 0 0; font-size: 0.8rem" class="muted">
-        Club data not synced — inventory and chemistry use live UTAS fetches.
+        Club data not synced — sync once, then plan from cache without X-UT-SID.
       </p>
       <p style="margin: 0.5rem 0 0; font-size: 0.85rem">
         <strong>Plan (offline)</strong> assumes any rating is obtainable.
-        <strong>Plan with club</strong> uses your real club counts via UTAS.
+        <strong>Plan with club</strong> uses cached or live club counts (no SID needed when cache is fresh).
       </p>
       <p style="margin: 0.35rem 0 0; font-size: 0.8rem" class="muted">
         To get <code>X-UT-SID</code>: open FUT Web App → DevTools (F12) → Network → any
@@ -507,6 +508,39 @@
         }
       }
 
+      async function clearClubPlayersDb() {
+        try {
+          const db = await openClubPlayersDb();
+          const tx = db.transaction(CLUB_PLAYERS_STORE, "readwrite");
+          tx.objectStore(CLUB_PLAYERS_STORE).delete("list");
+          await new Promise((resolve, reject) => {
+            tx.oncomplete = resolve;
+            tx.onerror = () => reject(tx.error);
+          });
+          db.close();
+        } catch (_error) {
+          /* ignore */
+        }
+      }
+
+      async function clearClubCache() {
+        clubCache = null;
+        clubLeagueMap = null;
+        clubPlayerPickList = [];
+        clubPickerOverride = null;
+        clubPickerMinRating = null;
+        clubPickerMaxRating = null;
+        try {
+          sessionStorage.removeItem(CLUB_CACHE_KEY);
+        } catch (_error) {
+          /* ignore */
+        }
+        await clearClubPlayersDb();
+        updateClubSyncStatus();
+        updateClubMapStatus();
+        refreshClubPlayerPicker();
+      }
+
       function applyClubSnapshot(snapshot, { syncedAt = Date.now(), players = null } = {}) {
         clubCache = {
           syncedAt,
@@ -575,10 +609,10 @@
 
         const when = new Date(clubCache.syncedAt).toLocaleTimeString();
         const staleNote = isClubCacheStale() ? " (stale — re-sync recommended)" : "";
-        const partialNote = clubCache.players?.length
-          ? ""
+        const pickerNote = clubCache.players?.length
+          ? ` — ${clubCache.players.length} in picker`
           : " (rating counts only — sync for player picker)";
-        status.textContent = `Club synced at ${when} — ${clubCache.totalPlayers} players cached${partialNote}${staleNote}.`;
+        status.textContent = `Club synced at ${when} — ${clubCache.totalPlayers} players cached${pickerNote}${staleNote}.`;
       }
 
       function playerMatchesCandidate(player, candidate) {
@@ -871,11 +905,16 @@
       }
 
       async function ensureClubReady({ refreshIfStale = true } = {}) {
-        const { accessToken } = plannerArgs();
-        if (!accessToken.trim()) return false;
+        if (clubCache && (!refreshIfStale || !isClubCacheStale())) {
+          return true;
+        }
 
-        const needsFetch = !clubCache || (refreshIfStale && isClubCacheStale());
-        if (needsFetch) {
+        const { accessToken } = plannerArgs();
+        if (!accessToken.trim()) {
+          return Boolean(clubCache);
+        }
+
+        if (!clubCache || (refreshIfStale && isClubCacheStale())) {
           await syncClubData();
         }
 
@@ -1495,18 +1534,17 @@
       async function planWithClub({ forceSync = false } = {}) {
         const { target, brickCount, existingRatings, accessToken, platform } = plannerArgs();
 
-        if (!accessToken.trim()) {
-          showRawOutput("Paste X-UT-SID to plan with club inventory.");
-          return;
-        }
-
         if (forceSync) {
+          if (!accessToken.trim()) {
+            showRawOutput("Paste X-UT-SID to sync club data.");
+            return;
+          }
           await syncClubData();
         } else {
           await ensureClubReady();
         }
 
-        if (clubCache) {
+        if (clubCache?.ratingCounts) {
           invokeRust(
             "plan_rating_from_inventory",
             {
@@ -1518,6 +1556,11 @@
             },
             { target, kind: forceSync ? "club-sync" : "club-cached" }
           );
+          return;
+        }
+
+        if (!accessToken.trim()) {
+          showRawOutput("Paste X-UT-SID or sync club data first.");
           return;
         }
 
@@ -1535,6 +1578,13 @@
 
       document.getElementById("sync-club").addEventListener("click", () => {
         syncClubData({ showResults: true });
+      });
+
+      document.getElementById("clear-club-cache").addEventListener("click", () => {
+        void clearClubCache().then(() => {
+          document.getElementById("club-sync-status").textContent =
+            "Club cache cleared — sync again to refresh UTAS data.";
+        });
       });
 
       document.getElementById("fetch-club").addEventListener("click", () => {
