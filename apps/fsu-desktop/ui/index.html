@@ -352,6 +352,10 @@
         <button id="copy-needs" class="secondary hidden">Copy needs list</button>
         <button id="export-csv" class="secondary hidden">Export CSV</button>
         <button id="export-txt" class="secondary hidden">Export TXT</button>
+        <label class="check" style="margin-left: auto">
+          <input id="auto-copy-needs" type="checkbox" />
+          Auto-copy needs
+        </label>
       </div>
       <p id="results-summary" class="results-summary"></p>
       <div id="inventory-section" class="results-section hidden">
@@ -433,6 +437,9 @@
 
       const STORAGE_KEY = "fsu-desktop-session-v1";
       const CLUB_CACHE_KEY = "fsu-desktop-club-cache-v1";
+      const CLUB_PLAYERS_DB = "fsu-desktop-club-v1";
+      const CLUB_PLAYERS_STORE = "players";
+      const AUTO_COPY_KEY = "fsu-desktop-auto-copy-needs";
       const CLUB_CACHE_MAX_AGE_MS = 30 * 60 * 1000;
       const PERSISTED_FIELDS = [
         "ea-token-planner",
@@ -457,6 +464,49 @@
       let clubLeagueMap = null;
       let lastExportPayload = null;
 
+      function openClubPlayersDb() {
+        return new Promise((resolve, reject) => {
+          const request = indexedDB.open(CLUB_PLAYERS_DB, 1);
+          request.onupgradeneeded = () => {
+            request.result.createObjectStore(CLUB_PLAYERS_STORE);
+          };
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        });
+      }
+
+      async function persistClubPlayers(players) {
+        if (!players?.length) return;
+        try {
+          const db = await openClubPlayersDb();
+          const tx = db.transaction(CLUB_PLAYERS_STORE, "readwrite");
+          tx.objectStore(CLUB_PLAYERS_STORE).put(players, "list");
+          await new Promise((resolve, reject) => {
+            tx.oncomplete = resolve;
+            tx.onerror = () => reject(tx.error);
+          });
+          db.close();
+        } catch (_error) {
+          /* ignore quota errors */
+        }
+      }
+
+      async function loadClubPlayers() {
+        try {
+          const db = await openClubPlayersDb();
+          const tx = db.transaction(CLUB_PLAYERS_STORE, "readonly");
+          const request = tx.objectStore(CLUB_PLAYERS_STORE).get("list");
+          const players = await new Promise((resolve, reject) => {
+            request.onsuccess = () => resolve(request.result ?? null);
+            request.onerror = () => reject(request.error);
+          });
+          db.close();
+          return Array.isArray(players) ? players : null;
+        } catch (_error) {
+          return null;
+        }
+      }
+
       function applyClubSnapshot(snapshot, { syncedAt = Date.now(), players = null } = {}) {
         clubCache = {
           syncedAt,
@@ -467,6 +517,7 @@
         };
         clubLeagueMap = clubCache.clubLeagues;
         persistClubCacheMeta();
+        void persistClubPlayers(clubCache.players);
         updateClubSyncStatus();
         updateClubMapStatus();
         refreshClubPlayerPicker();
@@ -489,18 +540,19 @@
         }
       }
 
-      function loadClubCacheMeta() {
+      async function loadClubCacheMeta() {
         try {
           const raw = sessionStorage.getItem(CLUB_CACHE_KEY);
           if (!raw) return;
           const saved = JSON.parse(raw);
+          const players = (await loadClubPlayers()) ?? [];
           applyClubSnapshot(
             {
               total_players: saved.totalPlayers,
               rating_counts: saved.ratingCounts,
               club_leagues: saved.clubLeagues,
             },
-            { syncedAt: saved.syncedAt, players: [] }
+            { syncedAt: saved.syncedAt, players }
           );
         } catch (_error) {
           /* ignore corrupt storage */
@@ -847,6 +899,41 @@
           .map(([rating, count]) => `${rating} : ${count}`);
       }
 
+      function loadAutoCopyPreference() {
+        try {
+          return localStorage.getItem(AUTO_COPY_KEY) === "1";
+        } catch (_error) {
+          return false;
+        }
+      }
+
+      function persistAutoCopyPreference(enabled) {
+        try {
+          localStorage.setItem(AUTO_COPY_KEY, enabled ? "1" : "0");
+        } catch (_error) {
+          /* ignore quota errors */
+        }
+      }
+
+      async function maybeAutoCopyNeeds(options, summaryBase) {
+        if (!document.getElementById("auto-copy-needs").checked) {
+          return summaryBase;
+        }
+
+        const needs = needsListLines(options?.[0]?.lack_ratings);
+        if (!needs.length) {
+          return summaryBase;
+        }
+
+        const text = needs.join("\n");
+        try {
+          await navigator.clipboard.writeText(text);
+          return `${summaryBase} — needs list copied`;
+        } catch (_error) {
+          return summaryBase;
+        }
+      }
+
       function exportFilename(payload, extension) {
         const date = new Date().toISOString().slice(0, 10);
         const target =
@@ -1153,9 +1240,7 @@
               targetRating != null ? ` (target ${targetRating})` : ""
             }`
           : "";
-        document.getElementById("results-summary").textContent = bestDetail
-          ? `${summary} — ${bestDetail}`
-          : summary;
+        const summaryText = bestDetail ? `${summary} — ${bestDetail}` : summary;
         document.getElementById("options-section").classList.remove("hidden");
 
         let inventoryRows = [];
@@ -1172,11 +1257,18 @@
         document.getElementById("results").classList.remove("hidden");
         document.getElementById("out").classList.add("hidden");
         setExportPayload({
-          summary,
+          summary: summaryText,
           inventory: inventoryRows,
           options,
           target: exportMeta.target ?? null,
           kind: exportMeta.kind ?? "plan",
+        });
+
+        void maybeAutoCopyNeeds(options, summaryText).then((finalSummary) => {
+          document.getElementById("results-summary").textContent = finalSummary;
+          if (lastExportPayload) {
+            lastExportPayload.summary = finalSummary;
+          }
         });
       }
 
@@ -1346,7 +1438,11 @@
       syncSidInputs(document.getElementById("ea-token"), document.getElementById("ea-token-planner"));
 
       loadPersistedSession();
-      loadClubCacheMeta();
+      void loadClubCacheMeta();
+      document.getElementById("auto-copy-needs").checked = loadAutoCopyPreference();
+      document.getElementById("auto-copy-needs").addEventListener("change", (event) => {
+        persistAutoCopyPreference(event.target.checked);
+      });
       for (const id of PERSISTED_FIELDS) {
         const element = document.getElementById(id);
         if (element) {

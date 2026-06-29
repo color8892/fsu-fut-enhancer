@@ -421,7 +421,8 @@ UTSBCSquadOverviewViewController.prototype.initWithSBCSet = function (...args) {
                         fy(va ? "squadcmpl.popupmsup" : "squadcmpl.popupmsupallconcept")
                     )
                     if(fillRating.length && fillRating[0].ratings.length && fillRating[0].lackRatings.length == 0){
-                        events.notice(["squadcmpl.simulatedsuccess",`${hasRating}`,`${fillRating[0].existValue.toLocaleString()}`],0)
+                        const squadRating = fillRating[0].squadRating ?? hasRating;
+                        events.notice(["squadcmpl.simulatedsuccess",`${squadRating}`,`${fillRating[0].existValue.toLocaleString()}`],0)
                     }else if(va && !exactRating){
                         events.notice("squadcmpl.simulatederror",2)
                     }
