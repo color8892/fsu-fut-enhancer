@@ -1,4 +1,5 @@
 use crate::error::EaClientError;
+use crate::player::{parse_club_player, ClubPlayer};
 use crate::session::EaSession;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -19,6 +20,12 @@ pub struct ClubPlayersResult {
 pub struct ClubRatingInventory {
     pub total_players: usize,
     pub rating_counts: HashMap<i32, i32>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ClubPlayersList {
+    pub total_players: usize,
+    pub players: Vec<ClubPlayer>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -124,6 +131,45 @@ impl UtasClient {
         })
     }
 
+    /// Paginate club players and return parsed identity fields.
+    #[cfg(feature = "async")]
+    pub async fn fetch_club_players_list(
+        &self,
+        session: &EaSession,
+    ) -> Result<ClubPlayersList, EaClientError> {
+        if session.access_token.is_empty() {
+            return Err(EaClientError::MissingSession);
+        }
+
+        let mut players = Vec::new();
+        let mut start = 0i32;
+
+        loop {
+            let page = self.fetch_club_page(session, start, CLUB_PAGE_SIZE).await?;
+            let page_len = page.item_data.len();
+            if page_len == 0 {
+                break;
+            }
+
+            for item in &page.item_data {
+                if let Some(player) = parse_club_player(item) {
+                    players.push(player);
+                }
+            }
+
+            if page_len < CLUB_PAGE_SIZE as usize {
+                break;
+            }
+
+            start += CLUB_PAGE_SIZE;
+        }
+
+        Ok(ClubPlayersList {
+            total_players: players.len(),
+            players,
+        })
+    }
+
     #[cfg(feature = "async")]
     async fn fetch_club_page(
         &self,
@@ -182,6 +228,13 @@ impl UtasClient {
     #[cfg(not(feature = "async"))]
     pub fn fetch_club_inventory(&self, _session: &EaSession) -> Result<ClubRatingInventory, EaClientError> {
         Err(EaClientError::NotImplemented("fetch_club_inventory requires async feature"))
+    }
+
+    #[cfg(not(feature = "async"))]
+    pub fn fetch_club_players_list(&self, _session: &EaSession) -> Result<ClubPlayersList, EaClientError> {
+        Err(EaClientError::NotImplemented(
+            "fetch_club_players_list requires async feature",
+        ))
     }
 }
 

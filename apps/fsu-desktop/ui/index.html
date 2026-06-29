@@ -195,6 +195,10 @@
           <label for="target-rating">Target squad rating</label>
           <input id="target-rating" type="number" min="0" max="99" value="84" />
         </div>
+        <div class="field">
+          <label for="brick-count">Brick slots (locked)</label>
+          <input id="brick-count" type="number" min="0" max="11" value="0" />
+        </div>
         <div class="field" style="flex: 1; min-width: 16rem">
           <label for="existing-ratings">Existing squad ratings (comma-separated)</label>
           <input
@@ -209,6 +213,7 @@
         <button id="plan-rating">Plan (offline)</button>
         <button id="plan-with-club">Plan with club</button>
         <button id="fetch-club" class="secondary">Fetch club inventory</button>
+        <button id="fetch-club-players" class="secondary">Fetch club players</button>
         <button id="open-fut-planner" class="secondary">Open FUT Web App</button>
       </div>
       <p style="margin: 0.5rem 0 0; font-size: 0.85rem">
@@ -280,6 +285,25 @@
           </table>
         </div>
       </div>
+      <div id="players-section" class="results-section hidden">
+        <h3 id="players-title">Club players</h3>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th class="num">OVR</th>
+                <th>Pos</th>
+                <th class="num">Nation</th>
+                <th class="num">League</th>
+                <th class="num">Club</th>
+                <th class="num">Resource</th>
+                <th>Trade</th>
+              </tr>
+            </thead>
+            <tbody id="players-body"></tbody>
+          </table>
+        </div>
+      </div>
       <div id="options-section" class="results-section hidden">
         <h3>Rating fill options</h3>
         <table>
@@ -304,6 +328,18 @@
       const FUT_WEB_APP_URL =
         "https://www.ea.com/ea-sports-fc/ultimate-team/web-app/";
 
+      const STORAGE_KEY = "fsu-desktop-session-v1";
+      const PERSISTED_FIELDS = [
+        "ea-token-planner",
+        "ea-platform-planner",
+        "target-rating",
+        "brick-count",
+        "existing-ratings",
+        "ea-token",
+        "ea-persona",
+        "ea-platform",
+      ];
+
       const sample = [
         { nation_id: 1, league_id: 10, team_id: 100 },
         { nation_id: 1, league_id: 10, team_id: 101 },
@@ -311,6 +347,34 @@
       ];
 
       let lastExportPayload = null;
+
+      function loadPersistedSession() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (!raw) return;
+          const saved = JSON.parse(raw);
+          for (const id of PERSISTED_FIELDS) {
+            if (saved[id] == null) continue;
+            const element = document.getElementById(id);
+            if (element) element.value = saved[id];
+          }
+        } catch (_error) {
+          /* ignore corrupt storage */
+        }
+      }
+
+      function persistSession() {
+        const saved = {};
+        for (const id of PERSISTED_FIELDS) {
+          const element = document.getElementById(id);
+          if (element) saved[id] = element.value;
+        }
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
+        } catch (_error) {
+          /* ignore quota errors */
+        }
+      }
 
       async function openFutWebApp() {
         const shellOpen = window.__TAURI__?.shell?.open;
@@ -415,6 +479,23 @@
           }
         }
 
+        if (payload.players?.length) {
+          lines.push("rating,position,nation,league,club,resource,tradeable");
+          for (const player of payload.players) {
+            lines.push(
+              [
+                player.rating,
+                player.preferred_position || "",
+                player.nation_id,
+                player.league_id,
+                player.team_id,
+                player.resource_id,
+                player.untradeable ? "no" : "yes",
+              ].join(",")
+            );
+          }
+        }
+
         if (payload.options?.length) {
           lines.push("option,squad_sum,from_club,still_need,fill_ratings,missing");
           payload.options.forEach((option, index) => {
@@ -445,6 +526,16 @@
           lines.push("");
         }
 
+        if (payload.players?.length) {
+          lines.push("Club players");
+          for (const player of payload.players) {
+            lines.push(
+              `${player.rating} ${player.preferred_position || "?"} — nation ${player.nation_id}, league ${player.league_id}, club ${player.team_id}, resource ${player.resource_id}${player.untradeable ? " (UT)" : ""}`
+            );
+          }
+          lines.push("");
+        }
+
         if (payload.options?.length) {
           const primaryNeeds = needsListLines(payload.options[0].lack_ratings);
           if (primaryNeeds.length) {
@@ -471,6 +562,7 @@
       function hideResults() {
         document.getElementById("results").classList.add("hidden");
         document.getElementById("inventory-section").classList.add("hidden");
+        document.getElementById("players-section").classList.add("hidden");
         document.getElementById("options-section").classList.add("hidden");
         setExportPayload(null);
       }
@@ -491,6 +583,42 @@
           .join("");
       }
 
+      function renderPlayersTable(players) {
+        const sorted = [...(players || [])].sort((left, right) => right.rating - left.rating);
+        document.getElementById("players-body").innerHTML = sorted
+          .map(
+            (player) => `<tr>
+              <td class="num">${player.rating}</td>
+              <td>${player.preferred_position || '<span class="muted">—</span>'}</td>
+              <td class="num">${player.nation_id}</td>
+              <td class="num">${player.league_id}</td>
+              <td class="num">${player.team_id}</td>
+              <td class="num">${player.resource_id}</td>
+              <td>${player.untradeable ? "UT" : "T"}</td>
+            </tr>`
+          )
+          .join("");
+      }
+
+      function renderPlayers(summary, players) {
+        renderPlayersTable(players);
+        document.getElementById("players-title").textContent =
+          `Club players (${players.length})`;
+        document.getElementById("results-summary").textContent = summary;
+        document.getElementById("players-section").classList.remove("hidden");
+        document.getElementById("inventory-section").classList.add("hidden");
+        document.getElementById("options-section").classList.add("hidden");
+        document.getElementById("results").classList.remove("hidden");
+        document.getElementById("out").classList.add("hidden");
+        setExportPayload({
+          summary,
+          players,
+          options: [],
+          target: null,
+          kind: "players",
+        });
+      }
+
       function renderInventory(summary, counts) {
         const rows = ratingCountRows(counts);
         renderInventoryTable(rows);
@@ -499,6 +627,7 @@
 
         document.getElementById("results-summary").textContent = summary;
         document.getElementById("inventory-section").classList.remove("hidden");
+        document.getElementById("players-section").classList.add("hidden");
         document.getElementById("options-section").classList.add("hidden");
         document.getElementById("results").classList.remove("hidden");
         document.getElementById("out").classList.add("hidden");
@@ -566,6 +695,14 @@
           return;
         }
 
+        if (command === "fetch_club_players") {
+          renderPlayers(
+            `Club players — ${result.total_players} parsed`,
+            result.players
+          );
+          return;
+        }
+
         if (command === "plan_rating_with_club") {
           renderOptions(
             `Target plan using ${result.inventory.total_players} club players`,
@@ -612,11 +749,13 @@
 
       function plannerArgs() {
         const target = Number.parseInt(document.getElementById("target-rating").value, 10);
+        const brickCount = Number.parseInt(document.getElementById("brick-count").value, 10);
         const existingRatings = parseIds(document.getElementById("existing-ratings").value);
         const accessToken = document.getElementById("ea-token-planner").value;
         const platform = document.getElementById("ea-platform-planner").value;
         return {
           target: Number.isFinite(target) ? target : 84,
+          brickCount: Number.isFinite(brickCount) ? Math.min(11, Math.max(0, brickCount)) : 0,
           existingRatings,
           accessToken,
           platform,
@@ -633,6 +772,15 @@
 
       syncSidInputs(document.getElementById("ea-token-planner"), document.getElementById("ea-token"));
       syncSidInputs(document.getElementById("ea-token"), document.getElementById("ea-token-planner"));
+
+      loadPersistedSession();
+      for (const id of PERSISTED_FIELDS) {
+        const element = document.getElementById(id);
+        if (element) {
+          element.addEventListener("input", persistSession);
+          element.addEventListener("change", persistSession);
+        }
+      }
 
       document.getElementById("copy-needs").addEventListener("click", async () => {
         const needs = needsListLines(lastExportPayload?.options?.[0]?.lack_ratings);
@@ -667,19 +815,23 @@
       });
 
       document.getElementById("plan-rating").addEventListener("click", () => {
-        const { target, existingRatings, platform } = plannerArgs();
-        invokeRust("simulate_rating_needs", { target, existingRatings, platform }, { target });
+        const { target, brickCount, existingRatings, platform } = plannerArgs();
+        invokeRust(
+          "simulate_rating_needs",
+          { target, brickCount, existingRatings, platform },
+          { target }
+        );
       });
 
       document.getElementById("plan-with-club").addEventListener("click", () => {
-        const { target, existingRatings, accessToken, platform } = plannerArgs();
+        const { target, brickCount, existingRatings, accessToken, platform } = plannerArgs();
         if (!accessToken.trim()) {
           showRawOutput("Paste X-UT-SID to plan with club inventory.");
           return;
         }
         invokeRust(
           "plan_rating_with_club",
-          { accessToken, platform, target, existingRatings },
+          { accessToken, platform, target, existingRatings, brickCount },
           { target }
         );
       });
@@ -691,6 +843,15 @@
           return;
         }
         invokeRust("fetch_club_inventory", { accessToken, platform });
+      });
+
+      document.getElementById("fetch-club-players").addEventListener("click", () => {
+        const { accessToken, platform } = plannerArgs();
+        if (!accessToken.trim()) {
+          showRawOutput("Paste X-UT-SID to fetch club players.");
+          return;
+        }
+        invokeRust("fetch_club_players", { accessToken, platform });
       });
 
       document.getElementById("calc").addEventListener("click", () =>

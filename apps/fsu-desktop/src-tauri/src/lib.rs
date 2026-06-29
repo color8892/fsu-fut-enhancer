@@ -1,4 +1,4 @@
-use ea_client::{ClubRatingInventory, EaSession, GamePlatform, UtasClient};
+use ea_client::{ClubPlayer, ClubPlayersList, ClubRatingInventory, EaSession, GamePlatform, UtasClient};
 use fsu_core::{
     fetch_rating_lowprices, need_ratings_count, price_last_diff, team_rating_count, ApiPlatform,
     ChemistryMeta, HttpGet, IdentityTeamLookup, MapTeamLookup, PriceFetchError, PriceService,
@@ -106,6 +106,25 @@ struct ClubInventoryDto {
 }
 
 #[derive(Debug, Serialize)]
+struct ClubPlayerDto {
+    id: i64,
+    resource_id: i64,
+    rating: i32,
+    nation_id: i32,
+    league_id: i32,
+    team_id: i32,
+    untradeable: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    preferred_position: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+struct ClubPlayersListDto {
+    total_players: usize,
+    players: Vec<ClubPlayerDto>,
+}
+
+#[derive(Debug, Serialize)]
 struct PlanRatingWithClubDto {
     inventory: ClubInventoryDto,
     options: Vec<RatingNeedDto>,
@@ -148,9 +167,14 @@ fn map_rating_need_results(results: Vec<fsu_core::RatingNeedResult>) -> Vec<Rati
         .collect()
 }
 
+fn normalize_brick_count(brick_count: Option<usize>) -> usize {
+    brick_count.unwrap_or(0).min(11)
+}
+
 fn map_rating_needs(
     target: i32,
     existing_ratings: Vec<i32>,
+    brick_count: usize,
     inventory: &ClubRatingInventory,
     price_by_rating: HashMap<i32, i32>,
 ) -> Vec<RatingNeedDto> {
@@ -159,12 +183,32 @@ fn map_rating_needs(
     map_rating_need_results(need_ratings_count(&RatingNeedOptions {
         target,
         existing_ratings,
-        brick_count: 0,
+        brick_count,
         available_ratings,
         available_counts,
         price_by_rating,
         squad_absent: false,
     }))
+}
+
+fn map_club_player(player: ClubPlayer) -> ClubPlayerDto {
+    ClubPlayerDto {
+        id: player.id,
+        resource_id: player.resource_id,
+        rating: player.rating,
+        nation_id: player.nation_id,
+        league_id: player.league_id,
+        team_id: player.team_id,
+        untradeable: player.untradeable,
+        preferred_position: player.preferred_position,
+    }
+}
+
+fn map_club_players_list(list: ClubPlayersList) -> ClubPlayersListDto {
+    ClubPlayersListDto {
+        total_players: list.total_players,
+        players: list.players.into_iter().map(map_club_player).collect(),
+    }
 }
 
 async fn load_rating_prices(http: &ReqwestHttp, platform: &str) -> HashMap<i32, i32> {
@@ -213,6 +257,7 @@ async fn simulate_rating_needs(
     state: tauri::State<'_, AppState>,
     target: i32,
     existing_ratings: Option<Vec<i32>>,
+    brick_count: Option<usize>,
     platform: Option<String>,
 ) -> Result<Vec<RatingNeedDto>, String> {
     let price_by_rating = match platform.as_deref() {
@@ -223,7 +268,7 @@ async fn simulate_rating_needs(
     Ok(map_rating_need_results(need_ratings_count(&RatingNeedOptions {
         target,
         existing_ratings: existing_ratings.unwrap_or_default(),
-        brick_count: 0,
+        brick_count: normalize_brick_count(brick_count),
         available_ratings: Vec::new(),
         available_counts: HashMap::new(),
         price_by_rating,
@@ -269,6 +314,21 @@ fn generate_candidate_options(
 }
 
 #[tauri::command]
+async fn fetch_club_players(
+    access_token: String,
+    platform: String,
+    persona_id: Option<String>,
+) -> Result<ClubPlayersListDto, String> {
+    let session = build_ea_session(access_token, &platform, persona_id);
+    let list = UtasClient::new()
+        .fetch_club_players_list(&session)
+        .await
+        .map_err(|error| error.to_string())?;
+
+    Ok(map_club_players_list(list))
+}
+
+#[tauri::command]
 async fn fetch_club_inventory(
     access_token: String,
     platform: String,
@@ -294,6 +354,7 @@ async fn plan_rating_with_club(
     persona_id: Option<String>,
     target: i32,
     existing_ratings: Option<Vec<i32>>,
+    brick_count: Option<usize>,
 ) -> Result<PlanRatingWithClubDto, String> {
     let session = build_ea_session(access_token, &platform, persona_id);
     let client = UtasClient::new();
@@ -306,6 +367,7 @@ async fn plan_rating_with_club(
     let options = map_rating_needs(
         target,
         existing_ratings.unwrap_or_default(),
+        normalize_brick_count(brick_count),
         &inventory,
         price_by_rating,
     );
@@ -392,6 +454,7 @@ pub fn run() {
             simulate_rating_needs,
             format_price_diff,
             generate_candidate_options,
+            fetch_club_players,
             fetch_club_inventory,
             plan_rating_with_club,
             probe_ea_session,

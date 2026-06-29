@@ -4,11 +4,14 @@
 //! flows are high-risk and will be added incrementally.
 
 pub mod error;
+pub mod player;
 pub mod session;
 pub mod utas;
 
 pub use error::EaClientError;
+pub use player::{parse_club_player, ClubPlayer};
 pub use session::{EaSession, GamePlatform};
 pub use utas::{
-    ClubPlayersResult, ClubRatingInventory, UtasClient, CLUB_PAGE_SIZE, UTAS_BASE_URL, UTAS_GAME_SLUG,
+    ClubPlayersList, ClubPlayersResult, ClubRatingInventory, UtasClient, CLUB_PAGE_SIZE,
+    UTAS_BASE_URL, UTAS_GAME_SLUG,
 };
