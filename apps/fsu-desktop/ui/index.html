@@ -278,7 +278,10 @@
         <button id="load-club-map" class="secondary">Load league map</button>
       </div>
       <p id="club-map-status" style="margin: 0.5rem 0 0; font-size: 0.8rem" class="muted">
-        Club league map not loaded — candidate suggestions use squad links only.
+        Club league map not loaded — sync club data for better candidate suggestions.
+      </p>
+      <p style="margin: 0.25rem 0 0; font-size: 0.75rem" class="muted">
+        Tip: click a chemistry candidate row to filter the player picker. Double-click the picker to reset.
       </p>
     </div>
 
@@ -387,6 +390,7 @@
               <th class="num">Still need</th>
               <th>Fill ratings</th>
               <th>Missing</th>
+              <th class="num">Club fill</th>
             </tr>
           </thead>
           <tbody id="options-body"></tbody>
@@ -660,6 +664,55 @@
         }, {});
       }
 
+      function coverableFromClub(lackRatings, ratingCounts) {
+        if (!ratingCounts || !lackRatings?.length) return null;
+
+        const need = missingSummary(lackRatings);
+        const available = { ...ratingCounts };
+        let covered = 0;
+        let total = 0;
+
+        for (const [ratingKey, count] of Object.entries(need)) {
+          const rating = Number(ratingKey);
+          const needCount = Number(count);
+          if (!Number.isFinite(rating) || !Number.isFinite(needCount)) continue;
+
+          total += needCount;
+          const inClub = Number(available[rating] || 0);
+          const used = Math.min(needCount, inClub);
+          covered += used;
+          available[rating] = inClub - used;
+        }
+
+        return { covered, total };
+      }
+
+      function formatClubCover(lackRatings, ratingCounts) {
+        const cover = coverableFromClub(lackRatings, ratingCounts);
+        if (!cover) return '<span class="muted">—</span>';
+        if (cover.total === 0) return '<span class="muted">—</span>';
+        if (cover.covered === cover.total) {
+          return `<span class="pill">${cover.covered}/${cover.total}</span>`;
+        }
+        return `${cover.covered}/${cover.total}`;
+      }
+
+      async function ensureClubReady({ refreshIfStale = true } = {}) {
+        const { accessToken } = plannerArgs();
+        if (!accessToken.trim()) return false;
+
+        const needsFetch = !clubCache || (refreshIfStale && isClubCacheStale());
+        if (needsFetch) {
+          await syncClubData();
+        }
+
+        return Boolean(clubCache);
+      }
+
+      function activeClubLeagues() {
+        return clubLeagueMap ?? clubCache?.clubLeagues ?? null;
+      }
+
       function missingText(lackRatings) {
         return Object.entries(missingSummary(lackRatings))
           .sort((left, right) => Number(right[0]) - Number(left[0]))
@@ -745,8 +798,11 @@
         }
 
         if (payload.options?.length) {
-          lines.push("option,squad_sum,from_club,still_need,fill_ratings,missing");
+          lines.push("option,squad_sum,from_club,still_need,fill_ratings,missing,club_fill");
+          const ratingCounts = clubCache?.ratingCounts ?? null;
           payload.options.forEach((option, index) => {
+            const cover = coverableFromClub(option.lack_ratings, ratingCounts);
+            const clubFill = cover ? `${cover.covered}/${cover.total}` : "";
             lines.push(
               [
                 index + 1,
@@ -755,6 +811,7 @@
                 option.lack_value,
                 `"${(option.ratings || []).join(";")}"`,
                 `"${missingText(option.lack_ratings)}"`,
+                clubFill,
               ].join(",")
             );
           });
@@ -809,6 +866,10 @@
             lines.push(`  Still need: ${formatCoins(option.lack_value)}`);
             lines.push(`  Fill: ${(option.ratings || []).join(", ")}`);
             lines.push(`  Missing: ${missingText(option.lack_ratings) || "none"}`);
+            const cover = coverableFromClub(option.lack_ratings, clubCache?.ratingCounts);
+            if (cover) {
+              lines.push(`  Club fill: ${cover.covered}/${cover.total}`);
+            }
             lines.push("");
           });
         }
@@ -905,9 +966,11 @@
           return;
         }
 
+        const ratingCounts = inventoryCounts ?? clubCache?.ratingCounts ?? null;
         optionsBody.innerHTML = options
           .map((option, index) => {
             const missing = summarizeMissing(option.lack_ratings);
+            const clubFill = formatClubCover(option.lack_ratings, ratingCounts);
             return `<tr>
               <td>${index + 1}</td>
               <td class="num">${option.sum}</td>
@@ -915,6 +978,7 @@
               <td class="num">${formatCoins(option.lack_value)}</td>
               <td>${renderFillRatings(option.ratings)}</td>
               <td>${missing || '<span class="muted">none</span>'}</td>
+              <td class="num">${clubFill}</td>
             </tr>`;
           })
           .join("");
@@ -1162,9 +1226,7 @@
       document.getElementById("plan-with-club").addEventListener("click", async () => {
         const { target, brickCount, existingRatings, accessToken, platform } = plannerArgs();
 
-        if (!clubCache && accessToken.trim()) {
-          await syncClubData();
-        }
+        await ensureClubReady();
 
         if (clubCache) {
           invokeRust(
@@ -1228,33 +1290,33 @@
         invokeRust("fetch_club_players", { accessToken, platform });
       });
 
-      document.getElementById("plan-chemistry").addEventListener("click", () => {
+      document.getElementById("plan-chemistry").addEventListener("click", async () => {
         const players = parseSquadLines(document.getElementById("squad-chemistry").value);
         const targetChemistry = Number.parseInt(
           document.getElementById("target-chemistry").value,
           10
         );
         const skipSlot = Number.parseInt(document.getElementById("skip-slot").value, 10);
+
+        if (!activeClubLeagues()) {
+          await ensureClubReady();
+        }
+
         invokeRust(
           "plan_sbc_chemistry",
           {
             players,
             skipIndex: Number.isFinite(skipSlot) ? skipSlot : 0,
             targetChemistry: Number.isFinite(targetChemistry) ? targetChemistry : 10,
-            clubLeagues: clubLeagueMap,
+            clubLeagues: activeClubLeagues(),
           },
           { targetChemistry, skipSlot }
         );
       });
 
       document.getElementById("load-club-map").addEventListener("click", async () => {
-        if (clubCache?.clubLeagues && !isClubCacheStale()) {
+        if (await ensureClubReady()) {
           clubLeagueMap = clubCache.clubLeagues;
-          updateClubMapStatus();
-          return;
-        }
-        const snapshot = await syncClubData();
-        if (snapshot) {
           updateClubMapStatus();
         }
       });
