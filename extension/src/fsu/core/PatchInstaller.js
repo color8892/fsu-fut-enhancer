@@ -9,7 +9,7 @@ import { installPicksRewardsPatches } from "../patches/picks-rewards.js";
 import { installSquadOverviewViewPatches } from "../patches/squad-overview-view.js";
 import { installSectionedListPatches } from "../patches/sectioned-list.js";
 import { registerBuildIgnoreEvents } from "../patches/build-ignore.js";
-import { registerPlayerListEvents, installPlayerListPatches } from "../patches/player-list.js";
+import { installPlayerListPatches } from "../patches/player-list.js";
 import { installSbcHubPatches, registerSbcInfoFillEvent } from "../patches/sbc-hub.js";
 import { installAcademyHubPatches } from "../patches/academy-hub.js";
 import { registerSbcNavEvents } from "../patches/sbc-nav-events.js";
@@ -122,7 +122,6 @@ export class PatchInstaller {
     );
     installSectionedListPatches(c.pick("call", "events", "info", "fy", "cntlr", "services", "debug"));
     registerBuildIgnoreEvents(c.pick("events", "info", "fy", "set", "build", "debug"));
-    registerPlayerListEvents(c.pick("events", "info", "cntlr", "debug", "futbinId", "priceService", "GM_setValue", "fy"));
     installPlayerListPatches(c.pick("call", "events", "info", "cntlr", "isPhone", "debug", "repositories", "services", "fy"));
     installSbcHubPatches(c.pick("info", "events", "services", "fy", "cntlr"));
     installAcademyHubPatches(c.pick("info", "events", "fy", "repositories", "debug"));

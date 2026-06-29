@@ -338,7 +338,7 @@
       }
       return void 0;
     }
-    priceLastDiffJs(purchasePrice, lastPrice) {
+    priceLastDiff(purchasePrice, lastPrice) {
       let percent = (Number(purchasePrice) * 0.95 / Number(lastPrice) - 1) * 100;
       percent = Number(percent.toFixed(0));
       if (!isFinite(percent)) {
@@ -346,9 +346,6 @@
       }
       const value = ("+" + percent + "%").replace("+-", "-");
       return value.indexOf("+") !== -1 ? `<span class="plus">${value}</span>` : `<span class="minus">${value}</span>`;
-    }
-    priceLastDiff(purchasePrice, lastPrice) {
-      return this.priceLastDiffJs(Number(purchasePrice), Number(lastPrice));
     }
     async getFutbinUrl(url) {
       try {
@@ -520,7 +517,7 @@
       if (count >= thresholds[0]) return 1;
       return 0;
     }
-    calculateChemistryJs(basePlayers, index, candidate, includeMeta = false) {
+    calculateChemistry(basePlayers, index, candidate, includeMeta = false) {
       if (typeof index === "boolean") {
         includeMeta = index;
         index = void 0;
@@ -616,17 +613,14 @@
       }
       return result;
     }
-    calculateChemistry(basePlayers, index, candidate, includeMeta = false) {
-      return this.calculateChemistryJs(basePlayers, index, candidate, includeMeta);
-    }
-    generateCandidateOptionsJs(players, index, targetChemistry, meta) {
+    generateCandidateOptions(players, index, targetChemistry, meta) {
       const { nations, leagues, clubs } = meta;
       const result = [];
       const resultKeySet = /* @__PURE__ */ new Set();
       const pushCandidate = (candidate) => {
         const key = `${candidate.nationId}_${candidate.leagueId}_${candidate.teamId}`;
         if (resultKeySet.has(key)) return true;
-        const chemistry = this.calculateChemistryJs(players, index, candidate);
+        const chemistry = this.calculateChemistry(players, index, candidate);
         if (chemistry.totalChemistry >= targetChemistry) {
           result.push(candidate);
           resultKeySet.add(key);
@@ -689,9 +683,6 @@
         if (teamId !== -1) cleaned.teamId = teamId;
         return cleaned;
       });
-    }
-    generateCandidateOptions(players, index, targetChemistry, meta) {
-      return this.generateCandidateOptionsJs(players, index, targetChemistry, meta);
     }
     getChemistryPlayers(controller, targetChemistry) {
       const players = _.map(
@@ -4206,8 +4197,6 @@
   }
 
   // src/fsu/patches/player-list.js
-  function registerPlayerListEvents(_deps) {
-  }
   function installPlayerListPatches(deps) {
     const { call, events, info, cntlr: cntlr2, isPhone: isPhone2, debug: debug2, repositories: repositories2, services: services2, fy: fy2 } = deps;
     UTPaginatedItemListView.prototype.renderItems = function(t) {
@@ -4725,9 +4714,7 @@
     const { events, info, fy: fy2, html, repositories: repositories2 } = deps;
     events.sbcInfoFill = (d, e2) => {
       if (!info.task.sbc.stat.hasOwnProperty(d)) return;
-      let s2 = info.task.sbc.stat[d];
-      if (_.has()) {
-      }
+      const s2 = info.task.sbc.stat[d];
       if (s2 !== void 0) {
         if (e2.hasOwnProperty("__tileTitle") && _.includes(info.task.sbc.stat.new, d)) {
           e2.getRootElement().style.position = "relative";
@@ -11097,7 +11084,6 @@
       );
       installSectionedListPatches(c.pick("call", "events", "info", "fy", "cntlr", "services", "debug"));
       registerBuildIgnoreEvents(c.pick("events", "info", "fy", "set", "build", "debug"));
-      registerPlayerListEvents(c.pick("events", "info", "cntlr", "debug", "futbinId", "priceService", "GM_setValue", "fy"));
       installPlayerListPatches(c.pick("call", "events", "info", "cntlr", "isPhone", "debug", "repositories", "services", "fy"));
       installSbcHubPatches(c.pick("info", "events", "services", "fy", "cntlr"));
       installAcademyHubPatches(c.pick("info", "events", "fy", "repositories", "debug"));
@@ -13991,7 +13977,7 @@
 
   // src/fsu/domain/SbcRatingService.js
   var SbcRatingService = class {
-    teamRatingCountJs(ratings) {
+    teamRatingCount(ratings) {
       let results = 0;
       let sum = _.sum(ratings);
       const avg = sum / 11;
@@ -14005,9 +13991,6 @@
         results = 0;
       }
       return results;
-    }
-    teamRatingCount(ratings) {
-      return this.teamRatingCountJs(ratings);
     }
     buildRatingNeedOptions(target, squad, helpers) {
       const { getItemBy, ignorePlayerToCriteria, getInfo } = helpers;
@@ -14054,7 +14037,7 @@
         squad_absent: squadAbsent
       };
     }
-    needRatingsCountFromOptionsJs(options) {
+    needRatingsCountFromOptions(options) {
       const {
         target,
         existing_ratings: ratings,
@@ -14131,7 +14114,7 @@
       if (!options) {
         return [];
       }
-      return this.needRatingsCountFromOptionsJs(options);
+      return this.needRatingsCountFromOptions(options);
     }
     sbcListNeedCount(needRatings, sbcTitle, helpers) {
       const {

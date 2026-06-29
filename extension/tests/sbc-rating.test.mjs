@@ -79,7 +79,7 @@ export function runSbcRatingTests() {
   assert.strictEqual(service.teamRatingCount([80, 80, 80, 80, 80, 80, 80, 80, 80, 80, 80]), 80);
 
   const availableRatings = Array.from({ length: 99 - 45 + 1 }, (_entry, index) => 99 - index);
-  const results = service.needRatingsCountFromOptionsJs({
+  const results = service.needRatingsCountFromOptions({
     target: 84,
     existing_ratings: [],
     brick_count: 0,

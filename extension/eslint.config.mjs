@@ -79,12 +79,6 @@ export default [
     }
   },
   {
-    ignores: [
-      "src/userscript.js",
-      "src/userscript.source.js",
-      "vendor/**",
-      "scripts/**/*.js",
-      "scripts/slim-futweb.mjs"
-    ]
+    ignores: ["src/userscript.js", "vendor/**", "tests/load-background.cjs"]
   }
 ];

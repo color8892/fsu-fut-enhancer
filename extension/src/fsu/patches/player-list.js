@@ -1,7 +1,3 @@
-export function registerPlayerListEvents(_deps) {
-  // wait / changeLoadingText → registerAppInitEvents (must exist before hideLoader & reloadPlayers)
-}
-
 export function installPlayerListPatches(deps) {
   const { call, events, info, cntlr, isPhone, debug, repositories, services, fy } = deps;
   //列表形式(右侧、拍卖行搜索结果、俱乐部)球员列表 读取球员列表查询价格

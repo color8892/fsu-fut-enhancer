@@ -224,9 +224,7 @@ export function registerSbcInfoFillEvent(deps) {
 
   events.sbcInfoFill = (d, e) => {
     if (!info.task.sbc.stat.hasOwnProperty(d)) return;
-    let s = info.task.sbc.stat[d];
-    if (_.has()) {
-    }
+    const s = info.task.sbc.stat[d];
     if (s !== undefined) {
       if (e.hasOwnProperty("__tileTitle") && _.includes(info.task.sbc.stat.new, d)) {
         e.getRootElement().style.position = "relative";

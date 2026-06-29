@@ -1,7 +1,7 @@
 import { buildPriceByRating } from "../infra/RatingPrices.js";
 
 export class SbcRatingService {
-  teamRatingCountJs(ratings) {
+  teamRatingCount(ratings) {
     let results = 0;
     let sum = _.sum(ratings);
     const avg = sum / 11;
@@ -15,10 +15,6 @@ export class SbcRatingService {
       results = 0;
     }
     return results;
-  }
-
-  teamRatingCount(ratings) {
-    return this.teamRatingCountJs(ratings);
   }
 
   buildRatingNeedOptions(target, squad, helpers) {
@@ -76,7 +72,7 @@ export class SbcRatingService {
     };
   }
 
-  needRatingsCountFromOptionsJs(options) {
+  needRatingsCountFromOptions(options) {
     const {
       target,
       existing_ratings: ratings,
@@ -168,7 +164,7 @@ export class SbcRatingService {
       return [];
     }
 
-    return this.needRatingsCountFromOptionsJs(options);
+    return this.needRatingsCountFromOptions(options);
   }
 
   sbcListNeedCount(needRatings, sbcTitle, helpers) {

@@ -11,7 +11,7 @@ export class SbcChemistryService {
     return 0;
   }
 
-  calculateChemistryJs(basePlayers, index, candidate, includeMeta = false) {
+  calculateChemistry(basePlayers, index, candidate, includeMeta = false) {
     if (typeof index === "boolean") {
       includeMeta = index;
       index = undefined;
@@ -132,11 +132,7 @@ export class SbcChemistryService {
     return result;
   }
 
-  calculateChemistry(basePlayers, index, candidate, includeMeta = false) {
-    return this.calculateChemistryJs(basePlayers, index, candidate, includeMeta);
-  }
-
-  generateCandidateOptionsJs(players, index, targetChemistry, meta) {
+  generateCandidateOptions(players, index, targetChemistry, meta) {
     const { nations, leagues, clubs } = meta;
     const result = [];
     const resultKeySet = new Set();
@@ -145,7 +141,7 @@ export class SbcChemistryService {
       const key = `${candidate.nationId}_${candidate.leagueId}_${candidate.teamId}`;
       if (resultKeySet.has(key)) return true;
 
-      const chemistry = this.calculateChemistryJs(players, index, candidate);
+      const chemistry = this.calculateChemistry(players, index, candidate);
       if (chemistry.totalChemistry >= targetChemistry) {
         result.push(candidate);
         resultKeySet.add(key);
@@ -217,10 +213,6 @@ export class SbcChemistryService {
       if (teamId !== -1) cleaned.teamId = teamId;
       return cleaned;
     });
-  }
-
-  generateCandidateOptions(players, index, targetChemistry, meta) {
-    return this.generateCandidateOptionsJs(players, index, targetChemistry, meta);
   }
 
   getChemistryPlayers(controller, targetChemistry) {
