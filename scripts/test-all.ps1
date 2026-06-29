@@ -1,5 +1,8 @@
 # Full local verification: Rust workspace + extension build/tests.
 $ErrorActionPreference = "Continue"
+if (Get-Variable -Name PSNativeCommandUseErrorActionPreference -ErrorAction SilentlyContinue) {
+  $PSNativeCommandUseErrorActionPreference = $false
+}
 $root = Join-Path $PSScriptRoot ".."
 Set-Location $root
 
