@@ -55,7 +55,7 @@ Rust + Tauri 桌面程式，與擴充功能共用 `crates/fsu-core` 邏輯，可
 
 ```powershell
 .\scripts\build-desktop.ps1
-# 產物：apps\fsu-desktop\src-tauri\target\release\fsu-desktop.exe
+# 產物：target\release\fsu-desktop.exe（Cargo workspace 根目錄）
 ```
 
 ### 取得 X-UT-SID（club 同步用）

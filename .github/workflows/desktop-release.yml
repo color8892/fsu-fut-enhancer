@@ -18,11 +18,11 @@ jobs:
           - platform: linux
             os: ubuntu-latest
             artifact_name: fsu-desktop-linux
-            binary_glob: apps/fsu-desktop/src-tauri/target/release/fsu-desktop
+            binary_glob: target/release/fsu-desktop
           - platform: windows
             os: windows-latest
             artifact_name: fsu-desktop-windows
-            binary_glob: apps/fsu-desktop/src-tauri/target/release/fsu-desktop.exe
+            binary_glob: target/release/fsu-desktop.exe
 
     runs-on: ${{ matrix.os }}
     steps:
