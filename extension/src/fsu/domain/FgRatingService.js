@@ -27,8 +27,8 @@ export class FgRatingService {
       const basicPlayStyles = _.map(newPlayer.getBasicPlayStyles(), "traitId");
       const plusPlayStyles = _.map(newPlayer.getPlusPlayStyles(), "traitId");
       const height = newPlayer.getMetaData()?.height;
-      const weight = info.playermeta[player.databaseId]?.weight ?? 0;
-      const bodyType = info.playermeta[player.databaseId]?.badytype ?? 0;
+      const weight = info.playermeta?.[player.databaseId]?.weight ?? 0;
+      const bodyType = info.playermeta?.[player.databaseId]?.badytype ?? 0;
       const curveConfig = info.fgconfig.attribute[34];
       const composureConfig = info.fgconfig.attribute[29];
       const basicHasTBLZ = basicPlayStyles.includes(PlayerTrait.TRAILBLAZING);

@@ -81,7 +81,7 @@ export function installPlayerItemPatch(deps) {
                   extraElement.appendChild(accele.getRootElement());
               }
 
-              let bodyTypeId = info.playermeta[p.databaseId]?.badytype || 0;
+              let bodyTypeId = info.playermeta?.[p.databaseId]?.badytype || 0;
               if(bodyTypeId){
                   let bodytype = events.createButton(
                       new UTButtonControl(),
@@ -104,7 +104,7 @@ export function installPlayerItemPatch(deps) {
               this._fsu.extra = extraElement;
 
               if(!isSmall){
-                  let realFace = info.playermeta[p.databaseId]?.realface || 0;
+                  let realFace = info.playermeta?.[p.databaseId]?.realface || 0;
                   this._fsu.realFace = events.createButton(
                       new UTButtonControl(),
                       realFace == 1 ? "YES" : "NO",

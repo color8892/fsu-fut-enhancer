@@ -170,6 +170,7 @@ export function createGameInfo() {
     },
     "apiPlatform": 1,
     "apiProxy": "",
+    "playermeta": {},
     "futbinId": {},
     "posIdToName": ["GK","SW","RWB","RB","RCB","CB","LCB","LB","LWB","RDM","CDM","LDM","RM","RCM","CM","LCM","LM","RAM","CAM","LAM","RF","CF","LF","RW","RS","ST","LS","LW"],
     "fgList": {},

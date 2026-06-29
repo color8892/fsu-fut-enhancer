@@ -1582,6 +1582,7 @@
       },
       "apiPlatform": 1,
       "apiProxy": "",
+      "playermeta": {},
       "futbinId": {},
       "posIdToName": ["GK", "SW", "RWB", "RB", "RCB", "CB", "LCB", "LB", "LWB", "RDM", "CDM", "LDM", "RM", "RCM", "CM", "LCM", "LM", "RAM", "CAM", "LAM", "RF", "CF", "LF", "RW", "RS", "ST", "LS", "LW"],
       "fgList": {},
@@ -2819,7 +2820,7 @@
             this._fsu.accele = accele;
             extraElement.appendChild(accele.getRootElement());
           }
-          let bodyTypeId = info.playermeta[p.databaseId]?.badytype || 0;
+          let bodyTypeId = info.playermeta?.[p.databaseId]?.badytype || 0;
           if (bodyTypeId) {
             let bodytype = events.createButton(
               new UTButtonControl(),
@@ -2841,7 +2842,7 @@
           }
           this._fsu.extra = extraElement;
           if (!isSmall) {
-            let realFace = info.playermeta[p.databaseId]?.realface || 0;
+            let realFace = info.playermeta?.[p.databaseId]?.realface || 0;
             this._fsu.realFace = events.createButton(
               new UTButtonControl(),
               realFace == 1 ? "YES" : "NO",
@@ -13620,8 +13621,8 @@
         const basicPlayStyles = _.map(newPlayer.getBasicPlayStyles(), "traitId");
         const plusPlayStyles = _.map(newPlayer.getPlusPlayStyles(), "traitId");
         const height = newPlayer.getMetaData()?.height;
-        const weight = info.playermeta[player.databaseId]?.weight ?? 0;
-        const bodyType = info.playermeta[player.databaseId]?.badytype ?? 0;
+        const weight = info.playermeta?.[player.databaseId]?.weight ?? 0;
+        const bodyType = info.playermeta?.[player.databaseId]?.badytype ?? 0;
         const curveConfig = info.fgconfig.attribute[34];
         const composureConfig = info.fgconfig.attribute[29];
         const basicHasTBLZ = basicPlayStyles.includes(PlayerTrait.TRAILBLAZING);
