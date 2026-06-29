@@ -307,7 +307,7 @@
         Club league map not loaded — sync club data for better candidate suggestions.
       </p>
       <p style="margin: 0.25rem 0 0; font-size: 0.75rem" class="muted">
-        Tips: click missing/fill rating pills or chemistry candidates to filter the player picker.
+        Tips: click a chemistry candidate to apply it to the skip slot and filter the player picker.
         Use Min OVR or Reset to adjust the list.
       </p>
     </div>
@@ -351,6 +351,7 @@
     <div id="results" class="results hidden">
       <div class="results-toolbar">
         <button id="copy-needs" class="secondary hidden">Copy needs list</button>
+        <button id="copy-candidates" class="secondary hidden">Copy candidates</button>
         <button id="export-csv" class="secondary hidden">Export CSV</button>
         <button id="export-txt" class="secondary hidden">Export TXT</button>
         <label class="check" style="margin-left: auto">
@@ -455,6 +456,7 @@
         "ea-persona",
         "ea-platform",
       ];
+      const PERSISTED_CHECKBOXES = ["club-tradeable-only"];
 
       let clubCache = null;
       let clubPlayerPickList = [];
@@ -787,6 +789,14 @@
             const element = document.getElementById(id);
             if (element) element.value = saved[id];
           }
+          for (const id of PERSISTED_CHECKBOXES) {
+            if (saved[id] == null) continue;
+            const element = document.getElementById(id);
+            if (element) element.checked = saved[id] === "1";
+          }
+          clubPickerTradeableOnly = Boolean(
+            document.getElementById("club-tradeable-only")?.checked
+          );
         } catch (_error) {
           /* ignore corrupt storage */
         }
@@ -797,6 +807,10 @@
         for (const id of PERSISTED_FIELDS) {
           const element = document.getElementById(id);
           if (element) saved[id] = element.value;
+        }
+        for (const id of PERSISTED_CHECKBOXES) {
+          const element = document.getElementById(id);
+          if (element) saved[id] = element.checked ? "1" : "0";
         }
         try {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
@@ -938,6 +952,36 @@
           .map(([rating, count]) => `${rating} : ${count}`);
       }
 
+      function chemistryCandidatesLines(candidates) {
+        return (candidates || []).map((candidate, index) => {
+          const nation = candidate.nation_id ?? "";
+          const league = candidate.league_id ?? "";
+          const club = candidate.team_id ?? "";
+          return `${index + 1}. ${nation},${league},${club}`;
+        });
+      }
+
+      function applyCandidateToSkipSlot(candidate) {
+        const skipSlot = Number.parseInt(document.getElementById("skip-slot").value, 10);
+        if (!Number.isFinite(skipSlot) || skipSlot < 0 || skipSlot > 10) {
+          return false;
+        }
+        if (
+          candidate.nation_id == null ||
+          candidate.league_id == null ||
+          candidate.team_id == null
+        ) {
+          return false;
+        }
+        setSquadLineAt(
+          skipSlot,
+          candidate.nation_id,
+          candidate.league_id,
+          candidate.team_id
+        );
+        return true;
+      }
+
       function loadAutoCopyPreference() {
         try {
           return localStorage.getItem(AUTO_COPY_KEY) === "1";
@@ -990,6 +1034,10 @@
         const copyNeeds = document.getElementById("copy-needs");
         copyNeeds.classList.toggle("hidden", !hasNeeds);
         copyNeeds.classList.toggle("highlight", hasNeeds);
+        const hasCandidates = Boolean(payload?.chemistry?.candidates?.length);
+        const copyCandidates = document.getElementById("copy-candidates");
+        copyCandidates.classList.toggle("hidden", !hasCandidates);
+        copyCandidates.classList.toggle("highlight", hasCandidates);
         document.getElementById("export-csv").classList.toggle("hidden", !show);
         document.getElementById("export-txt").classList.toggle("hidden", !show);
       }
@@ -1338,13 +1386,16 @@
           const candidate = result.candidates[index];
           if (!candidate) return;
           row.style.cursor = "pointer";
-          row.title = "Click to filter club player picker to this candidate";
+          row.title = "Click to apply to skip slot and filter club player picker";
           row.addEventListener("click", () => {
+            const applied = applyCandidateToSkipSlot(candidate);
             const matchCount = filterClubPlayerPicker(candidate);
+            const slot = Number.parseInt(document.getElementById("skip-slot").value, 10);
+            const applyNote = applied ? ` — applied to slot ${slot}` : "";
             document.getElementById("club-map-status").textContent =
               matchCount > 0
-                ? `Picker filtered — ${matchCount} club player(s) match candidate ${index + 1}.`
-                : `No club players match candidate ${index + 1}.`;
+                ? `Picker filtered — ${matchCount} club player(s) match candidate ${index + 1}${applyNote}.`
+                : `No club players match candidate ${index + 1}${applyNote}.`;
             chemistryBody.querySelectorAll("tr").forEach((entry) => {
               entry.style.outline = "";
             });
@@ -1359,9 +1410,6 @@
         document.getElementById("options-section").classList.add("hidden");
         document.getElementById("results").classList.remove("hidden");
         document.getElementById("out").classList.add("hidden");
-        document.getElementById("copy-needs").classList.add("hidden");
-        document.getElementById("export-csv").classList.remove("hidden");
-        document.getElementById("export-txt").classList.remove("hidden");
         setExportPayload({
           summary,
           chemistry: result,
@@ -1499,6 +1547,20 @@
           await navigator.clipboard.writeText(text);
           document.getElementById("results-summary").textContent =
             `${lastExportPayload.summary} — needs list copied`;
+        } catch (_error) {
+          showRawOutput(text);
+        }
+      });
+
+      document.getElementById("copy-candidates").addEventListener("click", async () => {
+        const lines = chemistryCandidatesLines(lastExportPayload?.chemistry?.candidates);
+        if (!lines.length) return;
+
+        const text = lines.join("\n");
+        try {
+          await navigator.clipboard.writeText(text);
+          document.getElementById("results-summary").textContent =
+            `${lastExportPayload.summary} — candidates copied`;
         } catch (_error) {
           showRawOutput(text);
         }
@@ -1658,6 +1720,7 @@
 
       document.getElementById("club-tradeable-only").addEventListener("change", (event) => {
         clubPickerTradeableOnly = event.target.checked;
+        persistSession();
         const count = refreshClubPlayerPicker();
         document.getElementById("club-map-status").textContent = clubPickerTradeableOnly
           ? `Picker filtered — ${count} tradeable player(s).`
