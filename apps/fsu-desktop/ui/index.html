@@ -225,13 +225,15 @@
         <button id="plan-rating">Plan (offline)</button>
         <button id="plan-with-club">Plan with club</button>
         <button id="sync-and-plan">Sync &amp; plan</button>
+        <button id="check-session" class="secondary">Check session</button>
         <button id="sync-club" class="secondary">Sync club data</button>
         <button id="clear-club-cache" class="secondary">Clear cache</button>
         <button id="fetch-club" class="secondary">Show inventory</button>
         <button id="fetch-club-players" class="secondary">Show players</button>
         <button id="open-fut-planner" class="secondary">Open FUT Web App</button>
       </div>
-      <p id="club-sync-status" style="margin: 0.35rem 0 0; font-size: 0.8rem" class="muted">
+      <p id="ea-session-status" style="margin: 0.35rem 0 0; font-size: 0.8rem" class="muted"></p>
+      <p id="club-sync-status" style="margin: 0.15rem 0 0; font-size: 0.8rem" class="muted">
         Club data not synced — sync once, then plan from cache without X-UT-SID.
       </p>
       <p style="margin: 0.5rem 0 0; font-size: 0.85rem">
@@ -601,6 +603,17 @@
         );
       }
 
+      function updateSessionStatus(result) {
+        const status = document.getElementById("ea-session-status");
+        if (!result?.message) {
+          status.textContent = "";
+          status.style.color = "";
+          return;
+        }
+        status.textContent = result.message;
+        status.style.color = result.ready ? "#81c995" : "#f28b82";
+      }
+
       function updateClubSyncStatus() {
         const status = document.getElementById("club-sync-status");
         if (!clubCache) {
@@ -731,6 +744,10 @@
         try {
           const snapshot = await invoke("fetch_club_snapshot", { accessToken, platform });
           applyClubSnapshot(snapshot);
+          updateSessionStatus({
+            ready: true,
+            message: `Session OK — synced ${snapshot.total_players} club players.`,
+          });
           if (showResults) {
             renderCommandOutput("fetch_club_snapshot", snapshot);
           }
@@ -1474,6 +1491,11 @@
           return;
         }
 
+        if (command === "probe_ea_session") {
+          updateSessionStatus(result);
+          return;
+        }
+
         showRawOutput(JSON.stringify(result, null, 2));
       }
 
@@ -1637,6 +1659,18 @@
       document.getElementById("sync-and-plan").addEventListener("click", () =>
         planWithClub({ forceSync: true })
       );
+
+      document.getElementById("check-session").addEventListener("click", () => {
+        const { accessToken, platform } = plannerArgs();
+        if (!accessToken.trim()) {
+          updateSessionStatus({
+            ready: false,
+            message: "Paste X-UT-SID to check session.",
+          });
+          return;
+        }
+        invokeRust("probe_ea_session", { accessToken, platform });
+      });
 
       document.getElementById("sync-club").addEventListener("click", () => {
         syncClubData({ showResults: true });

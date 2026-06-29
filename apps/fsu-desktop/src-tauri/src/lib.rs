@@ -630,6 +630,31 @@ mod tests {
     }
 
     #[test]
+    fn map_rating_needs_with_club_inventory_reaches_target() {
+        let mut counts = HashMap::new();
+        for rating in 45..=99 {
+            counts.insert(rating, 2);
+        }
+        let inventory = inventory_from_counts(counts);
+        let results = map_rating_needs(84, vec![], 0, &inventory, HashMap::new());
+        assert!(!results.is_empty());
+        assert!(results[0].squad_rating >= 84);
+    }
+
+    #[test]
+    fn map_rating_needs_splits_club_and_missing_value() {
+        let mut counts = HashMap::new();
+        counts.insert(84, 1);
+        let mut prices = HashMap::new();
+        prices.insert(84, 1000);
+        let inventory = inventory_from_counts(counts);
+        let results = map_rating_needs(84, vec![], 0, &inventory, prices);
+        assert!(!results.is_empty());
+        assert!(results[0].exist_value > 0);
+        assert!(results[0].lack_value > 0);
+    }
+
+    #[test]
     fn build_club_league_map_uses_team_to_league_pairs() {
         let players = vec![
             ClubPlayer {
