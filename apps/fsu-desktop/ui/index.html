@@ -259,6 +259,9 @@
         <strong>Plan (offline)</strong> assumes any rating is obtainable.
         <strong>Plan with club</strong> uses cached or live club counts (no SID needed when cache is fresh).
       </p>
+      <p style="margin: 0.25rem 0 0; font-size: 0.75rem" class="muted">
+        Shortcuts: Ctrl+Enter plan offline · Ctrl+Shift+Enter plan with club · Ctrl+Alt+Enter sync &amp; plan
+      </p>
       <p style="margin: 0.35rem 0 0; font-size: 0.8rem" class="muted">
         To get <code>X-UT-SID</code>: open FUT Web App → DevTools (F12) → Network → any
         <code>utas.mob...</code> request → copy the <code>X-UT-SID</code> request header.
@@ -805,7 +808,6 @@
         }
 
         const status = document.getElementById("club-sync-status");
-        const previousStatus = status.textContent;
         setBusyState(true);
         status.textContent = "Syncing club data from UTAS…";
         try {
@@ -824,7 +826,11 @@
           }
           return snapshot;
         } catch (error) {
-          status.textContent = previousStatus;
+          updateClubSyncStatus();
+          updateSessionStatus({
+            ready: false,
+            message: String(error),
+          });
           showRawOutput(String(error));
           return null;
         } finally {
@@ -2042,6 +2048,32 @@
         const ids = parseIds(document.getElementById("price-ids").value);
         const platform = document.getElementById("platform").value;
         invokeRust("fetch_player_prices", { definitionIds: ids, platform });
+      });
+
+      document.addEventListener("keydown", (event) => {
+        if (busyCount > 0) return;
+        if (!(event.ctrlKey || event.metaKey) || event.key !== "Enter") return;
+
+        const active = document.activeElement;
+        if (active?.id === "squad-chemistry") {
+          event.preventDefault();
+          document.getElementById("plan-chemistry").click();
+          return;
+        }
+
+        event.preventDefault();
+        if (event.shiftKey && event.altKey) {
+          return;
+        }
+        if (event.shiftKey) {
+          void planWithClub();
+          return;
+        }
+        if (event.altKey) {
+          void planWithClub({ forceSync: true });
+          return;
+        }
+        document.getElementById("plan-rating").click();
       });
     </script>
   </body>
