@@ -17,6 +17,13 @@ pub fn team_rating_count(ratings: &[i32]) -> i32 {
     (sum.round() / 11.0).floor() as i32
 }
 
+/// Squad rating after applying fill cards to an existing squad.
+pub fn squad_rating_for_fill(existing_ratings: &[i32], fill_ratings: &[i32]) -> i32 {
+    let mut ratings = existing_ratings.to_vec();
+    ratings.extend_from_slice(fill_ratings);
+    team_rating_count(&ratings)
+}
+
 /// Multicombinations: choose `count` items from `items` allowing repeats, order matters.
 /// Ported from `lodashMixins.js` / `_.multicombinations`.
 pub fn multicombinations(items: &[i32], count: i32) -> Vec<Vec<i32>> {
@@ -201,6 +208,12 @@ mod tests {
     fn team_rating_all_equal_cards() {
         let ratings = vec![80; 11];
         assert_eq!(team_rating_count(&ratings), 80);
+    }
+
+    #[test]
+    fn squad_rating_for_fill_combines_existing_and_fill() {
+        let rating = squad_rating_for_fill(&[90, 90, 88], &[84, 84, 84, 84, 84]);
+        assert_eq!(rating, team_rating_count(&[90, 90, 88, 84, 84, 84, 84, 84]));
     }
 
     #[test]

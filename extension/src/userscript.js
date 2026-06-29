@@ -421,6 +421,7 @@
     return raw.map((entry) => ({
       ratings: entry.ratings,
       sum: entry.sum,
+      squadRating: entry.squad_rating,
       existValue: entry.exist_value,
       existRatings: entry.exist_ratings,
       lackValue: entry.lack_value,

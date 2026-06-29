@@ -25,5 +25,6 @@ pub use sbc_chemistry::{
     TeamLookup,
 };
 pub use sbc_rating::{
-    multicombinations, need_ratings_count, team_rating_count, RatingNeedOptions, RatingNeedResult,
+    multicombinations, need_ratings_count, squad_rating_for_fill, team_rating_count,
+    RatingNeedOptions, RatingNeedResult,
 };

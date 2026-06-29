@@ -1033,9 +1033,16 @@
           .map((option, index) => {
             const missing = summarizeMissing(option.lack_ratings, ratingCounts);
             const clubFill = formatClubCover(option.lack_ratings, ratingCounts);
+            const targetRating = exportMeta.target;
+            const squadOvr =
+              option.squad_rating != null &&
+              targetRating != null &&
+              option.squad_rating >= targetRating
+                ? `<span class="pill">${option.squad_rating}</span>`
+                : (option.squad_rating ?? "—");
             return `<tr>
               <td>${index + 1}</td>
-              <td class="num">${option.squad_rating ?? "—"}</td>
+              <td class="num">${squadOvr}</td>
               <td class="num">${option.sum}</td>
               <td class="num">${formatCoins(option.exist_value)}</td>
               <td class="num">${formatCoins(option.lack_value)}</td>

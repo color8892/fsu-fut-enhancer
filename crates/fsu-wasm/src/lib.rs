@@ -1,7 +1,8 @@
 //! WASM exports for the Chrome extension page runtime.
 
 use fsu_core::{
-    need_ratings_count, price_last_diff, team_rating_count, ChemistryMeta, IdentityTeamLookup,
+    need_ratings_count, price_last_diff, squad_rating_for_fill, team_rating_count, ChemistryMeta,
+    IdentityTeamLookup,
     MapTeamLookup, RatingNeedOptions, SbcChemistryService,
 };
 use fsu_types::{PlayerIdentity, UNSET_ID};
@@ -96,6 +97,7 @@ struct NeedRatingsRequest {
 struct NeedRatingsOutput {
     ratings: Vec<i32>,
     sum: i32,
+    squad_rating: i32,
     exist_value: i32,
     exist_ratings: Vec<i32>,
     lack_value: i32,
@@ -117,9 +119,11 @@ pub fn wasm_need_ratings_count(request_json: &str) -> Result<String, JsValue> {
         squad_absent: request.squad_absent,
     };
 
+    let existing = options.existing_ratings.clone();
     let results = need_ratings_count(&options)
         .into_iter()
         .map(|result| NeedRatingsOutput {
+            squad_rating: squad_rating_for_fill(&existing, &result.ratings),
             ratings: result.ratings,
             sum: result.sum,
             exist_value: result.exist_value,

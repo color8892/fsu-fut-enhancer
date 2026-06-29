@@ -2,7 +2,8 @@ use ea_client::{
     ClubPlayer, ClubRatingInventory, ClubSnapshot, EaSession, GamePlatform, UtasClient,
 };
 use fsu_core::{
-    fetch_rating_lowprices, need_ratings_count, price_last_diff, team_rating_count, ApiPlatform,
+    fetch_rating_lowprices, need_ratings_count, price_last_diff, squad_rating_for_fill,
+    team_rating_count, ApiPlatform,
     ChemistryMeta, HttpGet, IdentityTeamLookup, MapTeamLookup, PriceFetchError, PriceService,
     RatingNeedOptions, SbcChemistryService,
 };
@@ -234,12 +235,6 @@ fn inventory_to_rating_options(inventory: &ClubRatingInventory) -> (Vec<i32>, Ha
     (available_ratings, inventory.rating_counts.clone())
 }
 
-fn squad_rating_for_option(existing_ratings: &[i32], fill_ratings: &[i32]) -> i32 {
-    let mut ratings = existing_ratings.to_vec();
-    ratings.extend_from_slice(fill_ratings);
-    team_rating_count(&ratings)
-}
-
 fn map_rating_need_results(
     results: Vec<fsu_core::RatingNeedResult>,
     existing_ratings: &[i32],
@@ -247,7 +242,7 @@ fn map_rating_need_results(
     results
         .into_iter()
         .map(|result| RatingNeedDto {
-            squad_rating: squad_rating_for_option(existing_ratings, &result.ratings),
+            squad_rating: squad_rating_for_fill(existing_ratings, &result.ratings),
             ratings: result.ratings,
             sum: result.sum,
             exist_value: result.exist_value,
@@ -621,12 +616,6 @@ mod tests {
         }]);
 
         assert_eq!(squad[0], None);
-    }
-
-    #[test]
-    fn squad_rating_for_option_matches_team_rating_count() {
-        let rating = squad_rating_for_option(&[90, 90, 88], &[84, 84, 84, 84, 84]);
-        assert_eq!(rating, team_rating_count(&[90, 90, 88, 84, 84, 84, 84, 84]));
     }
 
     #[test]
