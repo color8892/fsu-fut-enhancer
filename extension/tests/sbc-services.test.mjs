@@ -87,9 +87,6 @@ function installLodashMock() {
     find(collection, predicate) {
       return collection.find(predicate);
     },
-    flatMap(collection, iteratee) {
-      return collection.flatMap(iteratee);
-    },
     orderBy(collection, iteratees, orders) {
       return [...collection].sort((left, right) => {
         for (let index = 0; index < iteratees.length; index++) {

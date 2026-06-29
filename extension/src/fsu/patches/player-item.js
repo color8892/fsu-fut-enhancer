@@ -398,7 +398,7 @@ export function installPlayerItemPatch(deps) {
                       this._fsu.squadIndex = Number(parentNode?.getAttribute("index")) || 0;
                   }
                   this._fsu.pId = events.createElementWithConfig("span",{
-                      sytle: {
+                      style: {
                           display: "none"
                       },
                       attributes:{

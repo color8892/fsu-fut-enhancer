@@ -1,4 +1,4 @@
-import { FSU_BASE_SYTLE } from "../ui/fsu-styles.js";
+import { FSU_BASE_STYLE } from "../ui/fsu-styles.js";
 
 export function registerHomeHubEvents(deps) {
   const { events, info, cntlr, isPhone, services } = deps;
@@ -109,13 +109,28 @@ export function registerHomeHubEvents(deps) {
   };
 }
 
+function scheduleHomeInit(events, cntlr) {
+  events.waitForClickShieldToHide(() => {
+    try {
+      const cur = cntlr.current();
+      if (cur) {
+        events.init();
+      } else {
+        console.warn("cntlr.current() 为空，跳过初始化");
+      }
+    } catch (_error) {
+      console.warn("cntlr.current() 结构未就绪，跳过 events.init()");
+    }
+  });
+}
+
 export function installHomeHubPatches(deps) {
   const { call, events, info, fy, cntlr, services, debug, fsuSC } = deps;
 
   UTHomeHubView.prototype._generate = function (...args) {
     if (!this._generated) {
       call.task.home.call(this, ...args);
-      GM_addStyle(info.base.sytle ?? FSU_BASE_SYTLE);
+      GM_addStyle(info.base.style ?? FSU_BASE_STYLE);
       debug.log(fy("tile.settitle"));
       this._fsuDodo = events.createTile(fy("tile.dodotitle"), fy("tile.dodotext"), () => {
         GM_openInTab(`https://fut.to`, { active: true, insert: true, setParent: true });
@@ -131,34 +146,12 @@ export function installHomeHubPatches(deps) {
       this._fsuDodo.__root.after(this._fsuSet.__root);
       this._fsuGP = events.createTile(fy("tile.gptitle"), fy("tile.gptext"), () => {
         services.Club.clubDao.clubRepo.items.reset();
-        events.waitForClickShieldToHide(() => {
-          try {
-            const cur = cntlr.current();
-            if (cur) {
-              events.init();
-            } else {
-              console.warn("cntlr.current() 为空，跳过初始化");
-            }
-          } catch (e) {
-            console.warn("cntlr.current() 结构未就绪，跳过 events.init()");
-          }
-        });
+        scheduleHomeInit(events, cntlr);
       });
       this._fsuGP._parent = this;
       this._fsuSet.__root.after(this._fsuGP.__root);
 
-      events.waitForClickShieldToHide(() => {
-        try {
-          const cur = cntlr.current();
-          if (cur) {
-            events.init();
-          } else {
-            console.warn("cntlr.current() 为空，跳过初始化");
-          }
-        } catch (e) {
-          console.warn("cntlr.current() 结构未就绪，跳过 events.init()");
-        }
-      });
+      scheduleHomeInit(events, cntlr);
     }
   };
 

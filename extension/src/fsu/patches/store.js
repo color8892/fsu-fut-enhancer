@@ -444,7 +444,7 @@ export function installStorePatches(deps) {
                     this._fsuUnassignedTile.hide();
                 }
             }
-            //events.writePackReturns(this.storePacks)
+
         }, 50)
     }
 

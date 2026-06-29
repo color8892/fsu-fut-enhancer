@@ -11,6 +11,7 @@ Thumbs.db
 
 # Agent / local tooling
 .agents/
+agent-tools/
 terminals/
 
 # Logs

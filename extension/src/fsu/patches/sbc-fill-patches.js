@@ -240,7 +240,6 @@ UTUnassignedTileView.prototype.setNumberOfItems = function(e) {
 }
 
 //UTStoreView.setPacks / events.truncateStrict → installStorePatches
-// events.writePackReturns → ModuleRegistry
 
 
 /** 25.18 SBC整体需求计算 **/

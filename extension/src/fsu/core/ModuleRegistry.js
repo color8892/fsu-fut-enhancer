@@ -76,7 +76,6 @@ export function registerLateModules(ctx) {
   events.tryPackPopup = (pack, items) => packService.tryPackPopup(pack, items, packHelpers());
   events.getTryPackData = (pack) => packService.getTryPackData(pack, packHelpers());
   events.getRealProbability = (pack) => packService.getRealProbability(pack, packHelpers());
-  events.writePackReturns = (packs) => packService.writePackReturns(packs, packHelpers());
   events.openPacks = (packId, packName, packNum) =>
     packService.openPacks(packId, packName, packNum, packHelpers());
   events.openPacksConfirmPopup = (packId, packName, packCount) =>

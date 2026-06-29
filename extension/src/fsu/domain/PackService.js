@@ -323,14 +323,6 @@ export class PackService {
     }
   }
 
-  async writePackReturns(packs, helpers) {
-    const { getCurrentController } = helpers;
-
-    let ids = _.uniqBy(getCurrentController().getView().storePacks, "articleId").map(
-      (item) => item.articleId
-    );
-  }
-
   async openPacks(packId, packName, packNum, helpers) {
     const {
       getInfo,

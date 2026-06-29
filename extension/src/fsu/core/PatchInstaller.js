@@ -1,4 +1,4 @@
-import { FSU_BASE_SYTLE } from "../ui/fsu-styles.js";
+import { FSU_BASE_STYLE } from "../ui/fsu-styles.js";
 import { installAppInitPatches } from "../patches/app-init.js";
 import { installUnassignedPatches } from "../patches/unassigned.js";
 import { installLoginPatches } from "../patches/login.js";
@@ -63,8 +63,7 @@ export class PatchInstaller {
 
   applyBaseStyle() {
     const { info } = this.ctx;
-    info.base.sytle = FSU_BASE_SYTLE;
-    info.base.style = FSU_BASE_SYTLE;
+    info.base.style = FSU_BASE_STYLE;
   }
 
   wirePriceService() {
