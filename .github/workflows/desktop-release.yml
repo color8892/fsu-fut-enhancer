@@ -40,26 +40,20 @@ jobs:
             librsvg2-dev \
             patchelf
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: apps/fsu-desktop/src-tauri
 
       - name: Install Tauri CLI
-        env:
-          CARGO_NET_RETRY: 10
-        run: |
-          for attempt in 1 2 3; do
-            echo "Installing tauri-cli (attempt ${attempt})..."
-            if cargo install tauri-cli --locked --version "^2.0.0"; then
-              exit 0
-            fi
-            sleep 20
-          done
-          exit 1
+        run: npm install -g @tauri-apps/cli@2
 
       - name: Build FSU Desktop
         working-directory: apps/fsu-desktop/src-tauri
-        run: cargo tauri build
+        run: tauri build
 
       - name: Upload binary
         uses: actions/upload-artifact@v4
