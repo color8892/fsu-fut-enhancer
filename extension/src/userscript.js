@@ -5743,20 +5743,26 @@
     const { call, events, info, fy: fy2, isPhone: isPhone2, services: services2 } = deps;
     UTObjectivesHubView.prototype.setupNavigation = function(e2) {
       call.task.objN.call(this, e2);
-      if (!info.task.obj || !Object.keys(info.task.obj.stat).length || !info.set.info_obj) {
+      const stat = info.task?.obj?.stat;
+      if (!stat || !Object.keys(stat).length || !info.set.info_obj) {
         return;
       }
-      let t = this._objectivesTM.items;
-      info.task.obj.stat.catReward = 0;
-      _.map(t, (i2) => {
+      const items = this._objectivesTM?.items;
+      if (!items) {
+        return;
+      }
+      stat.catNew ??= {};
+      stat.catExpiry ??= {};
+      stat.catReward = 0;
+      _.forEach(items, (i2) => {
         if (_.has(i2, "notifBubble")) {
-          info.task.obj.stat.catReward += _.toInteger(i2.notifBubble.getRootElement().textContent);
+          stat.catReward += _.toInteger(i2.notifBubble.getRootElement().textContent);
         }
-        if (_.has(info.task.obj.stat.catNew, i2.id) && info.task.obj.stat.catNew[i2.id] !== 0) {
-          events.navigationAddCount(i2, info.task.obj.stat.catNew[i2.id]);
+        if (_.has(stat.catNew, i2.id) && stat.catNew[i2.id] !== 0) {
+          events.navigationAddCount(i2, stat.catNew[i2.id]);
         }
-        if (_.has(info.task.obj.stat.catExpiry, i2.id) && info.task.obj.stat.catExpiry[i2.id] !== 0) {
-          events.navigationAddCount(i2, -info.task.obj.stat.catExpiry[i2.id]);
+        if (_.has(stat.catExpiry, i2.id) && stat.catExpiry[i2.id] !== 0) {
+          events.navigationAddCount(i2, -stat.catExpiry[i2.id]);
         }
       });
     };
@@ -5780,9 +5786,12 @@
     };
     UTObjectiveCategoryView.prototype.setCategoryGroups = function(i2, e2, o, n) {
       call.task.objG.call(this, i2, e2, o, n);
-      let g = this.groups;
-      for (let i3 of g) {
-        if (!info.task.obj || !Object.keys(info.task.obj.stat).length) {
+      const groups = this.groups;
+      if (!groups) {
+        return;
+      }
+      for (const i3 of groups) {
+        if (!info.task?.obj?.stat || !Object.keys(info.task.obj.stat).length) {
           return;
         }
         if (_.includes(info.task.obj.stat.new, i3.id)) {
@@ -15101,7 +15110,7 @@
       task: {
         sbcT: UTSBCHubView.prototype.populateTiles,
         sbcN: UTSBCHubView.prototype.populateNavigation,
-        objN: UTObjectivesHubView.prototype.populateNavigation,
+        objN: UTObjectivesHubView.prototype.setupNavigation,
         objG: UTObjectiveCategoryView.prototype.setCategoryGroups,
         home: UTHomeHubView.prototype._generate,
         objSetTitle: UTObjectivesHubTileView.prototype.setSubtitle,

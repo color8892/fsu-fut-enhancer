@@ -3,22 +3,29 @@ export function installObjectivesHubPatches(deps) {
 
   UTObjectivesHubView.prototype.setupNavigation = function (e) {
     call.task.objN.call(this, e);
-    if (!info.task.obj || !Object.keys(info.task.obj.stat).length || !info.set.info_obj) {
+    const stat = info.task?.obj?.stat;
+    if (!stat || !Object.keys(stat).length || !info.set.info_obj) {
       return;
     }
 
-    let t = this._objectivesTM.items;
-    info.task.obj.stat.catReward = 0;
-    _.map(t, (i) => {
+    const items = this._objectivesTM?.items;
+    if (!items) {
+      return;
+    }
+
+    stat.catNew ??= {};
+    stat.catExpiry ??= {};
+    stat.catReward = 0;
+    _.forEach(items, (i) => {
       if (_.has(i, "notifBubble")) {
-        info.task.obj.stat.catReward += _.toInteger(i.notifBubble.getRootElement().textContent);
+        stat.catReward += _.toInteger(i.notifBubble.getRootElement().textContent);
       }
 
-      if (_.has(info.task.obj.stat.catNew, i.id) && info.task.obj.stat.catNew[i.id] !== 0) {
-        events.navigationAddCount(i, info.task.obj.stat.catNew[i.id]);
+      if (_.has(stat.catNew, i.id) && stat.catNew[i.id] !== 0) {
+        events.navigationAddCount(i, stat.catNew[i.id]);
       }
-      if (_.has(info.task.obj.stat.catExpiry, i.id) && info.task.obj.stat.catExpiry[i.id] !== 0) {
-        events.navigationAddCount(i, -info.task.obj.stat.catExpiry[i.id]);
+      if (_.has(stat.catExpiry, i.id) && stat.catExpiry[i.id] !== 0) {
+        events.navigationAddCount(i, -stat.catExpiry[i.id]);
       }
     });
   };
@@ -44,9 +51,12 @@ export function installObjectivesHubPatches(deps) {
 
   UTObjectiveCategoryView.prototype.setCategoryGroups = function (i, e, o, n) {
     call.task.objG.call(this, i, e, o, n);
-    let g = this.groups;
-    for (let i of g) {
-      if (!info.task.obj || !Object.keys(info.task.obj.stat).length) {
+    const groups = this.groups;
+    if (!groups) {
+      return;
+    }
+    for (const i of groups) {
+      if (!info.task?.obj?.stat || !Object.keys(info.task.obj.stat).length) {
         return;
       }
       if (_.includes(info.task.obj.stat.new, i.id)) {

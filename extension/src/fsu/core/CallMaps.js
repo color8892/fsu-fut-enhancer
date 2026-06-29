@@ -68,7 +68,7 @@ export function createCallMaps() {
     task: {
       sbcT: UTSBCHubView.prototype.populateTiles,
       sbcN: UTSBCHubView.prototype.populateNavigation,
-      objN: UTObjectivesHubView.prototype.populateNavigation,
+      objN: UTObjectivesHubView.prototype.setupNavigation,
       objG: UTObjectiveCategoryView.prototype.setCategoryGroups,
       home: UTHomeHubView.prototype._generate,
       objSetTitle: UTObjectivesHubTileView.prototype.setSubtitle,
