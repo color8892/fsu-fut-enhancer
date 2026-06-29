@@ -68,6 +68,16 @@
       button:hover {
         background: #1557b0;
       }
+      button:disabled {
+        cursor: not-allowed;
+        opacity: 0.55;
+      }
+      button:disabled:hover {
+        background: #1a73e8;
+      }
+      button.secondary:disabled:hover {
+        background: #30363d;
+      }
       button.secondary {
         background: #30363d;
       }
@@ -485,6 +495,32 @@
       let clubPickerTradeableOnly = false;
       let clubLeagueMap = null;
       let lastExportPayload = null;
+      let busyCount = 0;
+
+      const BUSY_BUTTON_IDS = [
+        "plan-rating",
+        "plan-with-club",
+        "calc-squad-ovr",
+        "sync-and-plan",
+        "check-session",
+        "sync-club",
+        "clear-club-cache",
+        "fetch-club",
+        "fetch-club-players",
+        "plan-chemistry",
+        "calc-chemistry",
+        "load-club-map",
+        "insert-club-player",
+      ];
+
+      function setBusyState(busy) {
+        busyCount = Math.max(0, busyCount + (busy ? 1 : -1));
+        const disabled = busyCount > 0;
+        for (const id of BUSY_BUTTON_IDS) {
+          const element = document.getElementById(id);
+          if (element) element.disabled = disabled;
+        }
+      }
 
       function openClubPlayersDb() {
         return new Promise((resolve, reject) => {
@@ -768,6 +804,10 @@
           return null;
         }
 
+        const status = document.getElementById("club-sync-status");
+        const previousStatus = status.textContent;
+        setBusyState(true);
+        status.textContent = "Syncing club data from UTAS…";
         try {
           const snapshot = await invoke("fetch_club_snapshot", {
             accessToken,
@@ -784,8 +824,11 @@
           }
           return snapshot;
         } catch (error) {
+          status.textContent = previousStatus;
           showRawOutput(String(error));
           return null;
+        } finally {
+          setBusyState(false);
         }
       }
 
@@ -1588,12 +1631,32 @@
           showRawOutput("Tauri API not available (open via cargo tauri dev).");
           return;
         }
+        setBusyState(true);
         try {
           const result = await invoke(command, args);
           renderCommandOutput(command, result, exportMeta);
         } catch (error) {
           showRawOutput(String(error));
+        } finally {
+          setBusyState(false);
         }
+      }
+
+      function updateSquadOvrFromPlanner() {
+        const { existingRatings, brickCount } = plannerArgs();
+        if (!existingRatings.length) {
+          document.getElementById("squad-ovr-status").textContent = "";
+          return;
+        }
+
+        const note = ` (${existingRatings.length} rated${
+          brickCount > 0 ? `, ${brickCount} brick` : ""
+        })`;
+        void invokeRust(
+          "calculate_team_rating",
+          { ratings: existingRatings },
+          { ratingNote: note }
+        );
       }
 
       function parseIds(raw) {
@@ -1753,21 +1816,21 @@
       });
 
       document.getElementById("calc-squad-ovr").addEventListener("click", () => {
-        const { existingRatings, brickCount } = plannerArgs();
+        const { existingRatings } = plannerArgs();
         if (!existingRatings.length) {
           document.getElementById("squad-ovr-status").textContent =
             "Enter existing squad ratings first.";
           return;
         }
+        updateSquadOvrFromPlanner();
+      });
 
-        const note = ` (${existingRatings.length} rated${
-          brickCount > 0 ? `, ${brickCount} brick` : ""
-        })`;
-        invokeRust(
-          "calculate_team_rating",
-          { ratings: existingRatings },
-          { ratingNote: note }
-        );
+      document.getElementById("existing-ratings").addEventListener("blur", () => {
+        updateSquadOvrFromPlanner();
+      });
+
+      document.getElementById("brick-count").addEventListener("change", () => {
+        updateSquadOvrFromPlanner();
       });
 
       async function planWithClub({ forceSync = false } = {}) {
