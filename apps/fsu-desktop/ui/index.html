@@ -401,6 +401,7 @@
         "https://www.ea.com/ea-sports-fc/ultimate-team/web-app/";
 
       const STORAGE_KEY = "fsu-desktop-session-v1";
+      const CLUB_CACHE_MAX_AGE_MS = 30 * 60 * 1000;
       const PERSISTED_FIELDS = [
         "ea-token-planner",
         "ea-platform-planner",
@@ -434,16 +435,23 @@
         refreshClubPlayerPicker();
       }
 
+      function isClubCacheStale() {
+        return Boolean(
+          clubCache && Date.now() - clubCache.syncedAt > CLUB_CACHE_MAX_AGE_MS
+        );
+      }
+
       function updateClubSyncStatus() {
         const status = document.getElementById("club-sync-status");
         if (!clubCache) {
           status.textContent =
-            "Club data not synced — inventory and chemistry use live UTAS fetches.";
+            "Club data not synced — Plan with club will fetch live UTAS data.";
           return;
         }
 
         const when = new Date(clubCache.syncedAt).toLocaleTimeString();
-        status.textContent = `Club synced at ${when} — ${clubCache.totalPlayers} players cached.`;
+        const staleNote = isClubCacheStale() ? " (stale — re-sync recommended)" : "";
+        status.textContent = `Club synced at ${when} — ${clubCache.totalPlayers} players cached${staleNote}.`;
       }
 
       function playerMatchesCandidate(player, candidate) {
@@ -469,18 +477,18 @@
         return `${player.rating} ${pos} — ${player.nation_id}/${player.league_id}/${player.team_id}`;
       }
 
-      function refreshClubPlayerPicker() {
+      function refreshClubPlayerPicker(players = null) {
         const row = document.getElementById("club-picker-row");
         const select = document.getElementById("club-player-pick");
-        if (!clubCache?.players?.length) {
+        const source = players ?? clubCache?.players;
+        if (!source?.length) {
           row.classList.add("hidden");
           select.innerHTML = "";
+          clubPlayerPickList = [];
           return;
         }
 
-        clubPlayerPickList = [...clubCache.players].sort(
-          (left, right) => right.rating - left.rating
-        );
+        clubPlayerPickList = [...source].sort((left, right) => right.rating - left.rating);
         select.innerHTML = clubPlayerPickList
           .map(
             (player, index) =>
@@ -488,6 +496,15 @@
           )
           .join("");
         row.classList.remove("hidden");
+      }
+
+      function filterClubPlayerPicker(candidate) {
+        if (!clubCache?.players?.length) return 0;
+        const matches = clubCache.players.filter((player) =>
+          playerMatchesCandidate(player, candidate)
+        );
+        refreshClubPlayerPicker(matches);
+        return matches.length;
       }
 
       function setSquadLineAt(slotIndex, nationId, leagueId, teamId) {
@@ -949,6 +966,25 @@
           })
           .join("");
 
+        const chemistryBody = document.getElementById("chemistry-body");
+        chemistryBody.querySelectorAll("tr").forEach((row, index) => {
+          const candidate = result.candidates[index];
+          if (!candidate) return;
+          row.style.cursor = "pointer";
+          row.title = "Click to filter club player picker to this candidate";
+          row.addEventListener("click", () => {
+            const matchCount = filterClubPlayerPicker(candidate);
+            document.getElementById("club-map-status").textContent =
+              matchCount > 0
+                ? `Picker filtered — ${matchCount} club player(s) match candidate ${index + 1}.`
+                : `No club players match candidate ${index + 1}.`;
+            chemistryBody.querySelectorAll("tr").forEach((entry) => {
+              entry.style.outline = "";
+            });
+            row.style.outline = "1px solid #1a73e8";
+          });
+        });
+
         document.getElementById("results-summary").textContent = summary;
         document.getElementById("chemistry-section").classList.remove("hidden");
         document.getElementById("inventory-section").classList.add("hidden");
@@ -999,12 +1035,16 @@
           return;
         }
 
-        if (command === "plan_rating_with_club") {
+        if (
+          command === "plan_rating_with_club" ||
+          command === "plan_rating_from_inventory"
+        ) {
+          const cached = exportMeta.kind === "club-cached" ? " (cached)" : "";
           renderOptions(
-            `Target plan using ${result.inventory.total_players} club players`,
+            `Target plan using ${result.inventory.total_players} club players${cached}`,
             result.options,
             result.inventory.rating_counts,
-            { target: exportMeta.target, kind: "club" }
+            { target: exportMeta.target, kind: exportMeta.kind ?? "club" }
           );
           return;
         }
@@ -1119,8 +1159,28 @@
         );
       });
 
-      document.getElementById("plan-with-club").addEventListener("click", () => {
+      document.getElementById("plan-with-club").addEventListener("click", async () => {
         const { target, brickCount, existingRatings, accessToken, platform } = plannerArgs();
+
+        if (!clubCache && accessToken.trim()) {
+          await syncClubData();
+        }
+
+        if (clubCache) {
+          invokeRust(
+            "plan_rating_from_inventory",
+            {
+              target,
+              existingRatings,
+              brickCount,
+              ratingCounts: clubCache.ratingCounts,
+              platform,
+            },
+            { target, kind: "club-cached" }
+          );
+          return;
+        }
+
         if (!accessToken.trim()) {
           showRawOutput("Paste X-UT-SID to plan with club inventory.");
           return;
@@ -1128,7 +1188,7 @@
         invokeRust(
           "plan_rating_with_club",
           { accessToken, platform, target, existingRatings, brickCount },
-          { target }
+          { target, kind: "club" }
         );
       });
 
@@ -1188,7 +1248,7 @@
       });
 
       document.getElementById("load-club-map").addEventListener("click", async () => {
-        if (clubCache?.clubLeagues) {
+        if (clubCache?.clubLeagues && !isClubCacheStale()) {
           clubLeagueMap = clubCache.clubLeagues;
           updateClubMapStatus();
           return;
@@ -1198,6 +1258,14 @@
           updateClubMapStatus();
         }
       });
+
+      document
+        .getElementById("club-player-pick")
+        .addEventListener("dblclick", () => {
+          refreshClubPlayerPicker();
+          document.getElementById("club-map-status").textContent =
+            "Picker reset — showing all club players.";
+        });
 
       document.getElementById("insert-club-player").addEventListener("click", () => {
         if (!clubPlayerPickList.length) return;

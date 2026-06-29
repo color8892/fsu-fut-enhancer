@@ -219,6 +219,14 @@ fn build_ea_session(
     session
 }
 
+fn inventory_from_counts(rating_counts: HashMap<i32, i32>) -> ClubRatingInventory {
+    let total_players = rating_counts.values().copied().sum::<i32>() as usize;
+    ClubRatingInventory {
+        total_players,
+        rating_counts,
+    }
+}
+
 fn inventory_to_rating_options(inventory: &ClubRatingInventory) -> (Vec<i32>, HashMap<i32, i32>) {
     let mut available_ratings: Vec<i32> = inventory.rating_counts.keys().copied().collect();
     available_ratings.sort_by(|left, right| right.cmp(left));
@@ -443,6 +451,34 @@ async fn fetch_club_inventory(
 }
 
 #[tauri::command]
+async fn plan_rating_from_inventory(
+    state: tauri::State<'_, AppState>,
+    target: i32,
+    existing_ratings: Option<Vec<i32>>,
+    brick_count: Option<usize>,
+    rating_counts: HashMap<i32, i32>,
+    platform: String,
+) -> Result<PlanRatingWithClubDto, String> {
+    let inventory = inventory_from_counts(rating_counts);
+    let price_by_rating = load_rating_prices(&state.http, &platform).await;
+    let options = map_rating_needs(
+        target,
+        existing_ratings.unwrap_or_default(),
+        normalize_brick_count(brick_count),
+        &inventory,
+        price_by_rating,
+    );
+
+    Ok(PlanRatingWithClubDto {
+        inventory: ClubInventoryDto {
+            total_players: inventory.total_players,
+            rating_counts: inventory.rating_counts,
+        },
+        options,
+    })
+}
+
+#[tauri::command]
 async fn plan_rating_with_club(
     state: tauri::State<'_, AppState>,
     access_token: String,
@@ -569,6 +605,17 @@ mod tests {
     }
 
     #[test]
+    fn inventory_from_counts_sums_player_total() {
+        let mut counts = HashMap::new();
+        counts.insert(84, 3);
+        counts.insert(83, 2);
+
+        let inventory = inventory_from_counts(counts);
+        assert_eq!(inventory.total_players, 5);
+        assert_eq!(inventory.rating_counts.get(&84), Some(&3));
+    }
+
+    #[test]
     fn build_club_league_map_uses_team_to_league_pairs() {
         let players = vec![
             ClubPlayer {
@@ -618,6 +665,7 @@ pub fn run() {
             fetch_club_league_map,
             fetch_club_players,
             fetch_club_inventory,
+            plan_rating_from_inventory,
             plan_rating_with_club,
             probe_ea_session,
             fetch_player_prices
