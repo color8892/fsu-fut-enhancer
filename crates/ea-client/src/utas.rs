@@ -1,5 +1,5 @@
 use crate::error::EaClientError;
-use crate::player::{parse_club_player, ClubPlayer};
+use crate::player::{build_club_snapshot, parse_club_player, ClubPlayer, ClubSnapshot};
 use crate::session::EaSession;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -91,52 +91,9 @@ impl UtasClient {
         })
     }
 
-    /// Paginate club players and aggregate rating counts.
+    /// Paginate club players once and return inventory, players, and league map.
     #[cfg(feature = "async")]
-    pub async fn fetch_club_inventory(&self, session: &EaSession) -> Result<ClubRatingInventory, EaClientError> {
-        if session.access_token.is_empty() {
-            return Err(EaClientError::MissingSession);
-        }
-
-        let mut rating_counts: HashMap<i32, i32> = HashMap::new();
-        let mut total_players = 0usize;
-        let mut start = 0i32;
-
-        loop {
-            let page = self.fetch_club_page(session, start, CLUB_PAGE_SIZE).await?;
-            let page_len = page.item_data.len();
-            if page_len == 0 {
-                break;
-            }
-
-            for item in &page.item_data {
-                let Some(rating) = item.get("rating").and_then(|value| value.as_i64()) else {
-                    continue;
-                };
-                let rating = rating as i32;
-                *rating_counts.entry(rating).or_insert(0) += 1;
-                total_players += 1;
-            }
-
-            if page_len < CLUB_PAGE_SIZE as usize {
-                break;
-            }
-
-            start += CLUB_PAGE_SIZE;
-        }
-
-        Ok(ClubRatingInventory {
-            total_players,
-            rating_counts,
-        })
-    }
-
-    /// Paginate club players and return parsed identity fields.
-    #[cfg(feature = "async")]
-    pub async fn fetch_club_players_list(
-        &self,
-        session: &EaSession,
-    ) -> Result<ClubPlayersList, EaClientError> {
+    pub async fn fetch_club_snapshot(&self, session: &EaSession) -> Result<ClubSnapshot, EaClientError> {
         if session.access_token.is_empty() {
             return Err(EaClientError::MissingSession);
         }
@@ -164,9 +121,29 @@ impl UtasClient {
             start += CLUB_PAGE_SIZE;
         }
 
+        Ok(build_club_snapshot(players))
+    }
+
+    /// Paginate club players and aggregate rating counts.
+    #[cfg(feature = "async")]
+    pub async fn fetch_club_inventory(&self, session: &EaSession) -> Result<ClubRatingInventory, EaClientError> {
+        let snapshot = self.fetch_club_snapshot(session).await?;
+        Ok(ClubRatingInventory {
+            total_players: snapshot.total_players,
+            rating_counts: snapshot.rating_counts,
+        })
+    }
+
+    /// Paginate club players and return parsed identity fields.
+    #[cfg(feature = "async")]
+    pub async fn fetch_club_players_list(
+        &self,
+        session: &EaSession,
+    ) -> Result<ClubPlayersList, EaClientError> {
+        let snapshot = self.fetch_club_snapshot(session).await?;
         Ok(ClubPlayersList {
-            total_players: players.len(),
-            players,
+            total_players: snapshot.total_players,
+            players: snapshot.players,
         })
     }
 
@@ -236,6 +213,11 @@ impl UtasClient {
             "fetch_club_players_list requires async feature",
         ))
     }
+
+    #[cfg(not(feature = "async"))]
+    pub fn fetch_club_snapshot(&self, _session: &EaSession) -> Result<ClubSnapshot, EaClientError> {
+        Err(EaClientError::NotImplemented("fetch_club_snapshot requires async feature"))
+    }
 }
 
 #[cfg(test)]
@@ -274,6 +256,15 @@ mod tests {
         let client = UtasClient::new();
         let session = EaSession::new("", GamePlatform::Ps);
         let error = client.fetch_club_inventory(&session).await.unwrap_err();
+        assert!(matches!(error, EaClientError::MissingSession));
+    }
+
+    #[tokio::test]
+    #[cfg(feature = "async")]
+    async fn fetch_club_snapshot_requires_session() {
+        let client = UtasClient::new();
+        let session = EaSession::new("", GamePlatform::Ps);
+        let error = client.fetch_club_snapshot(&session).await.unwrap_err();
         assert!(matches!(error, EaClientError::MissingSession));
     }
 }

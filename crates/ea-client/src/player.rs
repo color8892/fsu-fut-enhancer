@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use std::collections::HashMap;
 
 /// Parsed club player from a UTAS `itemData` entry.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -32,6 +33,37 @@ fn read_string(value: &Value, keys: &[&str]) -> Option<String> {
             .and_then(|entry| entry.as_str())
             .map(str::to_string)
     })
+}
+
+/// Full club data from a single UTAS pagination pass.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ClubSnapshot {
+    pub total_players: usize,
+    pub rating_counts: HashMap<i32, i32>,
+    pub club_leagues: HashMap<i32, i32>,
+    pub players: Vec<ClubPlayer>,
+}
+
+pub fn build_club_league_map(players: &[ClubPlayer]) -> HashMap<i32, i32> {
+    players
+        .iter()
+        .filter(|player| player.team_id > 0 && player.league_id > 0)
+        .map(|player| (player.team_id, player.league_id))
+        .collect()
+}
+
+pub fn build_club_snapshot(players: Vec<ClubPlayer>) -> ClubSnapshot {
+    let mut rating_counts: HashMap<i32, i32> = HashMap::new();
+    for player in &players {
+        *rating_counts.entry(player.rating).or_insert(0) += 1;
+    }
+
+    ClubSnapshot {
+        total_players: players.len(),
+        rating_counts,
+        club_leagues: build_club_league_map(&players),
+        players,
+    }
 }
 
 /// Parse one UTAS club player item. Returns `None` when required fields are missing.
@@ -107,5 +139,37 @@ mod tests {
     fn parse_club_player_rejects_missing_rating() {
         let item = json!({ "nation": 1, "leagueId": 2, "teamid": 3 });
         assert!(parse_club_player(&item).is_none());
+    }
+
+    #[test]
+    fn build_club_snapshot_aggregates_counts_and_league_map() {
+        let players = vec![
+            ClubPlayer {
+                id: 1,
+                resource_id: 10,
+                rating: 84,
+                nation_id: 14,
+                league_id: 13,
+                team_id: 5,
+                untradeable: false,
+                preferred_position: Some("ST".into()),
+            },
+            ClubPlayer {
+                id: 2,
+                resource_id: 11,
+                rating: 84,
+                nation_id: 2,
+                league_id: 16,
+                team_id: 9,
+                untradeable: true,
+                preferred_position: None,
+            },
+        ];
+
+        let snapshot = build_club_snapshot(players);
+        assert_eq!(snapshot.total_players, 2);
+        assert_eq!(snapshot.rating_counts.get(&84), Some(&2));
+        assert_eq!(snapshot.club_leagues.get(&5), Some(&13));
+        assert_eq!(snapshot.club_leagues.get(&9), Some(&16));
     }
 }

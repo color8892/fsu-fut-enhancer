@@ -212,10 +212,14 @@
       <div class="row">
         <button id="plan-rating">Plan (offline)</button>
         <button id="plan-with-club">Plan with club</button>
-        <button id="fetch-club" class="secondary">Fetch club inventory</button>
-        <button id="fetch-club-players" class="secondary">Fetch club players</button>
+        <button id="sync-club" class="secondary">Sync club data</button>
+        <button id="fetch-club" class="secondary">Show inventory</button>
+        <button id="fetch-club-players" class="secondary">Show players</button>
         <button id="open-fut-planner" class="secondary">Open FUT Web App</button>
       </div>
+      <p id="club-sync-status" style="margin: 0.35rem 0 0; font-size: 0.8rem" class="muted">
+        Club data not synced — inventory and chemistry use live UTAS fetches.
+      </p>
       <p style="margin: 0.5rem 0 0; font-size: 0.85rem">
         <strong>Plan (offline)</strong> assumes any rating is obtainable.
         <strong>Plan with club</strong> uses your real club counts via UTAS.
@@ -259,9 +263,19 @@
           <input id="skip-slot" type="number" min="0" max="10" value="3" />
         </div>
       </div>
+      <div class="row hidden" id="club-picker-row">
+        <div class="field" style="flex: 1; min-width: 16rem">
+          <label for="club-player-pick">Insert club player into slot</label>
+          <select id="club-player-pick"></select>
+        </div>
+        <div class="field" style="align-self: flex-end">
+          <label>&nbsp;</label>
+          <button id="insert-club-player" class="secondary">Insert</button>
+        </div>
+      </div>
       <div class="row">
         <button id="plan-chemistry">Plan chemistry</button>
-        <button id="load-club-map" class="secondary">Load club league map</button>
+        <button id="load-club-map" class="secondary">Load league map</button>
       </div>
       <p id="club-map-status" style="margin: 0.5rem 0 0; font-size: 0.8rem" class="muted">
         Club league map not loaded — candidate suggestions use squad links only.
@@ -355,6 +369,7 @@
                 <th class="num">Nation</th>
                 <th class="num">League</th>
                 <th class="num">Club</th>
+                <th class="num">In club</th>
               </tr>
             </thead>
             <tbody id="chemistry-body"></tbody>
@@ -400,8 +415,115 @@
         "ea-platform",
       ];
 
+      let clubCache = null;
+      let clubPlayerPickList = [];
       let clubLeagueMap = null;
       let lastExportPayload = null;
+
+      function applyClubSnapshot(snapshot) {
+        clubCache = {
+          syncedAt: Date.now(),
+          totalPlayers: snapshot.total_players,
+          ratingCounts: snapshot.rating_counts,
+          players: snapshot.players || [],
+          clubLeagues: snapshot.club_leagues || {},
+        };
+        clubLeagueMap = clubCache.clubLeagues;
+        updateClubSyncStatus();
+        updateClubMapStatus();
+        refreshClubPlayerPicker();
+      }
+
+      function updateClubSyncStatus() {
+        const status = document.getElementById("club-sync-status");
+        if (!clubCache) {
+          status.textContent =
+            "Club data not synced — inventory and chemistry use live UTAS fetches.";
+          return;
+        }
+
+        const when = new Date(clubCache.syncedAt).toLocaleTimeString();
+        status.textContent = `Club synced at ${when} — ${clubCache.totalPlayers} players cached.`;
+      }
+
+      function playerMatchesCandidate(player, candidate) {
+        if (candidate.nation_id != null && player.nation_id !== candidate.nation_id) {
+          return false;
+        }
+        if (candidate.league_id != null && player.league_id !== candidate.league_id) {
+          return false;
+        }
+        if (candidate.team_id != null && player.team_id !== candidate.team_id) {
+          return false;
+        }
+        return true;
+      }
+
+      function countClubMatches(candidate) {
+        if (!clubCache?.players?.length) return null;
+        return clubCache.players.filter((player) => playerMatchesCandidate(player, candidate)).length;
+      }
+
+      function formatClubPlayerOption(player) {
+        const pos = player.preferred_position || "?";
+        return `${player.rating} ${pos} — ${player.nation_id}/${player.league_id}/${player.team_id}`;
+      }
+
+      function refreshClubPlayerPicker() {
+        const row = document.getElementById("club-picker-row");
+        const select = document.getElementById("club-player-pick");
+        if (!clubCache?.players?.length) {
+          row.classList.add("hidden");
+          select.innerHTML = "";
+          return;
+        }
+
+        clubPlayerPickList = [...clubCache.players].sort(
+          (left, right) => right.rating - left.rating
+        );
+        select.innerHTML = clubPlayerPickList
+          .map(
+            (player, index) =>
+              `<option value="${index}">${formatClubPlayerOption(player)}</option>`
+          )
+          .join("");
+        row.classList.remove("hidden");
+      }
+
+      function setSquadLineAt(slotIndex, nationId, leagueId, teamId) {
+        const textarea = document.getElementById("squad-chemistry");
+        const lines = textarea.value.split("\n");
+        while (lines.length < 11) lines.push("");
+        lines[slotIndex] = `${nationId},${leagueId},${teamId}`;
+        textarea.value = lines.join("\n");
+        persistSession();
+      }
+
+      async function syncClubData({ showResults = false } = {}) {
+        const { accessToken, platform } = plannerArgs();
+        if (!accessToken.trim()) {
+          showRawOutput("Paste X-UT-SID to sync club data.");
+          return null;
+        }
+
+        const invoke = window.__TAURI__?.core?.invoke;
+        if (!invoke) {
+          showRawOutput("Tauri API not available (open via cargo tauri dev).");
+          return null;
+        }
+
+        try {
+          const snapshot = await invoke("fetch_club_snapshot", { accessToken, platform });
+          applyClubSnapshot(snapshot);
+          if (showResults) {
+            renderCommandOutput("fetch_club_snapshot", snapshot);
+          }
+          return snapshot;
+        } catch (error) {
+          showRawOutput(String(error));
+          return null;
+        }
+      }
 
       function parseSquadLines(text) {
         const lines = text.split("\n").slice(0, 11);
@@ -426,10 +548,11 @@
         const status = document.getElementById("club-map-status");
         if (!clubLeagueMap || Object.keys(clubLeagueMap).length === 0) {
           status.textContent =
-            "Club league map not loaded — candidate suggestions use squad links only.";
+            "Club league map not loaded — sync club data or load league map.";
           return;
         }
-        status.textContent = `Club league map loaded — ${Object.keys(clubLeagueMap).length} clubs mapped.`;
+        const playerNote = clubCache ? ` from ${clubCache.totalPlayers} players` : "";
+        status.textContent = `League map ready — ${Object.keys(clubLeagueMap).length} clubs${playerNote}.`;
       }
 
       function formatCandidateLabel(candidate) {
@@ -808,14 +931,22 @@
         const summary = `Squad chemistry ${result.total_chemistry} — ${result.candidates.length} candidate(s) for slot ${exportMeta.skipSlot ?? "?"}`;
         document.getElementById("chemistry-summary").textContent = summary;
         document.getElementById("chemistry-body").innerHTML = (result.candidates || [])
-          .map(
-            (candidate, index) => `<tr>
+          .map((candidate, index) => {
+            const inClub = countClubMatches(candidate);
+            const inClubCell =
+              inClub == null
+                ? '<span class="muted">—</span>'
+                : inClub > 0
+                  ? inClub
+                  : '<span class="muted">0</span>';
+            return `<tr>
               <td>${index + 1}</td>
               <td class="num">${candidate.nation_id ?? '<span class="muted">—</span>'}</td>
               <td class="num">${candidate.league_id ?? '<span class="muted">—</span>'}</td>
               <td class="num">${candidate.team_id ?? '<span class="muted">—</span>'}</td>
-            </tr>`
-          )
+              <td class="num">${inClubCell}</td>
+            </tr>`;
+          })
           .join("");
 
         document.getElementById("results-summary").textContent = summary;
@@ -840,6 +971,15 @@
       function renderCommandOutput(command, result, exportMeta = {}) {
         if (command === "plan_sbc_chemistry") {
           renderChemistryPlan(result, exportMeta);
+          return;
+        }
+
+        if (command === "fetch_club_snapshot") {
+          applyClubSnapshot(result);
+          renderInventory(
+            `Club synced — ${result.total_players} players`,
+            result.rating_counts
+          );
           return;
         }
 
@@ -992,19 +1132,37 @@
         );
       });
 
+      document.getElementById("sync-club").addEventListener("click", () => {
+        syncClubData({ showResults: true });
+      });
+
       document.getElementById("fetch-club").addEventListener("click", () => {
+        if (clubCache) {
+          renderInventory(
+            `Club inventory (cached) — ${clubCache.totalPlayers} players`,
+            clubCache.ratingCounts
+          );
+          return;
+        }
         const { accessToken, platform } = plannerArgs();
         if (!accessToken.trim()) {
-          showRawOutput("Paste X-UT-SID to fetch club inventory.");
+          showRawOutput("Paste X-UT-SID or use Sync club data first.");
           return;
         }
         invokeRust("fetch_club_inventory", { accessToken, platform });
       });
 
       document.getElementById("fetch-club-players").addEventListener("click", () => {
+        if (clubCache) {
+          renderPlayers(
+            `Club players (cached) — ${clubCache.totalPlayers} parsed`,
+            clubCache.players
+          );
+          return;
+        }
         const { accessToken, platform } = plannerArgs();
         if (!accessToken.trim()) {
-          showRawOutput("Paste X-UT-SID to fetch club players.");
+          showRawOutput("Paste X-UT-SID or use Sync club data first.");
           return;
         }
         invokeRust("fetch_club_players", { accessToken, platform });
@@ -1030,27 +1188,30 @@
       });
 
       document.getElementById("load-club-map").addEventListener("click", async () => {
-        const { accessToken, platform } = plannerArgs();
-        if (!accessToken.trim()) {
-          showRawOutput("Paste X-UT-SID to load club league map.");
-          return;
-        }
-
-        const invoke = window.__TAURI__?.core?.invoke;
-        if (!invoke) {
-          showRawOutput("Tauri API not available (open via cargo tauri dev).");
-          return;
-        }
-
-        try {
-          const result = await invoke("fetch_club_league_map", { accessToken, platform });
-          clubLeagueMap = result.club_leagues;
+        if (clubCache?.clubLeagues) {
+          clubLeagueMap = clubCache.clubLeagues;
           updateClubMapStatus();
-          document.getElementById("club-map-status").textContent =
-            `Club league map loaded — ${result.player_count} players, ${Object.keys(clubLeagueMap).length} clubs.`;
-        } catch (error) {
-          showRawOutput(String(error));
+          return;
         }
+        const snapshot = await syncClubData();
+        if (snapshot) {
+          updateClubMapStatus();
+        }
+      });
+
+      document.getElementById("insert-club-player").addEventListener("click", () => {
+        if (!clubPlayerPickList.length) return;
+        const select = document.getElementById("club-player-pick");
+        const player = clubPlayerPickList[Number.parseInt(select.value, 10)];
+        if (!player) return;
+
+        const slotIndex = Number.parseInt(document.getElementById("skip-slot").value, 10);
+        const safeSlot = Number.isFinite(slotIndex)
+          ? Math.min(10, Math.max(0, slotIndex))
+          : 0;
+        setSquadLineAt(safeSlot, player.nation_id, player.league_id, player.team_id);
+        document.getElementById("skip-slot").value = String(safeSlot);
+        persistSession();
       });
 
       document.getElementById("rating").addEventListener("click", () =>
@@ -1068,6 +1229,7 @@
       );
 
       document.getElementById("open-fut-planner").addEventListener("click", openFutWebApp);
+      updateClubSyncStatus();
       updateClubMapStatus();
       document.getElementById("open-fut-probe").addEventListener("click", openFutWebApp);
 

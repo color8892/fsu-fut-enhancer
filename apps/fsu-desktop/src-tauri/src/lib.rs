@@ -1,4 +1,7 @@
-use ea_client::{ClubPlayer, ClubPlayersList, ClubRatingInventory, EaSession, GamePlatform, UtasClient};
+use ea_client::{
+    build_club_league_map, ClubPlayer, ClubRatingInventory, ClubSnapshot, EaSession, GamePlatform,
+    UtasClient,
+};
 use fsu_core::{
     fetch_rating_lowprices, need_ratings_count, price_last_diff, team_rating_count, ApiPlatform,
     ChemistryMeta, HttpGet, IdentityTeamLookup, MapTeamLookup, PriceFetchError, PriceService,
@@ -107,6 +110,14 @@ struct ClubLeagueMapDto {
 }
 
 #[derive(Debug, Serialize)]
+struct ClubSnapshotDto {
+    total_players: usize,
+    rating_counts: HashMap<i32, i32>,
+    club_leagues: HashMap<i32, i32>,
+    players: Vec<ClubPlayerDto>,
+}
+
+#[derive(Debug, Serialize)]
 struct EaSessionProbeDto {
     ready: bool,
     message: String,
@@ -175,12 +186,20 @@ fn map_candidate(candidate: PlayerIdentity) -> CandidateDto {
     }
 }
 
-fn build_club_league_map(players: &[ClubPlayer]) -> HashMap<i32, i32> {
-    players
-        .iter()
-        .filter(|player| player.team_id > 0 && player.league_id > 0)
-        .map(|player| (player.team_id, player.league_id))
-        .collect()
+fn map_club_snapshot(snapshot: ClubSnapshot) -> ClubSnapshotDto {
+    ClubSnapshotDto {
+        total_players: snapshot.total_players,
+        rating_counts: snapshot.rating_counts,
+        club_leagues: snapshot.club_leagues,
+        players: snapshot.players.into_iter().map(map_club_player).collect(),
+    }
+}
+
+async fn load_club_snapshot(session: &EaSession) -> Result<ClubSnapshot, String> {
+    UtasClient::new()
+        .fetch_club_snapshot(session)
+        .await
+        .map_err(|error| error.to_string())
 }
 
 fn build_ea_session(
@@ -376,20 +395,28 @@ fn generate_candidate_options(
 }
 
 #[tauri::command]
+async fn fetch_club_snapshot(
+    access_token: String,
+    platform: String,
+    persona_id: Option<String>,
+) -> Result<ClubSnapshotDto, String> {
+    let session = build_ea_session(access_token, &platform, persona_id);
+    let snapshot = load_club_snapshot(&session).await?;
+    Ok(map_club_snapshot(snapshot))
+}
+
+#[tauri::command]
 async fn fetch_club_league_map(
     access_token: String,
     platform: String,
     persona_id: Option<String>,
 ) -> Result<ClubLeagueMapDto, String> {
     let session = build_ea_session(access_token, &platform, persona_id);
-    let list = UtasClient::new()
-        .fetch_club_players_list(&session)
-        .await
-        .map_err(|error| error.to_string())?;
+    let snapshot = load_club_snapshot(&session).await?;
 
     Ok(ClubLeagueMapDto {
-        club_leagues: build_club_league_map(&list.players),
-        player_count: list.total_players,
+        club_leagues: snapshot.club_leagues,
+        player_count: snapshot.total_players,
     })
 }
 
@@ -400,12 +427,12 @@ async fn fetch_club_players(
     persona_id: Option<String>,
 ) -> Result<ClubPlayersListDto, String> {
     let session = build_ea_session(access_token, &platform, persona_id);
-    let list = UtasClient::new()
-        .fetch_club_players_list(&session)
-        .await
-        .map_err(|error| error.to_string())?;
+    let snapshot = load_club_snapshot(&session).await?;
 
-    Ok(map_club_players_list(list))
+    Ok(ClubPlayersListDto {
+        total_players: snapshot.total_players,
+        players: snapshot.players.into_iter().map(map_club_player).collect(),
+    })
 }
 
 #[tauri::command]
@@ -415,14 +442,11 @@ async fn fetch_club_inventory(
     persona_id: Option<String>,
 ) -> Result<ClubInventoryDto, String> {
     let session = build_ea_session(access_token, &platform, persona_id);
-    let inventory = UtasClient::new()
-        .fetch_club_inventory(&session)
-        .await
-        .map_err(|error| error.to_string())?;
+    let snapshot = load_club_snapshot(&session).await?;
 
     Ok(ClubInventoryDto {
-        total_players: inventory.total_players,
-        rating_counts: inventory.rating_counts,
+        total_players: snapshot.total_players,
+        rating_counts: snapshot.rating_counts,
     })
 }
 
@@ -437,11 +461,11 @@ async fn plan_rating_with_club(
     brick_count: Option<usize>,
 ) -> Result<PlanRatingWithClubDto, String> {
     let session = build_ea_session(access_token, &platform, persona_id);
-    let client = UtasClient::new();
-    let inventory = client
-        .fetch_club_inventory(&session)
-        .await
-        .map_err(|error| error.to_string())?;
+    let snapshot = load_club_snapshot(&session).await?;
+    let inventory = ClubRatingInventory {
+        total_players: snapshot.total_players,
+        rating_counts: snapshot.rating_counts,
+    };
 
     let price_by_rating = load_rating_prices(&state.http, &platform).await;
     let options = map_rating_needs(
@@ -597,6 +621,7 @@ pub fn run() {
             format_price_diff,
             generate_candidate_options,
             plan_sbc_chemistry,
+            fetch_club_snapshot,
             fetch_club_league_map,
             fetch_club_players,
             fetch_club_inventory,
