@@ -622,20 +622,30 @@
         status.style.color = result.ready ? "#81c995" : "#f28b82";
       }
 
+      function formatCacheAge(syncedAt) {
+        const diffMs = Math.max(0, Date.now() - syncedAt);
+        const minutes = Math.floor(diffMs / 60_000);
+        if (minutes < 1) return "just now";
+        if (minutes < 60) return `${minutes} min ago`;
+        const hours = Math.floor(minutes / 60);
+        if (hours < 24) return `${hours}h ago`;
+        return new Date(syncedAt).toLocaleString();
+      }
+
       function updateClubSyncStatus() {
         const status = document.getElementById("club-sync-status");
         if (!clubCache) {
           status.textContent =
-            "Club data not synced — Plan with club will fetch live UTAS data.";
+            "Club data not synced — sync once, then plan from cache without X-UT-SID.";
           return;
         }
 
-        const when = new Date(clubCache.syncedAt).toLocaleTimeString();
+        const when = formatCacheAge(clubCache.syncedAt);
         const staleNote = isClubCacheStale() ? " (stale — re-sync recommended)" : "";
         const pickerNote = clubCache.players?.length
           ? ` — ${clubCache.players.length} in picker`
           : " (rating counts only — sync for player picker)";
-        status.textContent = `Club synced at ${when} — ${clubCache.totalPlayers} players cached${pickerNote}${staleNote}.`;
+        status.textContent = `Club synced ${when} — ${clubCache.totalPlayers} players cached${pickerNote}${staleNote}.`;
       }
 
       function playerMatchesCandidate(player, candidate) {
@@ -982,7 +992,9 @@
           const nation = candidate.nation_id ?? "";
           const league = candidate.league_id ?? "";
           const club = candidate.team_id ?? "";
-          return `${index + 1}. ${nation},${league},${club}`;
+          const inClub = countClubMatches(candidate);
+          const clubNote = inClub == null ? "" : ` (${inClub} in club)`;
+          return `${index + 1}. ${nation},${league},${club}${clubNote}`;
         });
       }
 
@@ -1062,11 +1074,14 @@
 
       function exportFilename(payload, extension) {
         const date = new Date().toISOString().slice(0, 10);
-        const target =
-          payload.target != null && Number.isFinite(payload.target)
-            ? `-rating${payload.target}`
-            : "";
-        const kind = payload.kind ? `-${payload.kind}` : "";
+        let target = "";
+        if (payload.target != null && Number.isFinite(payload.target)) {
+          target =
+            payload.kind === "chemistry"
+              ? `-chem${payload.target}`
+              : `-rating${payload.target}`;
+        }
+        const kind = payload.kind && payload.kind !== "chemistry" ? `-${payload.kind}` : "";
         return `fsu-planner${target}${kind}-${date}.${extension}`;
       }
 
@@ -1124,14 +1139,16 @@
         if (payload.chemistry) {
           lines.push("total_chemistry,candidate_count");
           lines.push(`${payload.chemistry.total_chemistry},${payload.chemistry.candidates.length}`);
-          lines.push("candidate,nation,league,club");
+          lines.push("candidate,nation,league,club,in_club");
           payload.chemistry.candidates.forEach((candidate, index) => {
+            const inClub = countClubMatches(candidate);
             lines.push(
               [
                 index + 1,
                 candidate.nation_id ?? "",
                 candidate.league_id ?? "",
                 candidate.team_id ?? "",
+                inClub ?? "",
               ].join(",")
             );
           });
@@ -1188,7 +1205,9 @@
           lines.push(`Squad chemistry: ${payload.chemistry.total_chemistry}`);
           lines.push("Candidates");
           payload.chemistry.candidates.forEach((candidate, index) => {
-            lines.push(`  ${index + 1}. ${formatCandidateLabel(candidate)}`);
+            const inClub = countClubMatches(candidate);
+            const clubNote = inClub == null ? "" : ` — ${inClub} in club`;
+            lines.push(`  ${index + 1}. ${formatCandidateLabel(candidate)}${clubNote}`);
           });
           lines.push("");
         }
