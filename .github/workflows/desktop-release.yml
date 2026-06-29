@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - "desktop-v*"
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -44,7 +45,17 @@ jobs:
           workspaces: apps/fsu-desktop/src-tauri
 
       - name: Install Tauri CLI
-        run: cargo install tauri-cli --locked --version "^2.0.0"
+        env:
+          CARGO_NET_RETRY: 10
+        run: |
+          for attempt in 1 2 3; do
+            echo "Installing tauri-cli (attempt ${attempt})..."
+            if cargo install tauri-cli --locked --version "^2.0.0"; then
+              exit 0
+            fi
+            sleep 20
+          done
+          exit 1
 
       - name: Build FSU Desktop
         working-directory: apps/fsu-desktop/src-tauri
