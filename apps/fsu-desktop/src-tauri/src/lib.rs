@@ -348,6 +348,11 @@ fn plan_sbc_chemistry(
 }
 
 #[tauri::command]
+fn app_version() -> String {
+    env!("CARGO_PKG_VERSION").to_string()
+}
+
+#[tauri::command]
 fn calculate_team_rating(ratings: Vec<i32>) -> i32 {
     team_rating_count(&ratings)
 }
@@ -694,6 +699,7 @@ pub fn run() {
             http: ReqwestHttp::new(),
         })
         .invoke_handler(tauri::generate_handler![
+            app_version,
             calculate_sbc_chemistry,
             calculate_team_rating,
             simulate_rating_needs,

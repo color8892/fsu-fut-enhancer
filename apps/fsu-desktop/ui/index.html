@@ -184,7 +184,10 @@
   </head>
   <body>
     <h1>FSU Desktop</h1>
-    <p>Rust + Tauri — shared <code>fsu-core</code> logic for offline SBC planning.</p>
+    <p>
+      Rust + Tauri — shared <code>fsu-core</code> logic for offline SBC planning.
+      <span id="app-version" class="muted" style="font-size: 0.85rem"></span>
+    </p>
 
     <h2>SBC planner</h2>
     <div class="panel">
@@ -360,6 +363,10 @@
           <input id="auto-copy-needs" type="checkbox" />
           Auto-copy needs
         </label>
+        <label class="check">
+          <input id="auto-copy-candidates" type="checkbox" />
+          Auto-copy candidates
+        </label>
       </div>
       <p id="results-summary" class="results-summary"></p>
       <div id="inventory-section" class="results-section hidden">
@@ -443,7 +450,8 @@
       const CLUB_CACHE_KEY = "fsu-desktop-club-cache-v1";
       const CLUB_PLAYERS_DB = "fsu-desktop-club-v1";
       const CLUB_PLAYERS_STORE = "players";
-      const AUTO_COPY_KEY = "fsu-desktop-auto-copy-needs";
+      const AUTO_COPY_NEEDS_KEY = "fsu-desktop-auto-copy-needs";
+      const AUTO_COPY_CANDIDATES_KEY = "fsu-desktop-auto-copy-candidates";
       const CLUB_CACHE_MAX_AGE_MS = 30 * 60 * 1000;
       const PERSISTED_FIELDS = [
         "ea-token-planner",
@@ -999,19 +1007,28 @@
         return true;
       }
 
-      function loadAutoCopyPreference() {
+      function loadCheckboxPreference(key) {
         try {
-          return localStorage.getItem(AUTO_COPY_KEY) === "1";
+          return localStorage.getItem(key) === "1";
         } catch (_error) {
           return false;
         }
       }
 
-      function persistAutoCopyPreference(enabled) {
+      function persistCheckboxPreference(key, enabled) {
         try {
-          localStorage.setItem(AUTO_COPY_KEY, enabled ? "1" : "0");
+          localStorage.setItem(key, enabled ? "1" : "0");
         } catch (_error) {
           /* ignore quota errors */
+        }
+      }
+
+      async function copyTextToClipboard(text) {
+        try {
+          await navigator.clipboard.writeText(text);
+          return true;
+        } catch (_error) {
+          return false;
         }
       }
 
@@ -1025,13 +1042,22 @@
           return summaryBase;
         }
 
-        const text = needs.join("\n");
-        try {
-          await navigator.clipboard.writeText(text);
-          return `${summaryBase} — needs list copied`;
-        } catch (_error) {
+        const copied = await copyTextToClipboard(needs.join("\n"));
+        return copied ? `${summaryBase} — needs list copied` : summaryBase;
+      }
+
+      async function maybeAutoCopyCandidates(candidates, summaryBase) {
+        if (!document.getElementById("auto-copy-candidates").checked) {
           return summaryBase;
         }
+
+        const lines = chemistryCandidatesLines(candidates);
+        if (!lines.length) {
+          return summaryBase;
+        }
+
+        const copied = await copyTextToClipboard(lines.join("\n"));
+        return copied ? `${summaryBase} — candidates copied` : summaryBase;
       }
 
       function exportFilename(payload, extension) {
@@ -1434,6 +1460,13 @@
           target: exportMeta.targetChemistry ?? null,
           kind: "chemistry",
         });
+
+        void maybeAutoCopyCandidates(result.candidates, summary).then((finalSummary) => {
+          document.getElementById("results-summary").textContent = finalSummary;
+          if (lastExportPayload) {
+            lastExportPayload.summary = finalSummary;
+          }
+        });
       }
 
       function renderCommandOutput(command, result, exportMeta = {}) {
@@ -1548,10 +1581,28 @@
 
       loadPersistedSession();
       void loadClubCacheMeta();
-      document.getElementById("auto-copy-needs").checked = loadAutoCopyPreference();
+      document.getElementById("auto-copy-needs").checked =
+        loadCheckboxPreference(AUTO_COPY_NEEDS_KEY);
       document.getElementById("auto-copy-needs").addEventListener("change", (event) => {
-        persistAutoCopyPreference(event.target.checked);
+        persistCheckboxPreference(AUTO_COPY_NEEDS_KEY, event.target.checked);
       });
+      document.getElementById("auto-copy-candidates").checked = loadCheckboxPreference(
+        AUTO_COPY_CANDIDATES_KEY
+      );
+      document.getElementById("auto-copy-candidates").addEventListener("change", (event) => {
+        persistCheckboxPreference(AUTO_COPY_CANDIDATES_KEY, event.target.checked);
+      });
+
+      void (async () => {
+        const invoke = window.__TAURI__?.core?.invoke;
+        if (!invoke) return;
+        try {
+          const version = await invoke("app_version");
+          document.getElementById("app-version").textContent = ` · v${version}`;
+        } catch (_error) {
+          /* ignore */
+        }
+      })();
       for (const id of PERSISTED_FIELDS) {
         const element = document.getElementById(id);
         if (element) {
