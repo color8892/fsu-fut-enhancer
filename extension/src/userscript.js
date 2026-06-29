@@ -4535,11 +4535,21 @@
       );
     }
   }
+  function resolveSbcSetTiles(dropdown, cntlr2) {
+    const hubTiles = dropdown?._parent?.sbcSetTiles;
+    if (hubTiles) {
+      return hubTiles;
+    }
+    return cntlr2.current()?.getView?.()?.sbcSetTiles;
+  }
   function sbcFilter(deps, e2) {
     const { info, cntlr: cntlr2 } = deps;
-    const t = cntlr2.current().getView().sbcSetTiles;
+    const tiles = resolveSbcSetTiles(e2, cntlr2);
+    if (!tiles) {
+      return;
+    }
     const g = e2.getIndex();
-    for (let i2 of t) {
+    _.forEach(tiles, (i2) => {
       let y = true;
       const d = i2.data.id;
       if (info.task.sbc.stat.hasOwnProperty(d)) {
@@ -4558,7 +4568,7 @@
         y = g == 0;
       }
       y ? i2.show() : i2.hide();
-    }
+    });
   }
   function installSbcHubPatches(deps) {
     const { info, events, services: services2, fy: fy2, cntlr: cntlr2 } = deps;
@@ -4653,10 +4663,9 @@
       );
       originalPopulateTiles.call(this, newList, t);
       if (info.set.info_sbc) {
-        const l2 = this.sbcSetTiles;
-        for (let i2 of l2) {
+        _.forEach(this.sbcSetTiles, (i2) => {
           events.sbcInfoFill(i2.data.id, i2);
-        }
+        });
         if (!t) {
           events.notice("notice.basesbc", 0);
         }

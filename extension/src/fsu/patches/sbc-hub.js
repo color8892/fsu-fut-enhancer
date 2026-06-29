@@ -9,12 +9,23 @@ function navigationAddCount(events, e, c) {
   }
 }
 
+function resolveSbcSetTiles(dropdown, cntlr) {
+  const hubTiles = dropdown?._parent?.sbcSetTiles;
+  if (hubTiles) {
+    return hubTiles;
+  }
+  return cntlr.current()?.getView?.()?.sbcSetTiles;
+}
+
 function sbcFilter(deps, e) {
   const { info, cntlr } = deps;
-  const t = cntlr.current().getView().sbcSetTiles;
-  const g = e.getIndex();
+  const tiles = resolveSbcSetTiles(e, cntlr);
+  if (!tiles) {
+    return;
+  }
 
-  for (let i of t) {
+  const g = e.getIndex();
+  _.forEach(tiles, (i) => {
     let y = true;
     const d = i.data.id;
     if (info.task.sbc.stat.hasOwnProperty(d)) {
@@ -33,7 +44,7 @@ function sbcFilter(deps, e) {
       y = g == 0;
     }
     y ? i.show() : i.hide();
-  }
+  });
 }
 
 export function installSbcHubPatches(deps) {
@@ -148,10 +159,9 @@ export function installSbcHubPatches(deps) {
     originalPopulateTiles.call(this, newList, t);
 
     if (info.set.info_sbc) {
-      const l = this.sbcSetTiles;
-      for (let i of l) {
+      _.forEach(this.sbcSetTiles, (i) => {
         events.sbcInfoFill(i.data.id, i);
-      }
+      });
       if (!t) {
         events.notice("notice.basesbc", 0);
       }
