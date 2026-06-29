@@ -227,6 +227,7 @@
       <div class="row">
         <button id="plan-rating">Plan (offline)</button>
         <button id="plan-with-club">Plan with club</button>
+        <button id="calc-squad-ovr" class="secondary">Squad OVR</button>
         <button id="sync-and-plan">Sync &amp; plan</button>
         <button id="check-session" class="secondary">Check session</button>
         <button id="sync-club" class="secondary">Sync club data</button>
@@ -235,7 +236,8 @@
         <button id="fetch-club-players" class="secondary">Show players</button>
         <button id="open-fut-planner" class="secondary">Open FUT Web App</button>
       </div>
-      <p id="ea-session-status" style="margin: 0.35rem 0 0; font-size: 0.8rem" class="muted"></p>
+      <p id="squad-ovr-status" style="margin: 0.35rem 0 0; font-size: 0.8rem" class="muted"></p>
+      <p id="ea-session-status" style="margin: 0.15rem 0 0; font-size: 0.8rem" class="muted"></p>
       <p id="club-sync-status" style="margin: 0.15rem 0 0; font-size: 0.8rem" class="muted">
         Club data not synced — sync once, then plan from cache without X-UT-SID.
       </p>
@@ -246,6 +248,7 @@
       <p style="margin: 0.35rem 0 0; font-size: 0.8rem" class="muted">
         To get <code>X-UT-SID</code>: open FUT Web App → DevTools (F12) → Network → any
         <code>utas.mob...</code> request → copy the <code>X-UT-SID</code> request header.
+        Optional <code>Persona ID</code> is in the EA session probe section below.
       </p>
     </div>
 
@@ -748,7 +751,7 @@
       }
 
       async function syncClubData({ showResults = false } = {}) {
-        const { accessToken, platform } = plannerArgs();
+        const { accessToken, platform, personaId } = plannerArgs();
         if (!accessToken.trim()) {
           showRawOutput("Paste X-UT-SID to sync club data.");
           return null;
@@ -761,7 +764,11 @@
         }
 
         try {
-          const snapshot = await invoke("fetch_club_snapshot", { accessToken, platform });
+          const snapshot = await invoke("fetch_club_snapshot", {
+            accessToken,
+            platform,
+            personaId,
+          });
           applyClubSnapshot(snapshot);
           updateSessionStatus({
             ready: true,
@@ -1525,8 +1532,10 @@
           command === "plan_rating_from_inventory"
         ) {
           const cached = exportMeta.kind === "club-cached" ? " (cached)" : "";
+          const stale =
+            exportMeta.kind === "club-cached" && isClubCacheStale() ? " — stale cache" : "";
           renderOptions(
-            `Target plan using ${result.inventory.total_players} club players${cached}`,
+            `Target plan using ${result.inventory.total_players} club players${cached}${stale}`,
             result.options,
             result.inventory.rating_counts,
             { target: exportMeta.target, kind: exportMeta.kind ?? "club" }
@@ -1546,6 +1555,13 @@
 
         if (command === "probe_ea_session") {
           updateSessionStatus(result);
+          return;
+        }
+
+        if (command === "calculate_team_rating") {
+          const note = exportMeta.ratingNote ?? "";
+          document.getElementById("squad-ovr-status").textContent =
+            `Squad OVR: ${result}${note}`;
           return;
         }
 
@@ -1588,12 +1604,14 @@
         const existingRatings = parseIds(document.getElementById("existing-ratings").value);
         const accessToken = document.getElementById("ea-token-planner").value;
         const platform = document.getElementById("ea-platform-planner").value;
+        const personaRaw = document.getElementById("ea-persona").value.trim();
         return {
           target: Number.isFinite(target) ? target : 84,
           brickCount: Number.isFinite(brickCount) ? Math.min(11, Math.max(0, brickCount)) : 0,
           existingRatings,
           accessToken,
           platform,
+          personaId: personaRaw || null,
         };
       }
 
@@ -1695,8 +1713,27 @@
         );
       });
 
+      document.getElementById("calc-squad-ovr").addEventListener("click", () => {
+        const { existingRatings, brickCount } = plannerArgs();
+        if (!existingRatings.length) {
+          document.getElementById("squad-ovr-status").textContent =
+            "Enter existing squad ratings first.";
+          return;
+        }
+
+        const note = ` (${existingRatings.length} rated${
+          brickCount > 0 ? `, ${brickCount} brick` : ""
+        })`;
+        invokeRust(
+          "calculate_team_rating",
+          { ratings: existingRatings },
+          { ratingNote: note }
+        );
+      });
+
       async function planWithClub({ forceSync = false } = {}) {
-        const { target, brickCount, existingRatings, accessToken, platform } = plannerArgs();
+        const { target, brickCount, existingRatings, accessToken, platform, personaId } =
+          plannerArgs();
 
         if (forceSync) {
           if (!accessToken.trim()) {
@@ -1730,7 +1767,7 @@
 
         invokeRust(
           "plan_rating_with_club",
-          { accessToken, platform, target, existingRatings, brickCount },
+          { accessToken, platform, personaId, target, existingRatings, brickCount },
           { target, kind: "club" }
         );
       }
@@ -1741,7 +1778,7 @@
       );
 
       document.getElementById("check-session").addEventListener("click", () => {
-        const { accessToken, platform } = plannerArgs();
+        const { accessToken, platform, personaId } = plannerArgs();
         if (!accessToken.trim()) {
           updateSessionStatus({
             ready: false,
@@ -1749,7 +1786,7 @@
           });
           return;
         }
-        invokeRust("probe_ea_session", { accessToken, platform });
+        invokeRust("probe_ea_session", { accessToken, personaId, platform });
       });
 
       document.getElementById("sync-club").addEventListener("click", () => {
@@ -1771,12 +1808,12 @@
           );
           return;
         }
-        const { accessToken, platform } = plannerArgs();
+        const { accessToken, platform, personaId } = plannerArgs();
         if (!accessToken.trim()) {
           showRawOutput("Paste X-UT-SID or use Sync club data first.");
           return;
         }
-        invokeRust("fetch_club_inventory", { accessToken, platform });
+        invokeRust("fetch_club_inventory", { accessToken, platform, personaId });
       });
 
       document.getElementById("fetch-club-players").addEventListener("click", () => {
@@ -1787,12 +1824,12 @@
           );
           return;
         }
-        const { accessToken, platform } = plannerArgs();
+        const { accessToken, platform, personaId } = plannerArgs();
         if (!accessToken.trim()) {
           showRawOutput("Paste X-UT-SID or use Sync club data first.");
           return;
         }
-        invokeRust("fetch_club_players", { accessToken, platform });
+        invokeRust("fetch_club_players", { accessToken, platform, personaId });
       });
 
       document.getElementById("calc-chemistry").addEventListener("click", () => {
