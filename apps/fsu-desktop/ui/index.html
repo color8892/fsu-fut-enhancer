@@ -386,7 +386,8 @@
           <thead>
             <tr>
               <th>Option</th>
-              <th class="num">Squad Σ</th>
+              <th class="num">Squad OVR</th>
+              <th class="num">Fill Σ</th>
               <th class="num">From club</th>
               <th class="num">Still need</th>
               <th>Fill ratings</th>
@@ -406,6 +407,7 @@
         "https://www.ea.com/ea-sports-fc/ultimate-team/web-app/";
 
       const STORAGE_KEY = "fsu-desktop-session-v1";
+      const CLUB_CACHE_KEY = "fsu-desktop-club-cache-v1";
       const CLUB_CACHE_MAX_AGE_MS = 30 * 60 * 1000;
       const PERSISTED_FIELDS = [
         "ea-token-planner",
@@ -426,18 +428,54 @@
       let clubLeagueMap = null;
       let lastExportPayload = null;
 
-      function applyClubSnapshot(snapshot) {
+      function applyClubSnapshot(snapshot, { syncedAt = Date.now(), players = null } = {}) {
         clubCache = {
-          syncedAt: Date.now(),
+          syncedAt,
           totalPlayers: snapshot.total_players,
           ratingCounts: snapshot.rating_counts,
-          players: snapshot.players || [],
+          players: players ?? snapshot.players ?? [],
           clubLeagues: snapshot.club_leagues || {},
         };
         clubLeagueMap = clubCache.clubLeagues;
+        persistClubCacheMeta();
         updateClubSyncStatus();
         updateClubMapStatus();
         refreshClubPlayerPicker();
+      }
+
+      function persistClubCacheMeta() {
+        if (!clubCache) return;
+        try {
+          sessionStorage.setItem(
+            CLUB_CACHE_KEY,
+            JSON.stringify({
+              syncedAt: clubCache.syncedAt,
+              totalPlayers: clubCache.totalPlayers,
+              ratingCounts: clubCache.ratingCounts,
+              clubLeagues: clubCache.clubLeagues,
+            })
+          );
+        } catch (_error) {
+          /* ignore quota errors */
+        }
+      }
+
+      function loadClubCacheMeta() {
+        try {
+          const raw = sessionStorage.getItem(CLUB_CACHE_KEY);
+          if (!raw) return;
+          const saved = JSON.parse(raw);
+          applyClubSnapshot(
+            {
+              total_players: saved.totalPlayers,
+              rating_counts: saved.ratingCounts,
+              club_leagues: saved.clubLeagues,
+            },
+            { syncedAt: saved.syncedAt, players: [] }
+          );
+        } catch (_error) {
+          /* ignore corrupt storage */
+        }
       }
 
       function isClubCacheStale() {
@@ -456,7 +494,10 @@
 
         const when = new Date(clubCache.syncedAt).toLocaleTimeString();
         const staleNote = isClubCacheStale() ? " (stale — re-sync recommended)" : "";
-        status.textContent = `Club synced at ${when} — ${clubCache.totalPlayers} players cached${staleNote}.`;
+        const partialNote = clubCache.players?.length
+          ? ""
+          : " (rating counts only — sync for player picker)";
+        status.textContent = `Club synced at ${when} — ${clubCache.totalPlayers} players cached${partialNote}${staleNote}.`;
       }
 
       function playerMatchesCandidate(player, candidate) {
@@ -815,7 +856,9 @@
         }
 
         if (payload.options?.length) {
-          lines.push("option,squad_sum,from_club,still_need,fill_ratings,missing,club_fill");
+          lines.push(
+            "option,squad_ovr,fill_sum,from_club,still_need,fill_ratings,missing,club_fill"
+          );
           const ratingCounts = clubCache?.ratingCounts ?? null;
           payload.options.forEach((option, index) => {
             const cover = coverableFromClub(option.lack_ratings, ratingCounts);
@@ -823,6 +866,7 @@
             lines.push(
               [
                 index + 1,
+                option.squad_rating ?? "",
                 option.sum,
                 option.exist_value,
                 option.lack_value,
@@ -878,7 +922,8 @@
           lines.push("Rating options");
           payload.options.forEach((option, index) => {
             lines.push(`Option ${index + 1}`);
-            lines.push(`  Squad sum: ${option.sum}`);
+            lines.push(`  Squad OVR: ${option.squad_rating ?? "?"}`);
+            lines.push(`  Fill sum: ${option.sum}`);
             lines.push(`  From club: ${formatCoins(option.exist_value)}`);
             lines.push(`  Still need: ${formatCoins(option.lack_value)}`);
             lines.push(`  Fill: ${(option.ratings || []).join(", ")}`);
@@ -990,6 +1035,7 @@
             const clubFill = formatClubCover(option.lack_ratings, ratingCounts);
             return `<tr>
               <td>${index + 1}</td>
+              <td class="num">${option.squad_rating ?? "—"}</td>
               <td class="num">${option.sum}</td>
               <td class="num">${formatCoins(option.exist_value)}</td>
               <td class="num">${formatCoins(option.lack_value)}</td>
@@ -1204,6 +1250,7 @@
       syncSidInputs(document.getElementById("ea-token"), document.getElementById("ea-token-planner"));
 
       loadPersistedSession();
+      loadClubCacheMeta();
       for (const id of PERSISTED_FIELDS) {
         const element = document.getElementById(id);
         if (element) {
