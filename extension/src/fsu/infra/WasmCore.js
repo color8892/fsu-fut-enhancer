@@ -19,6 +19,19 @@ export function isWasmCoreReady() {
   return active;
 }
 
+export function getWasmCoreVersion() {
+  const wasm = getGlobalScope().__fsuWasm?.version;
+  if (!wasm) {
+    return null;
+  }
+
+  try {
+    return wasm();
+  } catch (_error) {
+    return null;
+  }
+}
+
 function loadScript(url) {
   return new Promise((resolve, reject) => {
     const script = document.createElement("script");

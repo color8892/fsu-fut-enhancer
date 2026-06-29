@@ -303,6 +303,20 @@
     const value = globalScope[name];
     return typeof value === "function" ? value : null;
   }
+  function isWasmCoreReady() {
+    return active;
+  }
+  function getWasmCoreVersion() {
+    const wasm = getGlobalScope().__fsuWasm?.version;
+    if (!wasm) {
+      return null;
+    }
+    try {
+      return wasm();
+    } catch (_error) {
+      return null;
+    }
+  }
   function loadScript(url) {
     return new Promise((resolve, reject) => {
       const script = document.createElement("script");
@@ -15392,6 +15406,8 @@
     unsafeWindow.events = exposed.events;
     unsafeWindow.fy = exposed.fy;
     unsafeWindow.GM_addStyle = GM_addStyle;
+    unsafeWindow.fsuWasmReady = isWasmCoreReady;
+    unsafeWindow.fsuWasmVersion = getWasmCoreVersion;
   }
 
   // src/fsu/data/html-templates.js

@@ -306,6 +306,7 @@
       </div>
       <div class="row">
         <button id="plan-chemistry">Plan chemistry</button>
+        <button id="calc-chemistry" class="secondary">Current chemistry</button>
         <button id="load-club-map" class="secondary">Load league map</button>
       </div>
       <p id="club-map-status" style="margin: 0.5rem 0 0; font-size: 0.8rem" class="muted">
@@ -1548,6 +1549,15 @@
           return;
         }
 
+        if (command === "calculate_sbc_chemistry") {
+          const nations = result.nations?.length ? ` — nations ${result.nations.join(",")}` : "";
+          const leagues = result.leagues?.length ? ` — leagues ${result.leagues.join(",")}` : "";
+          const clubs = result.clubs?.length ? ` — clubs ${result.clubs.join(",")}` : "";
+          document.getElementById("club-map-status").textContent =
+            `Current squad chemistry: ${result.total_chemistry}${nations}${leagues}${clubs}`;
+          return;
+        }
+
         showRawOutput(JSON.stringify(result, null, 2));
       }
 
@@ -1783,6 +1793,11 @@
           return;
         }
         invokeRust("fetch_club_players", { accessToken, platform });
+      });
+
+      document.getElementById("calc-chemistry").addEventListener("click", () => {
+        const players = parseSquadLines(document.getElementById("squad-chemistry").value);
+        invokeRust("calculate_sbc_chemistry", { players, includeMeta: true });
       });
 
       document.getElementById("plan-chemistry").addEventListener("click", async () => {

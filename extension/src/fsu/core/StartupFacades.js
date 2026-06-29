@@ -2,6 +2,8 @@
  * Service facades and save/toggle notice wiring during futweb bootstrap.
  */
 
+import { getWasmCoreVersion, isWasmCoreReady } from "../infra/WasmCore.js";
+
 export function createStartupFacades(ctx, { events, isPhone, fy, priceService }) {
   const set = ctx.settingsService.createFacade({
     createToggle: (...args) => events.createToggle(...args),
@@ -40,4 +42,6 @@ export function exposeDebugGlobals(fsuCtx) {
   unsafeWindow.events = exposed.events;
   unsafeWindow.fy = exposed.fy;
   unsafeWindow.GM_addStyle = GM_addStyle;
+  unsafeWindow.fsuWasmReady = isWasmCoreReady;
+  unsafeWindow.fsuWasmVersion = getWasmCoreVersion;
 }
