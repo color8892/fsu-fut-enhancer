@@ -204,6 +204,10 @@
             <option value="xbox">Xbox</option>
           </select>
         </div>
+        <div class="field">
+          <label for="ea-persona-planner">Persona ID (optional)</label>
+          <input id="ea-persona-planner" type="text" placeholder="Multi-persona accounts" />
+        </div>
       </div>
       <div class="row">
         <div class="field">
@@ -248,7 +252,7 @@
       <p style="margin: 0.35rem 0 0; font-size: 0.8rem" class="muted">
         To get <code>X-UT-SID</code>: open FUT Web App → DevTools (F12) → Network → any
         <code>utas.mob...</code> request → copy the <code>X-UT-SID</code> request header.
-        Optional <code>Persona ID</code> is in the EA session probe section below.
+        Use <code>Persona ID</code> only if your EA account has multiple FUT personas.
       </p>
     </div>
 
@@ -460,6 +464,7 @@
       const PERSISTED_FIELDS = [
         "ea-token-planner",
         "ea-platform-planner",
+        "ea-persona-planner",
         "target-rating",
         "brick-count",
         "existing-ratings",
@@ -1604,7 +1609,7 @@
         const existingRatings = parseIds(document.getElementById("existing-ratings").value);
         const accessToken = document.getElementById("ea-token-planner").value;
         const platform = document.getElementById("ea-platform-planner").value;
-        const personaRaw = document.getElementById("ea-persona").value.trim();
+        const personaRaw = document.getElementById("ea-persona-planner").value.trim();
         return {
           target: Number.isFinite(target) ? target : 84,
           brickCount: Number.isFinite(brickCount) ? Math.min(11, Math.max(0, brickCount)) : 0,
@@ -1623,8 +1628,42 @@
         });
       }
 
+      function syncLinkedInputs(source, target) {
+        source.addEventListener("input", () => {
+          if (target.value !== source.value) {
+            target.value = source.value;
+          }
+          persistSession();
+        });
+      }
+
+      function syncLinkedSelects(source, target) {
+        source.addEventListener("change", () => {
+          if (target.value !== source.value) {
+            target.value = source.value;
+          }
+          persistSession();
+        });
+      }
+
       syncSidInputs(document.getElementById("ea-token-planner"), document.getElementById("ea-token"));
       syncSidInputs(document.getElementById("ea-token"), document.getElementById("ea-token-planner"));
+      syncLinkedInputs(
+        document.getElementById("ea-persona-planner"),
+        document.getElementById("ea-persona")
+      );
+      syncLinkedInputs(
+        document.getElementById("ea-persona"),
+        document.getElementById("ea-persona-planner")
+      );
+      syncLinkedSelects(
+        document.getElementById("ea-platform-planner"),
+        document.getElementById("ea-platform")
+      );
+      syncLinkedSelects(
+        document.getElementById("ea-platform"),
+        document.getElementById("ea-platform-planner")
+      );
 
       loadPersistedSession();
       void loadClubCacheMeta();
