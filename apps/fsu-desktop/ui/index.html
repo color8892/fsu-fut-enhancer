@@ -281,7 +281,8 @@
         Club league map not loaded — sync club data for better candidate suggestions.
       </p>
       <p style="margin: 0.25rem 0 0; font-size: 0.75rem" class="muted">
-        Tip: click a chemistry candidate row to filter the player picker. Double-click the picker to reset.
+        Tips: click a chemistry candidate or missing rating pill to filter the player picker.
+        Double-click the picker to reset.
       </p>
     </div>
 
@@ -639,16 +640,32 @@
           .sort((left, right) => right[0] - left[0]);
       }
 
-      function summarizeMissing(lackRatings) {
-        const summary = (lackRatings || []).reduce((acc, rating) => {
-          acc[rating] = (acc[rating] || 0) + 1;
-          return acc;
-        }, {});
+      function summarizeMissing(lackRatings, ratingCounts = null) {
+        const summary = missingSummary(lackRatings);
 
         return Object.entries(summary)
           .sort((left, right) => Number(right[0]) - Number(left[0]))
-          .map(([rating, count]) => `<span class="pill">${rating}×${count}</span>`)
+          .map(([rating, count]) => {
+            const ratingNumber = Number(rating);
+            const needCount = Number(count);
+            const inClub =
+              ratingCounts != null ? Number(ratingCounts[ratingNumber] || 0) : null;
+            const clubHint =
+              inClub != null
+                ? ` <span class="muted">(${Math.min(needCount, inClub)} in club)</span>`
+                : "";
+            const clickable = ratingCounts != null ? ' data-rating-pill="1"' : "";
+            const cursor = ratingCounts != null ? "cursor:pointer" : "";
+            return `<span class="pill" data-rating="${ratingNumber}"${clickable} style="${cursor}" title="Filter club players by this rating">${rating}×${needCount}</span>${clubHint}`;
+          })
           .join("");
+      }
+
+      function filterClubPlayerPickerByRating(rating) {
+        if (!clubCache?.players?.length) return 0;
+        const matches = clubCache.players.filter((player) => player.rating === rating);
+        refreshClubPlayerPicker(matches);
+        return matches.length;
       }
 
       function renderFillRatings(ratings) {
@@ -969,7 +986,7 @@
         const ratingCounts = inventoryCounts ?? clubCache?.ratingCounts ?? null;
         optionsBody.innerHTML = options
           .map((option, index) => {
-            const missing = summarizeMissing(option.lack_ratings);
+            const missing = summarizeMissing(option.lack_ratings, ratingCounts);
             const clubFill = formatClubCover(option.lack_ratings, ratingCounts);
             return `<tr>
               <td>${index + 1}</td>
@@ -977,11 +994,24 @@
               <td class="num">${formatCoins(option.exist_value)}</td>
               <td class="num">${formatCoins(option.lack_value)}</td>
               <td>${renderFillRatings(option.ratings)}</td>
-              <td>${missing || '<span class="muted">none</span>'}</td>
+              <td class="missing-cell">${missing || '<span class="muted">none</span>'}</td>
               <td class="num">${clubFill}</td>
             </tr>`;
           })
           .join("");
+
+        optionsBody.querySelectorAll("[data-rating-pill]").forEach((pill) => {
+          pill.addEventListener("click", (event) => {
+            event.stopPropagation();
+            const rating = Number.parseInt(pill.dataset.rating, 10);
+            if (!Number.isFinite(rating)) return;
+            const matchCount = filterClubPlayerPickerByRating(rating);
+            document.getElementById("club-map-status").textContent =
+              matchCount > 0
+                ? `Picker filtered — ${matchCount} club player(s) at rating ${rating}.`
+                : `No club players at rating ${rating}.`;
+          });
+        });
 
         document.getElementById("results-summary").textContent = summary;
         document.getElementById("options-section").classList.remove("hidden");
