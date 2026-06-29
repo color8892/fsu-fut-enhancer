@@ -38,6 +38,63 @@
 
 建置完成後會產生 `extension/src/userscript.js`，擴充功能執行時會載入此檔案。
 
+## FSU Desktop（獨立 SBC 規劃工具）
+
+Rust + Tauri 桌面程式，與擴充功能共用 `crates/fsu-core` 邏輯，可在**不開瀏覽器**的情況下做評分 / 化學規劃與 club 庫存對照。
+
+### 本機執行
+
+```powershell
+# 從 repo 根目錄
+.\scripts\dev-desktop.ps1
+```
+
+首次需安裝 [Rust](https://rustup.rs/) 與 Tauri 依賴（Windows 通常只需 Rust + WebView2）。
+
+### 建置執行檔
+
+```powershell
+.\scripts\build-desktop.ps1
+# 產物：apps\fsu-desktop\src-tauri\target\release\fsu-desktop.exe
+```
+
+### 取得 X-UT-SID（club 同步用）
+
+1. 開啟 [FUT Web App](https://www.ea.com/ea-sports-fc/ultimate-team/web-app/)
+2. DevTools（F12）→ **Network**
+3. 點任一 `utas.mob...` 請求
+4. 複製 Request Header 的 **`X-UT-SID`** 貼到 Desktop 的 planner 欄位
+
+> **安全提醒**：SID 等同登入憑證，勿分享或貼到公開場合。過期後重新從 DevTools 複製即可。
+
+多 persona 帳號可在 **Persona ID** 欄位填寫（與下方 Advanced tools 的 probe 區同步）。
+
+### 典型流程
+
+1. **Sync club data**（需 SID，一次即可）
+2. 之後可用 **Plan with club** 離線規劃（快取未過期時不必再貼 SID）
+3. Chemistry 區：填 11 行 `nation,league,club` → **Plan chemistry**
+
+### 鍵盤快捷鍵
+
+| 快捷鍵 | 動作 |
+|--------|------|
+| `Ctrl+Enter` | Plan（offline） |
+| `Ctrl+Shift+Enter` | Plan with club |
+| `Ctrl+Alt+Enter` | Sync & plan |
+| 在 chemistry 文字框內 `Ctrl+Enter` | Plan chemistry |
+
+### GitHub Release
+
+推送 tag 會觸發 CI 建置 Linux / Windows 二進位：
+
+```bash
+git tag desktop-v0.1.0
+git push origin desktop-v0.1.0
+```
+
+Release 產物見 [Actions → desktop-release](https://github.com/color8892/fsu-fut-enhancer/actions) 或對應 GitHub Release 頁面。
+
 ## 開發
 
 ```bash
@@ -47,28 +104,25 @@ npm run test:all    # 建置 + 執行測試
 npm run build       # 僅建置 userscript
 ```
 
+```powershell
+# Repo 根目錄 — Rust 全 workspace 測試（Windows 請用腳本，避免 PowerShell stderr 誤判）
+.\scripts\test-rust.ps1
+.\scripts\test-all.ps1   # extension + Rust
+```
+
 ### 專案結構
 
 ```
-extension/
-├── manifest.json          # Chrome Extension MV3
-├── src/
-│   ├── fsu/
-│   │   ├── index.js       # 入口
-│   │   ├── legacy/        # futweb 接線層
-│   │   ├── core/          # ModuleRegistry、AppContext
-│   │   ├── domain/        # 業務服務（價格、SBC、市場…）
-│   │   ├── patches/       # EA Web App prototype patches
-│   │   ├── ui/            # 設定頁、UI 工廠
-│   │   └── data/          # 在地化字串
-│   ├── userscript.js      # esbuild 產出（需建置）
-│   ├── content-bridge.js
-│   └── background.js
-├── scripts/               # 建置與重構腳本
-└── tests/
+extension/                 # Chrome MV3（瀏覽器內增強）
+crates/
+  fsu-core/                # SBC 評分、化學、價格（Rust 核心）
+  fsu-wasm/                # WASM 匯出給 extension
+  ea-client/               # UTAS 唯讀 client
+apps/fsu-desktop/          # Tauri 桌面 UI
+scripts/                   # test-rust.ps1、dev-desktop.ps1 等
 ```
 
-架構採 **Strangler Fig**：保留 `events.*` facade，逐步將邏輯抽到 `domain/` 與 `patches/`，`legacy/futweb.js` 負責接線與 patch 順序。
+Extension 架構採 **Strangler Fig**：保留 `events.*` facade，邏輯在 `domain/` 與 `patches/`，`legacy/futweb.js` 負責接線。細節見 [ARCHITECTURE.md](./ARCHITECTURE.md)、[AGENTS.md](./AGENTS.md)。
 
 ## Tampermonkey
 
