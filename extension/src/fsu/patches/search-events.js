@@ -61,8 +61,7 @@ export function installSearchPatches(deps) {
                     16: 131, 17: 131, 18: 131, 19: 131, 20: 132,
                     21: 132, 22: 132, 23: 132, 24: 132, 25: 132,
                     26: 132, 27: 132
-                },
-                    posName = excludeCriteria.preferredPositionOnly ? "preferredPosition" : "possiblePositions";
+                };
 
                 groupedData = basePlayers.reduce((acc, item) => {
                     function posToPa(p,a){

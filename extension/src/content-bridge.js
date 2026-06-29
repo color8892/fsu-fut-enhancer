@@ -12,7 +12,7 @@
   function isExtensionContextValid(runtimeApi) {
     try {
       return Boolean(runtimeApi?.id);
-    } catch (_error) {
+    } catch {
       return false;
     }
   }
@@ -146,7 +146,7 @@
             }
             resolve(items || {});
           });
-        } catch (error) {
+        } catch {
           this.contextGuard.warnOnce();
           resolve({});
         }
@@ -166,7 +166,7 @@
           this.storageArea.set({ [key]: value });
         }
         return true;
-      } catch (error) {
+      } catch {
         this.contextGuard.warnOnce();
         return false;
       }

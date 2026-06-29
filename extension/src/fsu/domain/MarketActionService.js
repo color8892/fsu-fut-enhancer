@@ -376,7 +376,7 @@ export class MarketActionService {
           } else {
             await futbinId.getId(player);
           }
-        } catch (error) {
+        } catch {
           return;
         }
         searchCriteria.maxBuy = getCachePrice(defId, 1).num;
@@ -419,7 +419,7 @@ export class MarketActionService {
     return result;
   }
 
-  searchTransferMarket(criteria, type, helpers) {
+  searchTransferMarket(criteria, type, _helpers) {
     return new Promise(async (resolve) => {
       services.Item.searchTransferMarket(criteria, type).observe(this, async function (sender, response) {
         resolve(response);
@@ -477,7 +477,7 @@ export class MarketActionService {
         } else {
           await futbinId.getId(i);
         }
-      } catch (error) {
+      } catch {
         return;
       }
       const price = getCachePrice(i.definitionId, 1).num;
@@ -605,8 +605,7 @@ export class MarketActionService {
       e.hasOwnProperty("_fsuAkbNumber") &&
       e.hasOwnProperty("_fsuAkbArray")
     ) {
-      let pn = 0,
-        qs = {};
+      let pn = 0;
       for (let n in e._fsuAkbArray) {
         const ppValue = getCachePrice(e._fsuAkbArray[n]._pId, 1);
         pn += ppValue.num;

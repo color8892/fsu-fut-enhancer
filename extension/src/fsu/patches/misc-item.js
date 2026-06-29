@@ -1,5 +1,5 @@
 export function installMiscItemPatch(deps) {
-  const { call, events, fy, cntlr, info, lock } = deps;
+  const { call, events, fy, cntlr } = deps;
 
   UTMiscItemView.prototype.renderItem = function(t, e) {
       call.view.miscItem.call(this, t, e);

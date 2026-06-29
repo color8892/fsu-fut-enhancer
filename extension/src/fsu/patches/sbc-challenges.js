@@ -31,22 +31,8 @@ export function installSbcChallengesPatch(deps) {
         };
 
         let btn;
-        if (item.isItem) {
-          if (item.item.isPlayer()) {
-            btn = createBtn("sbc.watchplayer", (e) => events.openFutbinPlayerUrl(e, item.item));
-          } else if (item.item.isPlayerPickItem()) {
-            btn = createBtn("sbc.watchplayer", () => events.fixedPickPopup(item.item));
-          }
-        } else if (item.isPack) {
-          btn = createBtn("trypack.button.subtext", () => {
-            events.showLoader();
-            events.tryPack({
-              id: item.value,
-              odds: false,
-              packName: services.Localization.localize(`FUT_STORE_PACK_${item.value}_NAME`),
-              tradable: item.tradable
-            });
-          });
+        if (item.isItem && item.item.isPlayer()) {
+          btn = createBtn("sbc.watchplayer", (e) => events.openFutbinPlayerUrl(e, item.item));
         }
 
         if (btn) {

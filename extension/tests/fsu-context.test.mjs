@@ -38,7 +38,5 @@ export function runFsuContextTests() {
 
   const helpers = createDomainHelpers(ctx);
   assert.strictEqual(helpers.market().getInfo(), info);
-  assert.strictEqual(helpers.pack().fy("pack"), "pack");
-  assert.strictEqual(helpers.autoBuy.getFutbinUrl("/x"), "/x");
   assert.strictEqual(helpers.playerSearch().getBuild(), info.build);
 }

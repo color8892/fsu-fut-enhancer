@@ -22,7 +22,7 @@
       try {
         const raw = this.windowRef.localStorage && this.windowRef.localStorage.getItem(this.prefix + key);
         return raw === null || raw === undefined ? undefined : JSON.parse(raw);
-      } catch (_error) {
+      } catch {
         return undefined;
       }
     }
@@ -35,7 +35,7 @@
           return;
         }
         this.windowRef.localStorage.setItem(this.prefix + key, JSON.stringify(value));
-      } catch (_error) {
+      } catch {
         // localStorage can be unavailable in restricted browser modes.
       }
     }

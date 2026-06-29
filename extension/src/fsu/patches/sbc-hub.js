@@ -55,7 +55,7 @@ export function installSbcHubPatches(deps) {
   const originalSetData = UTSBCSetTileView.prototype.setData;
   const originalRender = UTSBCChallengeTableRowView.prototype.render;
   const originalSetRewards = UTSBCGroupRewardListView.prototype.setRewards;
-  const originalGetCategories = UTSBCSetsViewModel.prototype.getCategories;
+  const _originalGetCategories = UTSBCSetsViewModel.prototype.getCategories;
 
   events.navigationAddCount = (e, c) => navigationAddCount(events, e, c);
   events.sbcFilter = (e) => sbcFilter({ info, cntlr }, e);
@@ -355,13 +355,6 @@ export function registerSbcInfoFillEvent(deps) {
 
           e.__mainReward.querySelector(".ut-pack-graphic-view").appendChild(packBox);
         }
-      }
-      if (
-        e._infoBtn.getRootElement().style.display != "none" &&
-        e.data.awards[0]?.item?.isPlayerPickItem()
-      ) {
-        e._infoBtn.removeTarget(e, e._eCheckMoreInfo, EventType.TAP);
-        e._infoBtn.addTarget(e, () => events.fixedPickPopup(e.data.awards[0].item), EventType.TAP);
       }
     }
   };

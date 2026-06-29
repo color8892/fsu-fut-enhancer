@@ -1,5 +1,5 @@
 export function installUnassignedPatches(deps) {
-  const { call, events, fy, cntlr, info, debug } = deps;
+  const { call, events, fy, cntlr, info } = deps;
 
   UTUnassignedItemsViewController.prototype.updateUntradeableDuplicateSectionOptions = function (...args) {
       call.view.unassignedUpdateUDSO.call(this, ...args);
@@ -19,7 +19,7 @@ export function installUnassignedPatches(deps) {
           section._fsuRefreshBtn = events.createButton(
               new UTStandardButtonControl(),
               fy("unassignedlist.refresh.btn"),
-              async (e) => {
+              async (_e) => {
                   await services.Item.itemDao.itemRepo.unassigned.reset();
                   await controller.getUnassignedItems();
                   events.notice("notice.uasreset", 0);
@@ -46,7 +46,7 @@ export function installUnassignedPatches(deps) {
                   section._fsuTransfer = events.createButton(
                       new UTImageButtonControl(),
                       "",
-                      async(e) => {
+                      async(_e) => {
                           controller.sendStorablesToTransferList();
                       },
                       "filter-btn fsu-transfer"
@@ -61,7 +61,7 @@ export function installUnassignedPatches(deps) {
               section._fsuClub = events.createButton(
                   new UTImageButtonControl(),
                   "",
-                  async(e) => {
+                  async(_e) => {
                       controller.storeInClub();
                   },
                   "filter-btn fsu-club"
@@ -79,7 +79,7 @@ export function installUnassignedPatches(deps) {
                   section._fsuTransfer = events.createButton(
                       new UTImageButtonControl(),
                       "",
-                      async(e) => {
+                      async(_e) => {
                           controller.sendDuplicatesToTransferList();
                       },
                       "filter-btn fsu-transfer"
@@ -145,7 +145,7 @@ export function installUnassignedPatches(deps) {
                   section._fsuStorage = events.createButton(
                       new UTImageButtonControl(),
                       "",
-                      async(e) => {
+                      async(_e) => {
                           controller.confirmStoreUntradeablesTapped();
                       },
                       "filter-btn fsu-storage"
@@ -160,7 +160,7 @@ export function installUnassignedPatches(deps) {
                   section._fsuHighStorage = events.createButton(
                       new UTImageButtonControl(),
                       "",
-                      async(e) => {
+                      async(_e) => {
                           const controller = isPhone() ? cntlr.current() : cntlr.left();
                           let movePlayers = storageLack < hPlayers.length ? _.take(hPlayers,storageLack) : hPlayers;
                           services.Item.move(movePlayers, ItemPile.STORAGE, !0).observe(controller, controller.onMoveToStorageComplete);
@@ -178,7 +178,7 @@ export function installUnassignedPatches(deps) {
                   section._fsuSwap = events.createButton(
                       new UTImageButtonControl(),
                       "",
-                      async(e) => {
+                      async(_e) => {
                           controller.confirmSwapUntradeablesTapped();
                       },
                       "filter-btn fsu-swap"
@@ -220,7 +220,7 @@ export function installUnassignedPatches(deps) {
           controller._fsuRefreshBtn = events.createButton(
               new UTImageButtonControl(),
               "",
-              async(e) => {
+              async(_e) => {
                   await services.Item.itemDao.itemRepo.unassigned.reset();
                   await controller.getUnassignedItems();
                   events.notice("notice.uasreset",0);

@@ -73,7 +73,7 @@ events.ignorePlayerTypePopup = (type) => {
         type: EADialogView.Type.MESSAGE
     });
     mp.init();
-    mp.onExit.observe(mp,(e, z) => {
+    mp.onExit.observe(mp,(e, _z) => {
         e.unobserve(mp);
         events.ignorePlayerPopup();
     });

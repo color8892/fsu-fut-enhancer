@@ -101,7 +101,6 @@ events.getPlayerMetaToText = (p) => {
 
 //25.01 新增meta popup文本显示方法
 events.getPlayerMetaPopupText = (meta,pos) => {
-    let t = "";
     let v = "";
     let sl = services.Localization;
     let desc = meta.id == -1 ? meta.name : sl.localize(`tactics.roles.role${meta.id}.description`);

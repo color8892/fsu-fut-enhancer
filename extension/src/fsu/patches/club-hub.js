@@ -1,13 +1,13 @@
 export function installClubHubPatches(deps) {
   const { call, events, info, fy, cntlr, isPhone, repositories, services } = deps;
 
-  UTClubHubView.prototype.clearTileContent = function (...args) {
+  UTClubHubView.prototype.clearTileContent = function (..._args) {
     call.view.clubHub.call(this);
 
     if (services.Configuration.checkFeatureEnabled(UTServerSettingsRepository.KEY.STORAGE_PILE_ENABLED)) {
       let v = this;
       let e = new UTSearchCriteriaDTO();
-      services.Item.searchStorageItems(e).observe(v, function (e, t) {
+      services.Item.searchStorageItems(e).observe(v, function (e, _t) {
         e.unobserve(v);
         if (this._sbcStorageTile) {
           this.addTileStats(this._sbcStorageTile, repositories.Item.numItemsInCache(ItemPile.STORAGE));

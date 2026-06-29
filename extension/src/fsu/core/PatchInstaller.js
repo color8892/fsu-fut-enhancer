@@ -1,5 +1,4 @@
 import { FSU_BASE_STYLE } from "../ui/fsu-styles.js";
-import { installAppInitPatches } from "../patches/app-init.js";
 import { installUnassignedPatches } from "../patches/unassigned.js";
 import { installLoginPatches } from "../patches/login.js";
 import { installNavigationPatches } from "../patches/navigation.js";
@@ -13,12 +12,7 @@ import { installPlayerListPatches } from "../patches/player-list.js";
 import { installSbcHubPatches, registerSbcInfoFillEvent } from "../patches/sbc-hub.js";
 import { installAcademyHubPatches } from "../patches/academy-hub.js";
 import { registerSbcNavEvents } from "../patches/sbc-nav-events.js";
-import {
-  registerSbcSubPriceEvent,
-  installSbcSquadSubmitPatches,
-  installSbcRequirementsPatch
-} from "../patches/sbc-squad.js";
-import { installSbcChallengesPatch } from "../patches/sbc-challenges.js";
+import { installSbcSquadSubmitPatches, installSbcRequirementsPatch } from "../patches/sbc-squad.js";
 import { registerSbcSubstitutionEvents } from "../patches/sbc-substitution.js";
 import { installObjectivesHubPatches } from "../patches/objectives-hub.js";
 import { registerHomeHubEvents, installHomeHubPatches } from "../patches/home-hub.js";

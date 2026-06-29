@@ -1,5 +1,5 @@
 export function installSquadOverviewViewPatches(deps) {
-  const { call, events, info, fy, cntlr, isPhone, repositories, services, debug, SBCEligibilityKey, GM_openInTab } = deps;
+  const { call, events, info, fy, isPhone, repositories, SBCEligibilityKey, GM_openInTab } = deps;
   //26.04 改用新的快捷球员载入方法
 UTSquadOverviewViewController.prototype.viewDidAppear = function() {
     call.plist.squad.call(this);

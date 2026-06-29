@@ -1,5 +1,5 @@
 export function registerSbcRewardEvents(deps) {
-  const { events, info, cntlr, isPhone, repositories, services, debug, oneFillCriteriaService, SBCEligibilityKey } = deps;
+  const { events, info, cntlr, isPhone, repositories, debug, oneFillCriteriaService, SBCEligibilityKey } = deps;
   events.oneFillCreationGF = (req, miss) =>
     oneFillCriteriaService.createFromRequirements(req, miss, SBCEligibilityKey);
 

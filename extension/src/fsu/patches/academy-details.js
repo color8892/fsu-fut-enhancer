@@ -1,5 +1,5 @@
 export function installAcademyDetailsPatches(deps) {
-  const { info, events, repositories, services, cntlr, isPhone, debug } = deps;
+  const { info, events, repositories, services, cntlr, isPhone } = deps;
 
   const UTAcademySlotItemDetailsViewController_renderPopulatedSlot =
     UTAcademySlotItemDetailsViewController.prototype.renderPopulatedSlot;
@@ -75,7 +75,7 @@ export function installAcademyDetailsPatches(deps) {
     };
 
     if (!repositories.PlayerMeta.get(boost.definitionId)) {
-      services.PlayerMetaData.updateItemPlayerMeta([boost]).observe(controller, function (t, e) {
+      services.PlayerMetaData.updateItemPlayerMeta([boost]).observe(controller, function (t, _e) {
         t.unobserve(controller);
         boost.setMetaData(repositories.PlayerMeta.get(boost.definitionId));
         renderUI();

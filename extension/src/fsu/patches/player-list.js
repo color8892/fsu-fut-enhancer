@@ -64,11 +64,6 @@ UTPaginatedItemListView.prototype.renderItems = function(t) {
             csbc = true;
         }
     }else{
-        //25.20 球员自动购买 移除右侧球员部分
-        if(_.has(c.leftController,"_fsuAutoBuy") && _.has(c,"rightController") && c.rightController){
-            c.removeRightController();
-        }
-
         if(c.hasOwnProperty("rightController") && c.rightController){
             c = cntlr.right().parentViewController;
         }
@@ -140,15 +135,6 @@ UTSquadEntity.prototype.getRating = function() {
 
 //球员价格读取 需要传递球员ID列表(数组)
 events.loadPlayerInfo = async(items, el, type) => {
-    if(info.set.card_meta && [1, 2].includes(info.apiPlatform) && false){
-        const ggrList = _.filter(items, function (i) {
-            return _.has(i,"type") && i.type == "player" && i.rating >= 75 && !_.has(info.ggr,(i.definitionId)) && i.definitionId > 0;
-        })
-        let ggrChunks = _.chunk(ggrList, 30);
-        for (let chunk of ggrChunks) {
-            events.getGGRating(chunk, el);
-        }
-    }
     const list = _.map(
         _.filter(items, function (i) {
             return _.has(i,"type") && i.type == "player" && !events.getCachePrice(i.definitionId,3) && i.definitionId > 0;
@@ -179,7 +165,7 @@ events.loadPlayerInfo = async(items, el, type) => {
                 }else{
                     playerPrice = await events.getPriceForUrl(pu[k]);
                 }
-            }catch(error) {
+            }catch {
                 continue;
             }
 
@@ -219,20 +205,6 @@ events.loadPlayerInfo = async(items, el, type) => {
             let sPrice = 0;
             _.map(list,i => {sPrice += events.getCachePrice(i,1).num;})
             el._fsuScreenshot._header.setText(fy(["screenshot.text",list.length,sPrice.toLocaleString()]))
-        }else if(el.className == "UTStorePackRevealModalListViewController" && "_packoddo" in el){
-            let packItemsPriceElements = el.getView().getRootElement().querySelectorAll(".fsu-price-val");
-            const packItesmPrices = _.sumBy(packItemsPriceElements, i => Number(i.getAttribute("data-value")));
-            el.getView().getRootElement().querySelector(".trypack-count").innerText = packItesmPrices.toLocaleString();
-            let sDiff = Math.round((packItesmPrices/el._packoddo-1)*100);
-            let diffElement = el.getView().getRootElement().querySelector(".trypack-diff");
-            if(sDiff > 0){
-                diffElement.style.color = "#36b84b"
-                diffElement.textContent = `+${sDiff}%`
-            }else{
-                diffElement.style.color = "#d21433"
-                diffElement.textContent = `${sDiff}%`
-            }
-
         }else{
             events.losAuctionCount(el,0)
         }
@@ -245,94 +217,5 @@ events.loadPlayerInfo = async(items, el, type) => {
             events.loadPlayerInfo(lackPlayers, el, 2);
         }
     }
-}
-
-//** 25.21 读取GGRating **/
-events.getGGRating = async(list,el) => {
-    const now = Math.floor(Date.now() / 1000); // 当前时间（单位：秒）
-    const filtered = _.map(list,"definitionId");
-    if(filtered.length){
-        let baseUrl = info.apiPlatform === 2 ? `${info.apiProxy}?futggapi=` : "https://www.fut.gg/api/fut/";
-        const response = await events.externalRequest("GET",baseUrl + "metarank/players/?ids=" + filtered.join("%2C"));
-        const originalJson = JSON.parse(response);
-        _.forEach(originalJson.data, (v,k) => {
-            info.ggr[v.eaId] = {
-                "score": v.score,
-                "position": v.position,
-                "time": now
-            }
-
-            for (let i of list) {
-                let ggrGrade = document.querySelector(`.fsu-cards-metarating[data-id="${i.id}"][data-defid="${i.definitionId}"]`);
-                let ggrBox = document.querySelector(`.fsu-cards-meta[data-id="${i.id}"][data-defid="${i.definitionId}"]`);
-                if(ggrGrade || ggrBox){
-                    const ggr = events.getPlayerGGR(i);
-                    if(ggr.score){
-                        if(ggrGrade){
-                            ggrGrade.innerText = ggr.grade;
-                            ggrGrade.style.display = "block";
-                        }
-                        if(ggrBox){
-                            const ggrBoxMrk = ggrBox.querySelector(".mrk")
-                            ggrBoxMrk.innerText = ggr.grade;
-                            if(info.set.card_style !== 1){
-                                ggrBoxMrk.style.backgroundColor = ggr.gradeColor;
-                            }
-                            ggrBox.querySelector(".mpr").innerText = ggr.scoreText;
-                            ggrBox.querySelector(".mrp").innerText = ggr.posText;
-                            ggrBox.style.display = "";
-                        }
-                    }
-                }
-            }
-            
-        })
-        GM_setValue("ggr", JSON.stringify(info.ggr));
-
-        debug.log(el)
-    }else{
-        debug.log("无需要读取的GGRating")
-    }
-}
-//** 25.21 读取GGRating **/
-events.getPlayerGGR = (player) => {
-    const result = {
-        "score": 0,
-        "scoreText": "0",
-        "grade": "F",
-        "pos": 0,
-        "posText": "NONE",
-        "gradeColor": "rgba(255,255,255,0.8)"
-    }
-    if(_.has(info.ggr,player.definitionId)){
-        const grades = ["S", "A", "B", "C", "D"];
-        const gradeColors = [
-            "rgba(255,215,0,0.9)",     // S - 金色
-            "rgba(220,38,38,0.8)",     // A - 红
-            "rgba(251,146,60,0.8)",    // B - 橙
-            "rgba(6,182,212,0.8)",     // C - 青
-            "rgba(34,197,94,0.8)",     // D - 绿
-        ];
-        result.pos = info.ggr[player.definitionId].position;
-        result.posText = services.Localization.localize(`extendedPlayerInfo.positions.position${result.pos}`);
-        const isNoAcademy = player.academy == null || (!player.academy._attributes.length && !player.academy._baseTraits.length && !player.academy._iconTraits.length && !player.academy._skillMoves && !player.academy._weakFoot);
-        result.score = info.ggr[player.definitionId].score;
-        result.scoreText = result.score.toFixed(1);
-        if(!isNoAcademy){
-            const ratingMaxScore = info.GGRRAR.rating[result.pos][player.rating];
-            if(player.rating == player._rating){
-                result.score = ratingMaxScore;
-            }else{
-                result.score = ratingMaxScore - (player.rating - player._rating) * 0.02;
-            }
-            result.scoreText = `${result.score.toFixed(1)}*`;
-        }
-        const customSortedIndex = _.findIndex(info.GGRRAR.rank[result.pos], (value) => value <= result.score);
-        if(customSortedIndex !== -1){
-            result.grade = grades[customSortedIndex] + (result.score < player.rating ? " ↓" : " ↑");
-            result.gradeColor = gradeColors[customSortedIndex];
-        }
-    }
-    return result;
 }
 }

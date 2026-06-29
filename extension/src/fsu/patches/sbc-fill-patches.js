@@ -1,5 +1,5 @@
 export function installSbcFillPatches(deps) {
-  const { call, events, info, cntlr, isPhone, services, debug, repositories, build, fsuSC, fy, enums, GM_setValue } = deps;
+  const { call, events, info, cntlr, services, debug, repositories, fsuSC, fy, enums, GM_setValue } = deps;
 UTSBCService.prototype.loadChallengeData = function (r) {
     var s = this,
         a = new EAObservable();
@@ -14,10 +14,6 @@ UTSBCService.prototype.loadChallengeData = function (r) {
     );
 };
 
-//24.18 修改请求fut阵容链接报错提示
-// events.getFutbinSbcSquad → ModuleRegistry
-
-
 UTAppSettingsView.prototype._generate = function (...args) {
     if (!this._generated) {
         call.view.setting.call(this,...args)
@@ -28,7 +24,7 @@ UTAppSettingsView.prototype._generate = function (...args) {
         this._fsu.setBtn = events.createButton(
             new UTGroupButtonControl(),
             `FSU ${services.Localization.localize("button.settings")}`,
-            async(e) => {
+            async(_e) => {
                 var n = cntlr.current().getNavigationController();
                 if(n){
                     var t = new fsuSC();
@@ -42,7 +38,7 @@ UTAppSettingsView.prototype._generate = function (...args) {
         this._fsu.proxyBtn = events.createButton(
             new UTGroupButtonControl(),
             fy("apiprroxy.popupt"),
-            async(e) => {
+            async(_e) => {
                 events.popup(
                     fy("apiprroxy.popupt"),
                     fy("apiprroxy.popupm"),
@@ -80,10 +76,6 @@ UTAppSettingsView.prototype._generate = function (...args) {
     }
 }
 
-//球员挂拍卖
-// events.playerToAuction → ModuleRegistry
-
-
 //重置拍卖行信息
 events.playerGetLimits = async(i) => {
     return new Promise((resolve) => {
@@ -93,7 +85,7 @@ events.playerGetLimits = async(i) => {
         }
         services.Item.requestMarketData(i).observe(
             this,
-            async function (sender, response) {
+            async function (_sender, _response) {
                 resolve();
             }
         );
@@ -158,12 +150,6 @@ UTSquadEntity.prototype.setPlayers = function(t, e) {
     call.squad.setPlayers.call(this,t,e)
     events.saveOldSquad(this,true)
 }
-
-//读取阵容保存
-// events.saveOldSquad → ModuleRegistry
-
-// events.getRatingPlayers → ModuleRegistry
-
 
 //未分配名单读取
 UTUnassignedTileView.prototype.setNumberOfItems = function(e) {
@@ -242,11 +228,4 @@ UTUnassignedTileView.prototype.setNumberOfItems = function(e) {
 //UTStoreView.setPacks / events.truncateStrict → installStorePatches
 
 
-/** 25.18 SBC整体需求计算 **/
-// events.sbcListNeedCount → ModuleRegistry
-
-//计算总评的公式
-// events.needRatingsCount → ModuleRegistry
-
-// events.teamRatingCount → ModuleRegistry
 }

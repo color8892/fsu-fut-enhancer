@@ -1,5 +1,5 @@
 export function registerClubSelectEvents(deps) {
-  const { events, info, cntlr, isPhone, services, repositories, debug, fy } = deps;
+  const { events, info, cntlr, services, repositories, fy } = deps;
 events.setListFilterTitleAndState = (element,players,initPlayers) => {
 
     let parentElement = element[1]._parent;
@@ -233,13 +233,13 @@ events.getAcceleRate = (player, chem = 3, styleId = player.playStyle) => {
     return type;
 }
 // 25.22 加速类型介绍弹窗
-events.accelePopup = (player, isLoadMeta) => {
+events.accelePopup = (player, _isLoadMeta) => {
     let sl = services.Localization;
     gClickShield.showShield(EAClickShieldView.Shield.LOADING);
     const currentStyleId = player.playStyle;
     const styleIds = _.range(250, 269);
     
-    services.PlayerMetaData.updateItemPlayerMeta([player]).observe(cntlr.current(), function (t, e) {
+    services.PlayerMetaData.updateItemPlayerMeta([player]).observe(cntlr.current(), function (t, _e) {
         t.unobserve(cntlr.current());
         const acceleToGroup = {};
         styleIds.forEach(styleId => {
@@ -272,7 +272,7 @@ events.accelePopup = (player, isLoadMeta) => {
         events.popup(
             fy("accelerate.popupt"),
             accelePopupText,
-            (t) => {
+            (_t) => {
             }
         )
         // debug.log(acceleResults, currentResult, accelePopupText);
@@ -289,7 +289,7 @@ events.getBoostedAttribute = function (player, styleId, chem, attrId) {
 };
 
 
-// events.createElementWithConfig → ModuleRegistry
+
 
 
 

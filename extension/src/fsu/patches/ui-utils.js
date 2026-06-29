@@ -1,5 +1,5 @@
 export function registerUiUtilsEvents(deps) {
-  const { events, info, cntlr, debug, fy, services } = deps;
+  const { events, info, cntlr, fy, services } = deps;
   events.waitForClickShieldToHide = (callback, timeout = 5000) => {
     const start = Date.now();
 
@@ -33,13 +33,13 @@ events.getAcceleRate = (player, chem = 3, styleId = player.playStyle) => {
     }
     return type;
 }
-events.accelePopup = (player, isLoadMeta) => {
+events.accelePopup = (player, _isLoadMeta) => {
     let sl = services.Localization;
     gClickShield.showShield(EAClickShieldView.Shield.LOADING);
     const currentStyleId = player.playStyle;
     const styleIds = _.range(250, 269);
     
-    services.PlayerMetaData.updateItemPlayerMeta([player]).observe(cntlr.current(), function (t, e) {
+    services.PlayerMetaData.updateItemPlayerMeta([player]).observe(cntlr.current(), function (t, _e) {
         t.unobserve(cntlr.current());
         const acceleToGroup = {};
         styleIds.forEach(styleId => {
@@ -71,7 +71,7 @@ events.accelePopup = (player, isLoadMeta) => {
         events.popup(
             fy("accelerate.popupt"),
             accelePopupText,
-            (t) => {
+            (_t) => {
             }
         )
         gClickShield.hideShield(EAClickShieldView.Shield.LOADING);

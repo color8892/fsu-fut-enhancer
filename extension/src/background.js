@@ -35,7 +35,7 @@
       let url;
       try {
         url = new URL(senderUrl);
-      } catch (_error) {
+      } catch {
         return false;
       }
 
@@ -191,7 +191,7 @@
       let parsedUrl;
       try {
         parsedUrl = new URL(url);
-      } catch (_error) {
+      } catch {
         throw new TypeError("GM_openInTab received an invalid URL.");
       }
 

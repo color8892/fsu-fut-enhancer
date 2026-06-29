@@ -79,9 +79,6 @@ export function attachBootstrapEvents(events, { info, cntlr, isPhone, fy }) {
     if (info.run.bulkbuy) {
       info.run.bulkbuy = false;
     }
-    if (info.run.openPacks) {
-      info.run.openPacks = false;
-    }
     if (typeof events.changeLoadingText === "function") {
       events.changeLoadingText("loadingclose.text");
     }

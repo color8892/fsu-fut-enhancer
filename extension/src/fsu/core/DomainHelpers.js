@@ -3,8 +3,7 @@
  * @param {import("./FsuContext.js").FsuContext} ctx
  */
 export function createDomainHelpers(ctx) {
-  const { events, info, repositories, services, cntlr, debug, fy, eafy, futbinId, pdb, isPhone, priceService } =
-    ctx;
+  const { events, info, repositories, services, cntlr, debug, fy, eafy, futbinId, pdb, isPhone } = ctx;
 
   const eventProxy = (name) => (...args) => events[name](...args);
 
@@ -31,41 +30,6 @@ export function createDomainHelpers(ctx) {
         getLeftController: () => cntlr.left(),
         playerGetLimits: eventProxy("playerGetLimits")
       };
-    },
-
-    pack() {
-      return {
-        fy,
-        hideLoader: () => events.hideLoader(),
-        showLoader: () => events.showLoader(),
-        changeLoadingText: eventProxy("changeLoadingText"),
-        wait: eventProxy("wait"),
-        createElementWithConfig: eventProxy("createElementWithConfig"),
-        createButton: eventProxy("createButton"),
-        getInfo: () => info,
-        jsonToItemEntity: eventProxy("jsonToItemEntity"),
-        debug,
-        notice: eventProxy("notice"),
-        getOddo: eventProxy("getOddo"),
-        loadPlayerInfo: eventProxy("loadPlayerInfo"),
-        getCurrentController: () => cntlr.current(),
-        externalRequest: eventProxy("externalRequest"),
-        getItemBy: eventProxy("getItemBy"),
-        openFutbinPlayerUrl: eventProxy("openFutbinPlayerUrl"),
-        createDF: eventProxy("createDF")
-      };
-    },
-
-    autoBuy: {
-      getInfo: () => info,
-      getNavigationController: () => cntlr.current()?.getNavigationController?.(),
-      isPhone,
-      getFutbinUrl: (url) => priceService.getFutbinUrl(url),
-      hideLoader: () => events.hideLoader(),
-      debug,
-      createElementWithConfig: eventProxy("createElementWithConfig"),
-      fy,
-      createButton: eventProxy("createButton")
     },
 
     academy: {

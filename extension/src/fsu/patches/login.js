@@ -43,7 +43,7 @@ UTLoginView.prototype._generate = function (...args) {
                 }
                 debug.log("apiPlatform:", info.apiPlatform);
             },
-            onerror: function (err) {
+            onerror: function (_err) {
                 // info.apiPlatform = info.apiProxy === "" ? 3 : 2;
                 info.apiPlatform = 3;
                 debug.log("apiPlatform:", info.apiPlatform);

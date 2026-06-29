@@ -1,11 +1,6 @@
 export function installMarketPatches(deps) {
   const { call, events, info, cntlr, isPhone, fy, debug, repositories, services, GM_setValue } = deps;
 
-  const UTClubSearchResultsViewController_onTableCellSelected =
-    UTClubSearchResultsViewController.prototype.onTableCellSelected;
-  const UTClubSearchResultsViewController_refreshPinnedItem =
-    UTClubSearchResultsViewController.prototype.refreshPinnedItem;
-
   UTTransferMarketPaginationViewModel.prototype.startAuctionUpdates = function (...args) {
     call.view.transferMarket.call(this, ...args);
     if (services.Item.marketRepository.pages.length) {
@@ -204,7 +199,7 @@ export function installMarketPatches(deps) {
         this._fsuHistory.element.querySelector(".fsu-historybox").innerHTML = "";
         let criteriaKeys = Object.keys(e.searchCriteria);
 
-        _.map(info.market.mb, (item, index) => {
+        _.map(info.market.mb, (item, _index) => {
           let playerInfo = repositories.Item.getStaticDataByDefId(
             item[criteriaKeys.indexOf("maskedDefId")]
           );
@@ -272,26 +267,4 @@ export function installMarketPatches(deps) {
     }
   };
 
-  UTClubSearchResultsViewController.prototype.onTableCellSelected = function (e, t, i) {
-    if (this._fsuAutoBuy) {
-      events.autoBuyRightRefresh(this._fsuAutoBuyRight, i.item);
-      if (isPhone()) {
-        this.getNavigationController().pushViewController(this.getView()._list._fsuAutoBuyRight);
-      } else {
-        _.forEach(e._list.listRows, (rows) => {
-          rows.setSelected(rows.data.definitionId == i.item.definitionId);
-        });
-      }
-    } else {
-      UTClubSearchResultsViewController_onTableCellSelected.call(this, e, t, i);
-    }
-  };
-
-  UTClubSearchResultsViewController.prototype.refreshPinnedItem = function () {
-    if (this._fsuAutoBuy && this._fsuAutoBuyPlayers.length) {
-      events.autoBuyRightRefresh(this._fsuAutoBuyRight, this._fsuAutoBuyPlayers[0]);
-    } else {
-      UTClubSearchResultsViewController_refreshPinnedItem.call(this);
-    }
-  };
 }

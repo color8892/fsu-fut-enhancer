@@ -1,5 +1,5 @@
 export function installObjectivesHubPatches(deps) {
-  const { call, events, info, fy, isPhone, services } = deps;
+  const { call, events, info, fy, isPhone } = deps;
 
   UTObjectivesHubView.prototype.setupNavigation = function (e) {
     call.task.objN.call(this, e);

@@ -11,7 +11,7 @@ export function registerSbcSubPriceEvent(deps) {
           subPrice = await events.getFutbinUrl(
             `https://www.futbin.org/futbin/api/${info.base.year}/getChallengesBySetId?set_id=${id}`
           );
-        } catch (error) {
+        } catch {
           return;
         }
         if ("data" in subPrice) {
@@ -146,7 +146,7 @@ export function registerSbcSubPriceEvent(deps) {
 }
 
 export function registerSbcHeaderEvents(deps) {
-  const { events, info, services, cntlr, debug } = deps;
+  const { events, info, services } = deps;
 
   events.changeHeaderSBCEntrance = () => {
     let completeId = _.filter(info.douagain.SBCList, (SBCId) =>

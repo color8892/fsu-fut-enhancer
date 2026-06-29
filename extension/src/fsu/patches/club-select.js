@@ -1,5 +1,5 @@
 export function installClubSelectPatches(deps) {
-  const { call, events, info, fy, cntlr, isPhone, repositories, services, debug } = deps;
+  const { call, events, fy, isPhone } = deps;
   UTSelectItemFromClubViewController.prototype.requestItems = function() {
     if(this.clubViewModel.canShowPage() && !this.clubViewModel.shouldRequestItems()){
         this.updateItemList(this.clubViewModel.getPageItems())
@@ -10,8 +10,7 @@ export function installClubSelectPatches(deps) {
             const type = this.getParentViewController()._fsuFillType;
             //25.22 解决同地区假想搜索卡死问题
             if (![1, 2, 9].includes(type)) {
-                let players = _.clone(this.getParentViewController()._fsuFillArray),
-                sort = _.split(_.replace(_.toLower(SearchSortID[this.getParentViewController()._fsuFillSort]), "rating", "ovr"), '_');
+                let players = _.clone(this.getParentViewController()._fsuFillArray);
 
                 //25.21 升降序显示错误问题，尤其是仓库按钮。
                 if (this.getParentViewController()._fsuFillSort == 2) {

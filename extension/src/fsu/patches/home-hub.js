@@ -1,110 +1,140 @@
 import { FSU_BASE_STYLE } from "../ui/fsu-styles.js";
 
+function applyHomeTaskTiles(events, info, cntlr) {
+  if (
+    cntlr.current().className == "UTHomeHubViewController" &&
+    info.task.obj.html &&
+    cntlr
+      .current()
+      .getView()
+      ._objectivesTile.__tileContent.querySelector(".ut-tile-view--subtitle")
+  ) {
+    if (!cntlr.current().getView()._objectivesTile.__root.querySelector(".fsu-task")) {
+      cntlr
+        .current()
+        .getView()
+        ._objectivesTile.__tileContent.before(
+          events.createDF(`<div class="fsu-task">${info.task.obj.html}</div>`)
+        );
+    }
+    const objCountElement = cntlr
+      .current()
+      .getView()
+      ._objectivesTile.getRootElement()
+      .querySelector(".fsu-obj-count");
+    if (objCountElement && info.task.obj.stat.catReward) {
+      objCountElement.textContent = info.task.obj.stat.catReward;
+      objCountElement.style.display = "block";
+    }
+  }
+  if (
+    cntlr.current().className == "UTHomeHubViewController" &&
+    info.task.sbc.html &&
+    !cntlr.current().getView()._sbcTile.__root.querySelector(".fsu-task") &&
+    cntlr
+      .current()
+      .getView()
+      ._sbcTile.__tileContent.querySelector(".ut-tile-content-graphic-info")
+  ) {
+    cntlr
+      .current()
+      .getView()
+      ._sbcTile.__tileContent.before(events.createDF(`<div class="fsu-task">${info.task.sbc.html}</div>`));
+  }
+}
+
+function searchClubPage(services, stat, pageIndex, playersCount) {
+  const playersCriteria = new UTSearchCriteriaDTO();
+  playersCriteria.type = "player";
+  playersCriteria.sortBy = "ovr";
+  playersCriteria.sort = "desc";
+  playersCriteria.count = playersCount;
+  playersCriteria.offset = pageIndex * playersCount;
+  return new Promise((resolve, reject) => {
+    services.Club.search(playersCriteria).observe(stat, (observer, response) => {
+      observer.unobserve(stat);
+      if (response.success && JSUtils.isObject(response.response)) {
+        resolve(response.response);
+      } else {
+        reject(new Error("Search operation failed"));
+      }
+    });
+  });
+}
+
+function searchStorageItems(services, current) {
+  return new Promise((resolve) => {
+    services.Item.searchStorageItems(new UTSearchCriteriaDTO()).observe(current, (observer) => {
+      observer.unobserve(current);
+      resolve();
+    });
+  });
+}
+
 export function registerHomeHubEvents(deps) {
-  const { events, info, cntlr, isPhone, services } = deps;
+  const { events, info, cntlr, services } = deps;
 
   events.reloadPlayers = async () => {
     GM_setValue("players", JSON.stringify({}));
-    let current = getAppMain().getRootViewController();
-    await services.Club.getStats().observe(current, async function _onGetStats(e, t) {
-      e.unobserve(current);
-      t.success
-        ? t.response.stats.forEach(async function (stat) {
-            if (stat.type == "players") {
-              if (stat.count !== services.Club.clubDao.clubRepo.items.length) {
-                events.showLoader();
-                let playersCount = 200;
-                let playersPage = Math.ceil(stat.count / playersCount);
-                for (let i = 0; i < playersPage; i++) {
-                  let playersCriteria = new UTSearchCriteriaDTO();
-                  playersCriteria.type = "player";
-                  playersCriteria.sortBy = "ovr";
-                  playersCriteria.sort = "desc";
-                  playersCriteria.count = playersCount;
-                  playersCriteria.offset = i * playersCount;
-                  events.changeLoadingText(["loadingclose.ldata", `${i}`, `${playersPage}`]);
-                  try {
-                    await new Promise((resolve, reject) => {
-                      services.Club.search(playersCriteria).observe(stat, (p, t) => {
-                        if (p.unobserve(p), t.success && JSUtils.isObject(t.response)) {
-                          resolve(t.response);
-                        } else {
-                          reject(new Error("Search operation failed"));
-                        }
-                      });
-                    });
-                    await events.wait(0.2, 0.5);
-                  } catch (error) {
-                    console.error("Search error:", error);
-                    services.Notification.queue([
-                      services.Localization.localize("notification.club.failedToLoad"),
-                      UINotificationType.NEGATIVE
-                    ]);
-                    const navController = stat.getNavigationController();
-                    if (navController) {
-                      navController.popViewController(true);
-                    }
-                  }
-                }
+    const current = getAppMain().getRootViewController();
+    const playersCount = 200;
 
-                await services.Item.searchStorageItems(new UTSearchCriteriaDTO()).observe(
-                  current,
-                  function (e, t) {
-                    e.unobserve(current);
-                  }
-                );
-                events.hideLoader();
-                info.base.state = true;
-                events.notice("notice.ldatasuccess", 0);
-                if (
-                  cntlr.current().className == "UTHomeHubViewController" &&
-                  info.task.obj.html &&
-                  cntlr
-                    .current()
-                    .getView()
-                    ._objectivesTile.__tileContent.querySelector(".ut-tile-view--subtitle")
-                ) {
-                  if (!cntlr.current().getView()._objectivesTile.__root.querySelector(".fsu-task")) {
-                    cntlr
-                      .current()
-                      .getView()
-                      ._objectivesTile.__tileContent.before(
-                        events.createDF(`<div class="fsu-task">${info.task.obj.html}</div>`)
-                      );
-                  }
-                  let objCountElement = cntlr
-                    .current()
-                    .getView()
-                    ._objectivesTile.getRootElement()
-                    .querySelector(".fsu-obj-count");
-                  if (objCountElement && info.task.obj.stat.catReward) {
-                    objCountElement.textContent = info.task.obj.stat.catReward;
-                    objCountElement.style.display = "block";
-                  }
-                }
-                if (
-                  cntlr.current().className == "UTHomeHubViewController" &&
-                  info.task.sbc.html &&
-                  !cntlr.current().getView()._sbcTile.__root.querySelector(".fsu-task") &&
-                  cntlr
-                    .current()
-                    .getView()
-                    ._sbcTile.__tileContent.querySelector(".ut-tile-content-graphic-info")
-                ) {
-                  cntlr
-                    .current()
-                    .getView()
-                    ._sbcTile.__tileContent.before(
-                      events.createDF(`<div class="fsu-task">${info.task.sbc.html}</div>`)
-                    );
-                }
-              }
-            }
-          })
-        : NetworkErrorManager.checkCriticalStatus(t.status) &&
-          NetworkErrorManager.handleStatus(t.status) &&
-          events.hideLoader() &&
-          events.notice("notice.ldataerror", 2);
+    await new Promise((resolve) => {
+      services.Club.getStats().observe(current, async (observer, response) => {
+        observer.unobserve(current);
+        if (!response.success) {
+          if (
+            NetworkErrorManager.checkCriticalStatus(response.status) &&
+            NetworkErrorManager.handleStatus(response.status)
+          ) {
+            events.hideLoader();
+            events.notice("notice.ldataerror", 2);
+          }
+          resolve();
+          return;
+        }
+
+        const playerStat = _.find(response.response.stats, { type: "players" });
+        if (!playerStat) {
+          resolve();
+          return;
+        }
+
+        if (playerStat.count === services.Club.clubDao.clubRepo.items.length) {
+          info.base.state = true;
+          applyHomeTaskTiles(events, info, cntlr);
+          resolve();
+          return;
+        }
+
+        events.showLoader();
+        const playersPage = Math.ceil(playerStat.count / playersCount);
+        const storagePromise = searchStorageItems(services, current);
+
+        try {
+          for (let page = 0; page < playersPage; page++) {
+            events.changeLoadingText(["loadingclose.ldata", `${page + 1}`, `${playersPage}`]);
+            await searchClubPage(services, playerStat, page, playersCount);
+          }
+          await storagePromise;
+          events.hideLoader();
+          info.base.state = true;
+          events.notice("notice.ldatasuccess", 0);
+          applyHomeTaskTiles(events, info, cntlr);
+        } catch (error) {
+          console.error("Search error:", error);
+          events.hideLoader();
+          services.Notification.queue([
+            services.Localization.localize("notification.club.failedToLoad"),
+            UINotificationType.NEGATIVE
+          ]);
+          const navController = playerStat.getNavigationController?.();
+          if (navController) {
+            navController.popViewController(true);
+          }
+        }
+        resolve();
+      });
     });
   };
 }

@@ -48,7 +48,6 @@ events.SBCListInsertToFront = (sbcId,type) => {
 events.goToSBC = (SBCSetEntity) => {
     let controller = cntlr.current(),
     view = controller.getView(),
-    eventText = UTSBCHubView.Event.TILE_SELECTED,
     r;
     view.setInteractionState(!1);
     services.SBC.requestChallengesForSet(SBCSetEntity).observe(controller, (e, t) => {

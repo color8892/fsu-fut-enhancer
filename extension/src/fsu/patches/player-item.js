@@ -70,7 +70,7 @@ export function installPlayerItemPatch(deps) {
                   let accele = events.createButton(
                       new UTButtonControl(),
                       events.getAcceleRate(p) + `${isLoadMeta ? "" : "*"}`,
-                      async(e) => {
+                      async(_e) => {
                           events.accelePopup(p)
                       },
                       "fsu-cards-accele"
@@ -86,11 +86,11 @@ export function installPlayerItemPatch(deps) {
                   let bodytype = events.createButton(
                       new UTButtonControl(),
                       "",
-                      async(e) => {
+                      async(_e) => {
                           events.popup(
                               fy("plyers.bodytype.popupt"),
                               fy(["plyers.bodytype.popupm",info.bodytypetext[bodyTypeId],fy(`players.bodytype_${bodyTypeId}`)]),
-                              (t) => {
+                              (_t) => {
                               }
                           )
                       },
@@ -108,7 +108,7 @@ export function installPlayerItemPatch(deps) {
                   this._fsu.realFace = events.createButton(
                       new UTButtonControl(),
                       realFace == 1 ? "YES" : "NO",
-                      async(e) => {
+                      async(_e) => {
                           events.notice(fy(["notice.players.realface", p._staticData.name, fy(`players.realface_${realFace}`)]), realFace == 1 ? 0 : 2);
                       },
                       ""
@@ -291,7 +291,7 @@ export function installPlayerItemPatch(deps) {
                   let metaElement = events.createButton(
                       new UTButtonControl(),
                       "",
-                      async(e) => {
+                      async(_e) => {
                           events.fgPopup(p);
                       },
                       "item fsu-cards fsu-cards-meta"
@@ -314,69 +314,13 @@ export function installPlayerItemPatch(deps) {
                       extraElement.prepend(metaRating);
                   }
               }
-              if(info.set.card_meta && [1, 2].includes(info.apiPlatform) && false){
-                  let playerGGR = events.getPlayerGGR(p);
-                  playerGGR["textColor"] = "#0f1010";
-                  if(info.set.card_style == 1){
-                      playerGGR.gradeColor = `rgb(0,64,166)`;
-                      playerGGR.textColor = "#fcfcf7";
-                  }
-                  let metaElement = events.createButton(
-                      new UTButtonControl(),
-                      "",
-                      async(e) => {
-                          GM_openInTab(`https://www.fut.gg/players/${p.databaseId}/${info.base.year}-${p.definitionId}/`, { active: true, insert: true, setParent :true });
-                      },
-                      "item fsu-cards fsu-cards-meta"
-                  )
-                  this._fsu.meta = metaElement;
-                  metaElement.getRootElement().setAttribute("data-id",p.id);
-                  metaElement.getRootElement().setAttribute("data-defid",p.definitionId);
-                  metaElement.getRootElement().style.borderColor = playerGGR.gradeColor;
-                  let mRk = events.createElementWithConfig("div", {
-                      textContent:playerGGR.grade,
-                      style:{
-                          color:playerGGR.textColor,
-                          backgroundColor:playerGGR.gradeColor,
-                          lineHeight:`1.1rem`,
-                      },
-                      classList:["mrk"],
-                  })
-                  metaElement.getRootElement().appendChild(mRk)
-                  let mPr = events.createElementWithConfig("div", {
-                      textContent:playerGGR.scoreText,
-                      classList:["mpr"],
-                  })
-                  metaElement.getRootElement().appendChild(mPr)
-                  let mRp = events.createElementWithConfig("div", {
-                      textContent:playerGGR.posText,
-                      classList:["mrp"],
-                  })
-                  metaElement.getRootElement().appendChild(mRp)
-                  if(isSmall){
-                      let metaRating = events.createElementWithConfig("div", {
-                          textContent:playerGGR.grade,
-                          classList:["fsu-cards-metarating"],
-                          attributes:{
-                              "data-id":p.id,
-                              "data-defid":p.definitionId,
-                          }
-                      })
-                      this._fsu.metaRating = metaRating;
-                      extraElement.prepend(metaRating);
-                      if(playerGGR.score === 0){
-                          metaRating.style.display = "none";
-                          metaElement.getRootElement().style.display = "none";
-                      }
-                  }
-              }
 
               //26.04 添加特殊品质的显示按钮
               if(info.specialPlayers?.DList?.includes(p.rareflag) || info.specialPlayers?.ECList?.includes(p.rareflag)){
                   this._fsu.special = events.createButton(
                       new UTButtonControl(),
                       "",
-                      async(e) => {
+                      async(_e) => {
                           events.noticeSpecialPlayerInfo(p);
                       },
                       "fsu-specialPlayer"
@@ -449,10 +393,9 @@ export function installPlayerItemPatch(deps) {
                       }
                   }
                   if(cs == 7 && document.querySelector(".icon-transfer.selected")) cs = 12;
-                  if(cs == 8 && (document.querySelector(".icon-club.selected") || document.querySelector(".fsu-aotobuy"))) cs = 9;
+                  if(cs == 8 && document.querySelector(".icon-club.selected")) cs = 9;
                   if(cs == 2 && controller.className == "UTWatchListViewController") cs = 11;
                   if(cs == 8 && controller.className == "UTAcademyPlayerFromClubViewController") cs = 3;
-                  if(cs == 6 && document.querySelector(".fsu-autobuy-right")) cs = 13;
 
                   //修复进化预览价格覆盖的问题
                   //有问题需要判定，是进化页面再修改
@@ -507,7 +450,7 @@ export function installPlayerItemPatch(deps) {
                                  this._fsu.removeBtn = events.createButton(
                                       new UTImageButtonControl(),
                                       "",
-                                      (e) => {
+                                      (_e) => {
                                           events.showLoader();
                                           let newSquad = _.cloneDeep(_.last(cntlr.current()._squad._fsu.oldSquad));
                                           newSquad = _.map(newSquad, (item) => {
@@ -549,21 +492,16 @@ export function installPlayerItemPatch(deps) {
                           }
                           if([2, 11, 12].includes(cs)){
                               parentNode.append(priceBoxElement);
-                          }else if([6,8,7,4,13].includes(cs)){
+                          }else if([6,8,7,4].includes(cs)){
                               this.__root.prepend(priceElement);
                           }else{
                               this.__root.after(priceBoxElement);
                           }
 
                           if(cs == 12 || cs == 6) otherElement.querySelector(".fsu-other-low").remove();
-                          if(cs == 1 || cs == 8  || cs == 9 || cs == 13) otherElement.querySelector(".fsu-other-dup").remove();
+                          if(cs == 1 || cs == 8 || cs == 9) otherElement.querySelector(".fsu-other-dup").remove();
                           if(![7,4].includes(cs)){
                               parentNode.append(otherElement);
-                          }
-                          if(cs == 13 && info.autobuy.infoViews[p.definitionId]){
-                              debug.log(info.autobuy.infoViews[p.definitionId].goToSalesBtn,info.autobuy.infoViews[p.definitionId].setPriceBtn)
-                              parentElement.querySelector(".fsu-autobuy-btn").remove();
-                              parentElement.appendChild(info.autobuy.infoViews[p.definitionId]._cardBtnBox)
                           }
                       }
                       if([8,9].includes(cs) && playerLock){
@@ -628,14 +566,8 @@ export function installPlayerItemPatch(deps) {
                   if(!cardParen){
                       return;
                   }
-                  let isCompare = false;
-                  if(document.querySelector(`.CompareDetails .large.player span[p-id="${pId}"]`) && info.set.card_meta && [1, 2].includes(info.apiPlatform) && false){
-                      isCompare = true;
-                      extraElement.classList.add("reserve")
-                      this._fsu.meta.getRootElement().classList.add("reserve");
-                  }
                   //24.18 修复锁定按钮显示不了的问题
-                  if(p.loans == -1 && !p.concept && p.state == ItemState.FREE && !p.isDuplicate() && events.getItemBy(1,{"id":p.id}).length && !isCompare){
+                  if(p.loans == -1 && !p.concept && p.state == ItemState.FREE && !p.isDuplicate() && events.getItemBy(1,{"id":p.id}).length){
                       let lockElement = events.createButton(
                           new UTStandardButtonControl(),
                           playerLock ? fy("locked.unlock") : fy("locked.lock"),
@@ -659,9 +591,7 @@ export function installPlayerItemPatch(deps) {
                       cardParen.insertBefore(lockElement.getRootElement(),cardParen.firstChild)
                   }
                   if(cardParen.querySelectorAll(".player").length > 1){
-                      if(!isCompare){
-                          this.__root.prepend(posElement);
-                      }
+                      this.__root.prepend(posElement);
                       this.__root.prepend(extraElement);
                   }else{
                       this.__root.after(posElement);
@@ -725,7 +655,7 @@ export function installPlayerItemPatch(deps) {
 
                   //25.24 SBC或奖励页面添加已拥有标识
                   if(cardParen.classList.contains("main-reward") && cardParen.classList.length === 1){
-                      
+                      void 0;
                   }
 
                   //25.01 战术编辑处角色调整

@@ -1,29 +1,12 @@
 export function installPlayerBioPatches(deps) {
-  const { events, info, cntlr, services, debug, fy, repositories } = deps;
+  const { events, cntlr, services, debug, fy, repositories } = deps;
   /** 球员简历页面 */
 //24.18 可进化标识：球员预览属性标注
 //25.01 角色分页插入评分
-//25.20 球员自动购买 右侧界面tabs点击事件拦截
 //26.02 合并原有错误的两个事件
 const UTPlayerBioView_render = UTPlayerBioView.prototype.render;
 UTPlayerBioView.prototype.render = function(t, e, i){
-    if(this.isFsuAutoBuy){
-        DOMKit.empty(this.__dataDisplay);
-        if(t == 444101 || !t){
-            if (!_.has(info.autobuy.infoViews, e.definitionId)) {
-                info.autobuy.infoViews[e.definitionId] = events.autoBuyCreateInfoView(e);
-            }
-            this.__dataDisplay.appendChild(info.autobuy.infoViews[e.definitionId].getRootElement());
-        }else if(t == 444102){
-            if(_.isEmpty(info.autobuy.logView)){
-                events.autoBuyCreateLogView();
-            }
-            this.__dataDisplay.appendChild(info.autobuy.logView.getRootElement());
-        }
-        
-    }else{
-        UTPlayerBioView_render.call(this, t, e, i);
-    }
+    UTPlayerBioView_render.call(this, t, e, i);
     if(_.some(cntlr.current().getNavigationController()._childViewControllers, { className: 'UTAcademySlotItemDetailsViewController' })){
         this.fsuAcademy = true;
     }
@@ -40,7 +23,7 @@ UTPlayerBioView.prototype.render = function(t, e, i){
             this.fsuAcademyChange = {};
             const nowPlayer = this.fsuAcademy.nowPlayer;
             debug.log(e, nowPlayer)
-            let infoChange = [],CA = e.academy,attrChange = [],styleChange = [],roleChange = [];
+            let infoChange = [],attrChange = [],styleChange = [],roleChange = [];
             if(e.rareflag !== nowPlayer.rareflag){
                 infoChange.push({type:0,index:0,value:0,count:true});
             }
@@ -152,7 +135,7 @@ UTPlayerBioView.prototype.render = function(t, e, i){
                         })
                         
                     }else{
-                        _.forEach(roleIds,roleId => {
+                        _.forEach(roleIds,_roleId => {
                             roleCont++;
                         })
                     }

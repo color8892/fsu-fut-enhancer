@@ -51,8 +51,7 @@ export class PlayerSearchService {
     let players = replaceData ? replaceData : _.concat(getClubPlayers(), getStorageItems()),
       ratingOrder = queryOptions.hasOwnProperty("LTrating") ? "desc" : "asc",
       specialOrder = [],
-      firstStorage = 0,
-      currentSquad;
+      firstStorage = 0;
     if (queryOptions.hasOwnProperty("os") && _.isArray(queryOptions.os)) {
       specialOrder = queryOptions.os;
       delete queryOptions.os;

@@ -209,7 +209,7 @@ export class FgRatingService {
     const attrConfig = newPlayer.isGK() ? info.attributesGK : info.attributes;
 
     const calcFace = (subs, weight) => _.sum(_.map(subs, (v, i) => v.value * weight[i]));
-    _.forEach(attrConfig, (value, key) => {
+    _.forEach(attrConfig, (value, _key) => {
       const { list, weight, id } = value;
       const targetFace = newPlayer.getAttribute(id);
       let subs = _.map(list, (i) => {
@@ -298,7 +298,7 @@ export class FgRatingService {
         type: EADialogView.Type.MESSAGE
       });
       mp.init();
-      mp.onExit.observe(mp, (e, z) => {
+      mp.onExit.observe(mp, (e, _z) => {
         e.unobserve(mp);
       });
       gPopupClickShield.setActivePopup(mp);

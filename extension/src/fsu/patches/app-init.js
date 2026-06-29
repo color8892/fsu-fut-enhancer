@@ -1,7 +1,7 @@
 import { applyLowpriceToInfo } from "../infra/RatingPrices.js";
 
 export function registerAppInitEvents(deps) {
-  const { events, info, fy, cntlr, isPhone, services, repositories, debug, SBCCount, set, build, lock, GM_getValue, GM_setValue, GM_xmlhttpRequest, GM_info } = deps;
+  const { events, info, fy } = deps;
   //26.02 添加进化新增显示
 UTHomeHubView.prototype.getAcademyTile = function() {
     if(info.evolutions.newCount > 0 && !this._academyTile.__root.querySelector(".fsu-task")){
@@ -18,7 +18,7 @@ events.addLoadingElment = () => {
         info.base.close = events.createButton(
             new UTButtonControl(),
             fy("loadingclose.text"),
-            async(e) => {
+            async(_e) => {
                 events.hideLoader()
             },
             "fsu-loading-close"
@@ -124,18 +124,6 @@ events.init =  async function(){
 
     info.base.year = APP_YEAR_SHORT;
     MAX_NEW_ITEMS = 100;
-
-    const cutoff = Math.floor(info.market.ts / 1000) - 168 * 3600; // 168 小时前时间戳
-    info.ggr = JSON.parse(GM_getValue("ggr", "{}"));
-    // 遍历并删除过期项
-    for (const [id, data] of Object.entries(info.ggr)) {
-        const time = parseInt(data.time, 10); // 解析字符串为数字
-        if (isNaN(time) || time < cutoff) {
-            delete info.ggr[id];
-        }
-    }
-    // 保存回去
-    GM_setValue("ggr", JSON.stringify(info.ggr));
 
     GM_xmlhttpRequest({
         method:"GET",
@@ -295,10 +283,10 @@ events.init =  async function(){
                                 info.specialPlayers = {
                                     "dynamic": dynamic,
                                     "DList": Object.entries(dynamic)
-                                        .filter(([key, value]) => {
+                                        .filter(([_key, value]) => {
                                             return value.exp && value.exp > Date.now() / 1000;
                                         })
-                                        .map(([key, value]) => Number(key)),
+                                        .map(([key, _value]) => Number(key)),
                                     "extraChem": chem,
                                     "ECList": Object.keys(chem).map(key => Number(key))
                                 }

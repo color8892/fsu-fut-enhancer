@@ -1,5 +1,5 @@
 export function registerSbcFillEvents(deps) {
-  const { call, events, info, cntlr, isPhone, services, debug, repositories, build, fastSbcService, oneFillCriteriaService, sbcSquadFillService, sbcTemplateService, sbcSquadSaveService } = deps;
+  const { call, events, info, cntlr, isPhone, services, debug, repositories, fastSbcService, oneFillCriteriaService, sbcSquadFillService, sbcTemplateService, sbcSquadSaveService } = deps;
   events.fastSBCQuantity = (clubMode, playerPool, criteria) =>
     fastSbcService.calculateQuantity({
         clubMode,
@@ -77,22 +77,6 @@ UTSquadBuilderViewModel.prototype.generatePlayerCollection = function(e, o, n, r
 
 //拍卖优化部分代码加载 → installMarketPatches
 
-//拍卖查询价格
-// events.getAuction → ModuleRegistry
-
-//getAuctionPrice → MarketActionService
-
-//24.18 假想球员批量购买：新购买方法
-// events.buyConceptPlayer → ModuleRegistry
-
-
-
-
-
-//假想球员购买
-// events.buyPlayer → ModuleRegistry
-
-
 //购买失败添加标识
 events.cardAddBuyErrorTips = (defId) => {
     let squad = cntlr.current()._squad;
@@ -145,9 +129,6 @@ events.getCardTipsHtml = (type) => {
     tipsElement.appendChild(tipsElementIcon);
     return tipsElement;
 }
-// events.readAuctionPrices → ModuleRegistry
-
-// events.searchTransferMarket → ModuleRegistry
 
 events.sendPinEvents = (pageId) => {
     services.PIN.sendData(PINEventType.PAGE_VIEW, {type: PIN_PAGEVIEW_EVT_TYPE,pgid: pageId,});

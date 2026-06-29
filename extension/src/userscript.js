@@ -1273,25 +1273,6 @@
     "realprob.title_3": ["真实概率", "真實概率", "Real probability"],
     "realprob.title_4": ["需要开启", "需要開啟", "Need to open"],
     "realprob.btn": ["真实概率", "真實概率", "Real Prob"],
-    "autobuy.nav.tilte": ["球员自动购买", "球員自動購買", "Player Auto-Buy"],
-    "autobuy.noresult.title": ["请先搜索球员", "請先搜尋球員", "Search for players first"],
-    "autobuy.noresult.text": ["在上方输入名称搜索", "在上方輸入名稱搜尋", "Type player name above to search"],
-    "autobuy.noselected.notice": ["请输入并选择后再搜索", "請輸入並選擇後再搜尋", "Please enter and select before searching"],
-    "autobuy.tile.title": ["球员自动购买", "球員自動購買", "Player Auto-Buy"],
-    "autobuy.tile.content": ["测试版，如出现问题请停止使用。", "測試版，如出現問題請停止使用。", "Please stop using the test version if any issues arise."],
-    "autobuy.tabs.text0": ["操作", "操作", "Operation"],
-    "autobuy.tabs.text1": ["信息", "日誌", "Log"],
-    "autobuy.info.title": ["购买信息", "購買資訊", "Purchase information"],
-    "autobuy.info.mintext": ["最低购买价格", "最低購買價格", "Min price"],
-    "autobuy.info.maxtext": ["最高购买价格", "最高購買價格", "Max price"],
-    "autobuy.info.numtext": ["购买数量", "購買數量", "Quantity"],
-    "autobuy.list.title0": ["最新挂牌", "最新掛牌", "Latest shelf"],
-    "autobuy.list.title1": ["最新成交", "最新成交", "Latest trade"],
-    "autobuy.list.text0": ["无近期记录", "無近期記錄", "No record"],
-    "autobuy.list.text1": ["奖励物品", "獎勵物品", "Reward items"],
-    "autobuy.list.text2": ["不可交易", "不可交易", "Untradeable"],
-    "autobuy.info.setprice": ["使用最近挂牌", "使用最近掛牌", "Use latest listing"],
-    "autobuy.info.gotosales": ["查看拍卖历史", "檢視拍賣歷史", "Auctions history"],
     "fastsbc.tab.text": ["快速完成", "快速完成", "Fast"],
     "builder.sabfirstcommon": ["青铜和白银球员优先普通", "青銅和白銀球員優先普通", "Bronze/Silver: common first"],
     "openpack.unassigned.notice": ["有未分配球员，请先分配后再尝试开包。", "有未分配球員，請先分配後再嘗試開包。", "You have unassigned players. Please assign them before opening a pack."],
@@ -1406,7 +1387,7 @@
     return {
       "task": { "obj": { "stat": {}, "html": "", "source": [] }, "sbc": { "stat": {}, "html": "" } },
       "evolutions": { "new": [], "newCount": 0, "html": "" },
-      "base": { "state": false, "platform": "pc", "price": {}, "sId": "", "localization": "", autoLoad: true, "ratings": {}, "input": true, "promo": 0, "savesquad": false, "packcoin": {}, "packreturns": {}, "oddo": {}, "fastsbc": {}, "fastsbctips": false, "imgDB": null, "imgCache": {} },
+      "base": { "state": false, "platform": "pc", "price": {}, "sId": "", "localization": "", autoLoad: true, "ratings": {}, "input": true, "promo": 0, "savesquad": false, "packcoin": {}, "packreturns": {}, "oddo": {}, "fastsbc": {}, "fastsbctips": false },
       "squad": {},
       "meta": {
         "bodyType": {},
@@ -1430,7 +1411,6 @@
       "setfield": { "card": ["pos", "price", "other", "club", "low", "meta"], "player": ["auction", "futbin", "getprice", "loas", "uatoclub", "transfertoclub", "pickbest"], "sbc": ["top", "right", "quick", "duplicate", "records", "input", "icount", "template", "templatemode", "market", "sback", "cback", "dupfill", "autofill", "squadcmpl", "conceptbuy", "meetsreq", "headentrance"], "info": ["obj", "sbc", "sbcf", "sbcs", "pack", "squad", "skipanimation", "sbcagain", "packagain"] },
       "set": {},
       "lock": [],
-      "autobuy": { "controller": null, "infoViews": {}, "logView": {}, "log": [] },
       "douagain": { "sbc": 0, "pack": 0, "SBCList": [] },
       "formation": {
         "343": [0, 5, 5, 5, 12, 14, 14, 16, 23, 25, 27],
@@ -1660,541 +1640,9 @@
   // src/fsu/ui/fsu-styles.js
   var FSU_BASE_STYLE = ".tns-horizontal.tns-subpixel>.tns-item{position: relative;}button.notevents{pointer-events: none;color: #a4a9b4;}.btn-standard.section-header-btn.mini.call-to-action.fsu-getprice{margin-left: 1rem;}.btn-standard.section-header-btn.mini.call-to-action.fsu-getprice:hover{background-color:#e9dfcd}.view-modal-container.form-modal header .fsu-getprice{position: absolute;top: .5rem;left: 0;height: 2rem;line-height: 2rem;}.ut-sbc-set-tile-view.production-tagged .tileHeader::before{display:none;}a.header_explain{color: #a2a2a2;text-decoration: none;line-height: 3rem;}a.header_explain:hover{color: #ffffff;}.ut-fifa-header-view{display: flex;justify-content: space-between;}    .fsu-loading-close{display: none;position: absolute;bottom: 38%;z-index: 999;}.fsu-loading .fsu-loading-close{display: block;text-align: center;}                                                               .fsu-sbc-info div{width: 50%;}.fsu-sbc-info div:last-child{display: flex;justify-content: space-around;}.fsu-sbc-info .currency-coins::after{font-size:16px}                .rewards-footer li{position: relative;}.fsu-sbc-vplayer {position: absolute;bottom: .25rem;right:0;background-color: #8A6E2C;padding: .5rem;color: #15191d;line-height: 1rem;font-size: 16px;}.fsu-sbc-vplayer:hover{background-color: #f6b803;}                 @media screen and (min-width:1280px) and (max-width:1441px) {.ut-split-view {padding:0;}.ut-split-view>.ut-content {max-height:100%;}}                     li.with-icon.hide {display: none;}                      .fsu-input{border: 0 !important;background-color: rgba(0,0,0,0) !important;padding-left: 0 !important;font-family: UltimateTeamCondensed,sans-serif;font-size: 1em;color: #f8eede;}                  .fsu-quick{position:absolute;top:100%;width:100%;display:flex;align-items:center;font-family:UltimateTeam,sans-serif;justify-content:center;margin-top:.2rem}.fsu-quick.top .fsu-quick-list{display:flex;align-items:center}.fsu-quick-list .im{height:1.8rem;line-height:1.8rem;cursor:pointer;background-color:#2b3540;font-family:UltimateTeam,sans-serif;border-radius:4px;padding:0 .2rem;font-size:1rem;font-weight:900;color:#f2f2f2;overflow: hidden;}.fsu-quick-list .im:hover{background-color:#394754}.fsu-quick-list.other .im{background-color:#f8eede;color:#ef6405;font-weight:500;margin-left:.3rem;text-align:center;}.fsu-quick-list.other .im:hover{background-color:#f5efe6}.fsu-quick-list .im span{font-size:.8rem;font-weight:300;color:#a4a9b4}.fsu-quick-list.left .im{margin-right:.3rem}.fsu-quick-list.right .im{margin-left:.3rem}.fsu-quick-inr{font-size:.8rem;margin:0 .3rem}.fsu-quick.right{position:absolute;top:50%;width:2rem;display:block;right:0%;z-index:3;-webkit-transform:translateY(-50%) !important;transform:translateY(-50%) !important}.phone .fsu-quick.right{top:8rem;-webkit-transform:translateY(0%) !important;transform:translateY(0%) !important}.fsu-quick.right .fsu-quick-list .im{width:1.4rem;margin-bottom:.2rem;text-align:center}.fsu-quick.right .fsu-quick-list .im.disabled{background-color:#30302e;color:#656563}.entityContainer>.name.untradeable{color:#f6b803}                                  .phone .fsu-sbc-info{font-size:.875rem}.phone .fsu-task{display:block;font-size:.875rem}.phone .fsu-price-box.right > div .value{font-size:1rem;margin-top:.2rem}.phone .fsu-price-box.right > div .title{font-size:.875rem}.phone .fsu-player-other > div{font-size:0.6rem}.phone .small.player .fsu-cards-price{font-size:.875rem}.phone .small.player .fsu-cards-price::after{font-size:.875rem}.phone .fsu-cards.fsu-cards-attr{font-size:.6rem}.phone .fsu-quick-list .im{font-size:.875rem}                                              .ut-pinned-item .listFUTItem.has-auction-data .fsu-player-other{margin-top:0 !important;top:.8rem;right:.2rem;position:absolute;z-index:2}        .fsu-sbcfilter-box{align-items:center;background-color:#394754;display:flex;justify-content:center;padding:1rem;z-index:10}.fsu-sbcfilter-option{align-items:center;box-sizing:border-box;display:flex;flex:1;max-width:300px}.fsu-sbcfilter-option .ut-drop-down-control{margin-left:1rem;flex:1}                                .fsu-setbox{display: grid;grid-template-columns: repeat(3, minmax(0, 1fr));}.phone .fsu-setbox{display: grid;grid-template-columns: repeat(1, minmax(0, 1fr));}                                  .btn-standard.mini.fsu-reward-but{height:2rem;line-height:2rem;position:absolute;top:.2rem;left:50%;transform:translateX(-50%)}.btn-standard.mini.fsu-reward-but.pcr{bottom:1.9rem;top:auto}           .btn-standard.mini.fsu-pickspc{line-height:2rem;height:2rem;margin:.5rem auto 0 auto}.ut-image-button-control.back-btn.fsu-picksback{height:100%;width:3rem;position:absolute;left:0;font-size:1.6rem}                       .fsu-fcount{position:absolute;right:0.5rem;height:1.4rem;top:.8rem;line-height:1.5rem;padding:0 .4rem;border-radius:.2rem;z-index:1;background-color: #264A35;}        .phone .fsu-store-tile .ut-tile-content-graphic-info .description{display:block;}        .fsu-range button{margin:0}                                                               .fsu-price-box{font-family:UltimateTeamCondensed,sans-serif}.fsu-price-box.right{position:absolute;right:1rem;top:50%;-webkit-transform:translateY(-50%);transform:translateY(-50%);display:flex;align-items:center}.fsu-price-box.right>div{background-color:#3B4754;color: #ffffff;padding:0.5rem;text-align:center;border-radius:4px;margin-top:0;display:block}.fsu-price-box.right>div .title{color:#a4a9b4;padding:0;font-size:1rem;line-height:1rem}.fsu-price-box.right>div .title span.plus{color:#36b84b;font-weight:500;padding-left:.2rem}.fsu-price-box.right>div .title span.minus{color:#d21433;font-weight:500;padding-left:.2rem}.fsu-price-val .currency-coins::after{font-size:1rem;margin-top:-3px}.fsu-price-box.bottom{padding-left:6.3rem;margin:.2rem 0rem}.fsu-price-box.bottom>div{display:flex;align-items:center;font-size:0.9375rem}.fsu-price-box.bottom>div .title{color:#a4a9b4;margin-right:.2rem}.fsu-price-box.bottom .fsu-price-val .currency-coins::after{font-size:inherit}.fsu-price-box.trf{position:absolute;left:54%;margin-top:.2rem}.fsu-price-box.trf .fsu-price-val{display:flex;align-items:center;background-color:#3B4754;color: #ffffff;text-align:center;border-radius:4px;padding:0 .3rem;height:20px}.fsu-price-box.trf .fsu-price-val .title{font-size:.875rem;margin-right:.2rem}.fsu-price-box.trf .fsu-price-val .currency-coins::after{margin-top:-2px}.fsu-price-box.top{position:absolute;right:0%;top:8%;display:flex;align-items:center}.fsu-price-box.top>div{display:flex;align-items:center;background-color:#3B4754;color: #ffffff;padding:.1rem 0.5rem;text-align:center;border-radius:4px}.fsu-price-box.top>div .title{font-size:0.875rem;margin-right:0.5rem}.fsu-price-last{margin-right:.5rem}.fsu-player-other{display:flex;margin-top:.2rem;font-family:UltimateTeamCondensed,sans-serif;font-size:.8rem;line-height:1rem}.fsu-price-box.top+.fsu-player-other{margin-top:.4rem}                                                                    .fsu-cards-lea-small,.fsu-cards-accele-large,.fsu-cards-meta,.fsu-cards-price{position:absolute;z-index:2;font-family:UltimateTeamCondensed,sans-serif;font-weight:300;text-align:center;width:1.6rem;top:25%}.fsu-cards-lea-small{bottom:8%;height:16%;font-size:70%;width:100%;top:auto;font-weight:500;line-height:1}.fsu-cards-lea-small~.playStyle,.ut-squad-pitch-view:not(.sbc) .fsu-cards-lea-small{display:none !important}.specials .fsu-cards-lea-small{bottom:10%}.fsu-cards-accele-large,.fsu-cards-meta,.fsu-cards-price{width:auto !important;padding:0 0.2rem;left:50%;-webkit-transform:translateX(-50%) !important;transform:translateX(-50%) !important;white-space:nowrap;background-color:#13151d;border:1px solid;border-radius:5px}.fsu-cards-accele-large,.fsu-cards-meta{bottom:0;top:auto !important}.fsu-cards-price{color:#fff;top:0 !important}.ut-squad-pitch-view:not(.sbc) .fsu-cards-lea-small~.playStyle{display:block !important}            .fsu-cards-attr,.fsu-cards-pos{position:absolute;z-index:2;font-family:UltimateTeamCondensed,sans-serif;font-weight:300;text-align:center;top:25%;display:flex;flex-direction:column;gap:2px;transform: scale(0.9);}                .large.player~.fsu-cards-attr,.large.player .fsu-cards-attr,.ut-tactics-instruction-menu-view  .fsu-cards-attr{left:calc(50% + 61px);font-size:14px;gap:4px;transform: scale(1);}           .large.player~.fsu-cards-attr > div,.large.player .fsu-cards-attr > div,.large.player~.fsu-cards-pos > div,.large.player .fsu-cards-pos > div{width:28px;height:16px;line-height:17px}       .small.player~.fsu-cards-attr{left:70px;font-size:12px;top:50%;transform:translateY(-50%) scale(0.9);}.small.player~.fsu-cards-attr > .fsu-bodytype{font-size:11px}                         .reward.small .small.player~.fsu-cards-attr{left:calc(50% + 42px);top:20%}.reward.small .small.player~.fsu-cards-pos{left:calc(50% - 66px);top:20%;font-size:12px}             .ut-squad-slot-view .small.player~.fsu-cards-attr{left:auto;right:-4px}              .large.player~.fsu-cards-pos,.large.player .fsu-cards-pos,.ut-tactics-instruction-menu-view  .fsu-cards-pos{left:calc(50% - 90px);font-size:14px;gap:4px;transform: scale(1);}                  .ut-squad-slot-view .small.player~.fsu-cards-pos{flex-direction:row;font-size:12px;top:auto;bottom:-1.6rem;left:50%;transform:translate(-50%,0)}                   .ut-squad-slot-dock-view .ut-squad-slot-view .small.player~.fsu-cards-pos{bottom:-.6rem}.ut-store-xray-pack-details-view .large.player~.fsu-cards-attr{left:calc(50% + 42px)}.large.player .fsu-cards-attr{right:0;left:auto;}.large.player .fsu-cards-pos{right:auto;left:0;}       .fsu-akb .ut-toggle-cell-view>.ut-toggle-control .ut-toggle-control--grip,.fsu-akb-title .ut-toggle-cell-view>.ut-toggle-control .ut-toggle-control--grip{font-family:UltimateTeam-Icons,sans-serif;font-style:normal;font-variant:normal;font-weight:400;text-transform:none;flex-shrink:0;font-size:1em;text-decoration:none;text-align:center;line-height:1.5rem;transition:color .3s,bottom .3s,top .3s}.fsu-akb .ut-toggle-cell-view>.ut-toggle-control .ut-toggle-control--grip::before,.fsu-akb-title .ut-toggle-cell-view>.ut-toggle-control .ut-toggle-control--grip::before{content:'\\\\E051';color:#3a4755}.fsu-akb .ut-toggle-cell-view>.ut-toggle-control.toggled:not(.disabled) .ut-toggle-control--grip::before,.fsu-akb-title .ut-toggle-cell-view>.ut-toggle-control.toggled:not(.disabled) .ut-toggle-control--grip::before{content:'\\\\E02F';color:#36b94b}.fsu-akb .ut-toggle-cell-view>.ut-toggle-control.toggled:not(.disabled) .ut-toggle-control--track,.fsu-akb-title .ut-toggle-cell-view>.ut-toggle-control.toggled:not(.disabled) .ut-toggle-control--track{background-color:#36b94b}.fsu-akb .ut-toggle-cell-view>.ut-toggle-cell-view--label{display:none}.fsu-akb .ut-toggle-cell-view{position:absolute;z-index:10;transform:scale(0.7);padding:0 1rem 1rem 0;cursor:pointer}.fsu-akb-title{align-items:center;background-color:#2b3540;display:flex;justify-content:space-between;padding:.75rem .5rem;border-top:solid 1px #556c95}.fsu-akb-left{display:flex;align-items:center}.fsu-akb-title .ut-toggle-cell-view>.ut-toggle-control .ut-toggle-control--grip{transition:color .3s,left .3s,right .3s}.fsu-akb-left>div{padding:0 .675rem 0 0}.fsu-akb-left>div:last-child{padding-right:0}                  body.landscape.futweb{min-height: 38rem;}                                                         html[dir=ltr] .listFUTItem .entityContainer>.name.fsulocked.locked,html[dir=ltr] .listFUTItem .entityContainer>.name.fsulocked.untradeable{padding-right:2.7em}html[dir=ltr] .listFUTItem .entityContainer>.name.fsulocked.locked::before,html[dir=ltr] .listFUTItem .entityContainer>.name.fsulocked.untradeable::before{right:1.4em}                                    .filter-btn.fsu-eligibilitysearch{height:1.8rem;width:1.8rem;position:absolute;right:0}.ut-image-button-control.filter-btn.fsu-eligibilitysearch::after{font-size:1rem;content:'\\\\E09D'}                  .item.player>.fsu-cards-rating{position:absolute;left:50%;top:50%;font-size:5rem;transform:translate(-50%,-50%)}.large.item.player>.fsu-cards-rating{font-size:7rem}.item.player.ut-item-loading>.fsu-cards-rating{opacity:1}.item.player.ut-item-loaded>.fsu-cards-rating{opacity:0}                        .fsu-chemistryfilter{position:absolute;right:.5rem;top:.5rem;}                          .ut-list-active-tag-view .label-container.fsu-inclubtag{background-color:#0b96ff}.ut-list-active-tag-view .label-container.fsu-inclubtag::after{border-color:#0b96ff}                                           .fsu-optionbest{position:relative}.fsu-optionbest > span,.fsu-optionbest > .player-pick-option,.fsu-optionbest > .fsu-pickspc{position:relative;z-index:1}.fsu-optionbest >.no-favorites-tile{position:absolute;max-width:100%;height:120%;width:100%;margin:-15% 0 0 0;z-index:0;top:0px;right:0px;padding:0;background-image: url(https://www.ea.com/ea-sports-fc/ultimate-team/web-app/content/25E4CDAE-799B-45BE-B257-667FDCDE8044/2025/fut/dynamicObjectives/groups/f4c231d9-a38c-44a4-a932-87af2136cca5/group_background.png);}.fsu-optionbest > .no-favorites-tile::before{font-size:2.2rem;height:2.2rem;width:2.2rem;line-height:2.2rem;}.fsu-optionbest > .player-pick-option.selected ~ .no-favorites-tile::before{display:none}                      .fsu-navsbc{height:80%;justify-content:flex-end;margin-right:1rem;flex: 0 0 auto;}.fsu-navsbc button{margin:-0.25rem;width:60px;}.phone .fsu-navsbc{margin-right:.25rem}.phone .fsu-navsbc button{margin:-.1rem}    .fsu-shownavsbc .ut-navigation-button-control{width:3rem}.fsu-shownavsbc .title{flex:1 0;position:relative !important;width:auto !important;text-align:left !important;padding:0 0 0 0.5rem !important}.fsu-shownavsbc .fsu-navsbc{height:3rem}.fsu-shownavsbc .ut-iteminfochange-button-control{display:none}.fsu-shownavsbc .fsu-navsbc button{width:2.6rem}        .phone .fsu-optionbest > .no-favorites-tile{height:108%;margin:-4% 0 0 0;border-radius:10px}.phone .fsu-optionbest > .no-favorites-tile::before{font-size:1rem;height:1rem;width:1rem;line-height:1rem;margin:.25rem}                .fsu-cards-attr div.fsu-academytips{display:flex;align-content:center;justify-content:center;background:linear-gradient(to bottom,#00A7CC 0,#007D99 100%);color:#0f1010;box-shadow:0 1px 1px 0 rgba(0,0,0,.5);border:none}.fsu-academytips-icon{height:0;width:10px;margin-left:-2px;}                              .fsu-academytips-icon::before,.ut-store-pack-details-view--description.fsu-packprice:before,.fsu-cards-price.fsu-unassigned:before{font-family:UltimateTeam-Icons,sans-serif;font-style:normal;font-variant:normal;font-weight:400;text-decoration:none;text-transform:none}.fsu-academytips-icon::before{content:'\\\\E001'}.ut-store-pack-details-view--description.fsu-packprice:before{color:#f7b702;display:inline-block;content:'\\\\E096';margin-right:.25rem}.fsu-cards-price.fsu-unassigned:before{content:'\\\\E0C4';display:inline-block;margin-right:.3em;vertical-align:middle;color:#f7b702}                                      .fsu-cards-meta{padding:0;display:flex;font-family:UltimateTeam,sans-serif;font-size:.8rem;height:1rem;align-items:center;z-index:5;cursor:pointer;}.fsu-cards-meta > div{margin-right:.2rem}.fsu-cards-meta > div:first-child{border-radius:4px 0 0 4px;height:1rem;width:1.6rem;font-weight:900;}                                button.currency.call-to-action.fsu-challengefastbtn{height:2.6rem;line-height:1.4rem;padding:0px 1rem;font-size:1rem}button.currency.call-to-action.fsu-challengefastbtn > span{display: block !important;}button.currency.call-to-action.fsu-challengefastbtn .subtext{font-size:80%;line-height:1rem;color:#a6a6a6;}.ut-sbc-challenge-table-row-view .fsu-challengefastbtn{width:70%}@media (min-width:768px){.ut-sbc-challenge-table-row-view .fsu-challengefastbtn{width:60%}}.ut-sbc-challenge-table-row-view.selected button.currency.call-to-action.fsu-challengefastbtn{background-color:#222426;color:#fcfcf7}.ut-sbc-challenge-table-row-view.selected button.currency.call-to-action.fsu-challengefastbtn.hover{background-color:#575753}.ut-sbc-challenge-table-row-view button.currency.call-to-action.fsu-challengefastbtn.disabled{background-color:#575753;color:#30312f}                                     .fsu-navsbccount{padding:.2em 0;margin-right:.5rem;align-items:center;display:flex;justify-content:flex-end}.fsu-navsbccount::after{background-position:right top;content:'';background-repeat:no-repeat;background-size:100%;display:inline-block;height:1em;vertical-align:middle;width:1em;background-image:url(https://www.ea.com/ea-sports-fc/ultimate-team/web-app/images/sbc/logo_SBC_home_tile.png);margin-top:-.15em;margin-left:.3em}                                .ut-image-button-control.filter-btn.fsu-transfer::after{content:'\\\\E0E5';font-size:1.6rem}.ut-image-button-control.filter-btn.fsu-club::after{content:'\\\\E052';font-size:1.6rem}.ut-image-button-control.filter-btn.fsu-swap::after{content:'\\\\E0E4';font-size:1.4rem}.ut-image-button-control.filter-btn.fsu-refresh::after{content:'\\\\E0C4';font-size:1.4rem}.ut-image-button-control.filter-btn.fsu-storage::after{content:'\\\\E0C9';font-size:1.4rem}.filter-btn.fsu-swap,.filter-btn.fsu-transfer,.filter-btn.fsu-club,.filter-btn.fsu-storage,.filter-btn.fsu-refresh{margin-left:1rem;width:3rem;height:3rem}                                            .ut-club-hub-view .tile.fsu-storage .tileContent:before { content:'\\\\E0C9'; }                          .ut-list-active-tag-view .label-container.fsu-instoragetag,.listFUTItem.hover .ut-list-active-tag-view .label-container.fsu-instoragetag{background-color:#f19be6}.ut-list-active-tag-view .label-container.fsu-instoragetag::after,.listFUTItem.hover .ut-list-active-tag-view .label-container.fsu-instoragetag::after{border-top-color:#f19be6}                                                                                                                                      .ut-player-picks-view .carousel-indicator-dots.fsu-pickbest li{width:16px;height:16px;text-align:center;overflow:hidden}.ut-player-picks-view .carousel-indicator-dots.fsu-pickbest li.active{transform:scale(1.4)}.ut-player-picks-view .carousel-indicator-dots.fsu-pickbest li.best::after{content:'\\\\E0D4';font-family:UltimateTeam-Icons,sans-serif;font-style:normal;font-variant:normal;font-weight:400;text-decoration:none;text-transform:none;color:#07f468;font-size:1rem;line-height:1.1rem}.ut-player-picks-view .carousel-indicator-dots.fsu-pickbest li.best.active::after{color:#fd4821}                                     .ut-button-group button.more.fsu-open::after{-webkit-transform:rotate(0deg) !important;transform:rotate(0deg) !important}                                                                .fsu-sbcNeedsBody,.fsu-realProdBody{height:30vh;overflow-y:auto}.fsu-sbcNeedsTitle,.fsu-sbcNeedsBodyItem,.fsu-realProdTitle,.fsu-realProdBodyItem{display:flex}.fsu-sbcNeedsTitle,.fsu-realProdTitle{padding:.5rem 1rem;background-color:#30312f;font-size:1rem}.fsu-sbcNeedsBodyItem,.fsu-realProdBodyItem{padding:.75rem 1rem;align-items:center;background-color:#18191b;font-size:1em}.fsu-sbcNeedsBodyItem:nth-of-type(even),.fsu-realProdBodyItem:nth-of-type(even){background-color:#212224}.fsu-sbcNeedsTitle div,.fsu-sbcNeedsBodyItem div{width:18%}.fsu-realProdTitle div,.fsu-realProdBodyItem div{width:20%}.fsu-sbcNeedsTitle div:last-child,.fsu-sbcNeedsBodyItem div:last-child{width:28%;text-align:right}.fsu-realProdTitle div:first-child,.fsu-realProdBodyItem div:first-child{width:40%}                                    .fsu-price-reward::after{font-family:UltimateTeam-Icons,sans-serif;content:'\\\\E0C9';font-size:94%;color:#fae8e6}.small.player .fsu-price-box{font-size:90%}.large.player .fsu-price-box{font-size:1rem}.small.player .fsu-price-box,.large.player .fsu-price-box{display:flex;justify-content:center;align-items:center}.fsu-price-box.old{background-color:#0f1417;color:#a4a9b4;border:0}.fsu-price-val[data-value='0'][data-type='1']{display:none !important}.fsu-cards-price::after{margin-left:.2em !important;margin-top:0}.large.player .fsu-cards-price.currency-coins::after{margin-top:-.15em}.fsu-price-box.right>div .value{font-size:1.2rem;margin-top:.5rem;line-height:1.2rem;display:flex;justify-content:center;align-items:center}.fsu-price-val .fsu-price-reward::after{margin-left:.3em;font-size:80%;margin-top:-.15em}                              .fsu-cards-foot{position:relative}.fsu-cards-foot::after{content:'';height:3px;width:3px;background-color:var(--fsu-cards-foot-color);display:block;position:absolute;bottom:0px;border-radius:2px}.fsu-cards-foot.l::after{left:0px}.fsu-cards-foot.r::after{right:0px}                    .fsu-cards-attr div,.fsu-cards-pos div{border:1px solid;border-color:inherit;line-height:100%;border-radius:5px;color:var(--fsu-cards-color);background:var(--fsu-cards-background);width:22px;white-space:nowrap;height: 13px;line-height: 15px;}                        .fsu-lockbtn{padding:0 8px !important;min-height:30px !important;position:absolute;right:64px;bottom:0;font-size:0.75rem !important;z-index:2;display:flex;align-items:center}.fsu-lockbtn.lock::before{content:'\\\\E09C'}.fsu-lockbtn.unlock::before{content:'\\\\E09C'}.fsu-lockbtn::before{font-family:UltimateTeam-Icons,sans-serif;padding-right:.2rem;content:'';display:block}.fsu-lockbtn.unlock{background-color:#fcfcf7;color:#151616}.fsu-lockbtn.unlock::after{content:'';display:block;position:absolute;left:18px;top:10px;width:2px;height:16px;background:#ff4c4c;transform:rotate(45deg);transform-origin:top center}.ut-club-hub-view .tile.fsu-lock .tileContent:before { content:'\\\\E09C'; }html[dir=ltr] .listFUTItem .entityContainer>.name.fsulocked::after{font-family:UltimateTeam-Icons,sans-serif;color:#d31332;margin-top:2px;position:absolute;width:1.1em;content:'\\\\E09C';right:0}html[dir=ltr] .listFUTItem .entityContainer>.name.fsulocked{padding-right:1.4em}html[dir=ltr] :not(.phone) .listFUTItem .entityContainer>.name.fsulocked.untradeable { max-width: 42%; }.fsu-cardlock{position:absolute;height:.9rem;width:.9rem;right:0;bottom:5%;z-index:2;background-color:#222426;border:1px solid #333d47;border-radius:100%;text-align:center;box-shadow:0 1px 3px #000;font-size:10.8px}.fsu-cardlock::before{font-family:UltimateTeam-Icons,sans-serif;content:'\\\\E09C';display:inline-block;vertical-align:middle;background-size:100% auto;color:#d31332;background-repeat:no-repeat}                                  .listfilter-btn{padding:0;width:100%;height:1.6rem;line-height:1.8rem;border-radius:.4rem;font-size:.9rem;min-height:1.6rem}                                      .ut-squad-building-set-status-label-view.refresh.sbccount{display:flex;align-items:center;gap:4px;opacity:0.5}.ut-squad-building-set-status-label-view.refresh.sbccount::before{content:'\\\\E0C2';color:#36b84b;font-size:14px;line-height:17px}                                                           .fsu-trypack-box{position:absolute;right:0}.landscape button.currency.fsu-trypack{padding:.25rem .5rem;width:auto;color:#f2f2f2;background:#556c95;border-radius:.6rem;align-items:center;display:flex;font-family:UltimateTeam-Icons,sans-serif;min-height:36px}.landscape button.currency.fsu-trypack .text{font-size:1rem;font-weight:600}.landscape button.currency.fsu-trypack::after{content:'\\\\E0A2';font-size:110%;padding-left:.2rem}.landscape button.currency.fsu-trypack.hover{background:#9e9e99}.phone .fsu-trypack-box{position:relative;}                                .fsu-player-other>div{background:#3B4754;color:#a4a9b4;padding:0.1rem 0.3rem;text-align:center;border-radius:20px;font-size:inherit;line-height:1.5;margin-right:0.5rem;height:1rem;white-space:nowrap}.fsu-player-other>div.swap{background:#36b84b;color:#201e20}.fsu-player-other>div.not{background:#8A6E2C;color:#201e20}.fsu-player-other>div.storage{background:#f6b803;color:#201e20}.fsu-player-other>div.yes{background:#264A35;color:#201e20}.large.player+.fsu-player-other{justify-content:center}.large.player+.fsu-player-other>div{margin-right:0rem}.fsu-player-other .currency-coins::after{font-size:.875rem;margin-top:-3px;margin-left:2px !important}@media (max-width:1130px){.has-auction-data .fsu-player-other{margin-top:5rem !important}.has-auction-data .fsu-price-box.trf{margin-top:5rem !important;left:auto;right:3%}}                                                                                     /*商店数量标识*/.ut-store-hub-view .storehub-tile.packs-tile.highlight[data-num]::after{content:attr(data-num);top:22px;padding:2px 6px;border-radius:4px;line-height:1.2rem;font-size:1.2rem;color:#0c0d0d;height:16px;width:auto}@media (min-width:768px){.ut-store-hub-view .storehub-tile.packs-tile.highlight[data-num]::after{height:20px;font-size:1.4rem;line-height:1.4rem;top:26px;padding:2px 8px}}                         /*旧卡样式去除边框*/.fsu-cards.old div{border:none}                                 /*阵容价值部分*/.fsu-squad-pValue{font-family:UltimateTeamCondensed,sans-serif;font-weight:400;font-size:.875rem;text-overflow:ellipsis;white-space:nowrap}.fsu-squad-pValue.currency-coins::after{font-size:.875rem;margin-left:.2em !important;margin-top:-.2em !important}.fsu-squad-pTitle .plus{color:#36b84b;padding-left:.1rem}.fsu-squad-pTitle .minus{color:#d21433;padding-left:.1rem}                                    /*弹窗球员列表显示优化*/.fsu-popupItemList{display:flex;flex-direction:column;gap:12px}.fsu-popupItemList > .listFUTItem{margin:0 !important}                                           /*改变为公共新标识*/.fsu-newtips{background-color: #ee2208;z-index:2;position:absolute;left:0;top:20px;transform:rotate(-45deg);transform-origin:0 100%;height:36px;line-height:42px;width:80px;text-align:center;font-weight:bold}            /*调整配色*/.fsu-task{display: flex;justify-content: space-between;padding: 0.5rem;background-color: #ee2208;}.fsu-task.no{background-color: #b1570c;}.task-expire{background-color: #b1570c;height: 2rem;line-height: 2rem;text-align: center;}.fsu-sbc-info{padding: 0.5rem;background-color: #2f4a5b;display: flex;font-family: UltimateTeamCondensed,sans-serif;justify-content: space-between;font-size: 1rem;}                        /*导航栏计数标识*/.fsu-tab-count{font-size:14px;align-self:center;padding:4px 6px;background-color: #575753;color:#a6a6a1;line-height:1;border-radius:4px;margin-left:6px}.selected > .fsu-tab-count{background-color: #ee2208;color:#fcfcfc}.selected > .fsu-tab-count.expire{background-color: #aa540c}.phone .fsu-tab-count{padding:2px 3px;font-size:12px;border-radius:3px}                           /*挑选包预览*/.fsu-popupItemList .listFUTItem .entityContainer>.name{padding-top:10px;padding-bottom:0px}html[dir=ltr] .fsu-popupItemList .listFUTItem .entityContainer .item{margin-right:14px}.fsu-popupItemOther{font-size:26px;display:flex;color:#ffffff;width:100%;justify-content:space-between;align-items:center;padding:8px;background-color:#2f4a5b;box-sizing:border-box;gap:12px}.fsu-popupItemOther .btn-standard{width:auto;flex:0;min-width:120px;margin-bottom:0}.fsu-popupItemTrait{display:flex;gap:8px}.phone .fsu-popupItemOther{flex-direction:column}.phone .fsu-popupItemOther .btn-standard{width:100%}.fsu-traitIcon.fut_icon.icon{color:#ffc91f}.fsu-traitIcon.fut_icon.icon_basetrait16{position:relative}.fsu-traitIcon.fut_icon.icon_basetrait16:before{content:'\\\\E074';z-index:1;position:relative;top:2px;background:#2f4a5b;clip-path:inset(5px 5px 10px 5px)}.fsu-traitIcon.fut_icon.icon_basetrait16::after{content:'\\\\E031';position:absolute;left:0;z-index:0}.fsu-popupItemList .listFUTItem .rowContent{border-radius:10px}                              /*卡片状态标识配色*/.fsu-cards-buyerror,.fsu-cards-storage,.fsu-cards-unassigned{left:auto !important;right:1% !important;background-color:#5b167d !important;border-color:#7c319e !important;color:#fae8e6 !important}.fsu-cards-buyerror{background-color:#d31332 !important;border-color:#d6675d !important;color:#fae8e6 !important}.fsu-cards-unassigned{background-color:#d19a01 !important;border-color:#DEBA43 !important;color:#FCFBF0 !important}                                             /*未分配快速任务标签*/.fsu-unassigned-fastsbcbox{display:flex;padding:6px 16px;gap:12px;overflow-x:auto}.fsu-unassigned-fastsbcbox .btn-standard{overflow:visible;position:relative;padding:3px 6px;border-radius:6px}.fsu-unassigned-fastsbcinfo{display:flex;align-items:flex-start;justify-content:center;flex-direction:column;max-width:10rem;overflow:hidden}.fsu-unassigned-fastsbcdot{position:absolute;top:-6px;right:-6px;background:#0ff;height:14px;width:14px;line-height:14px}.fsu-unassigned-fastsbctext{line-height:20px;max-width:10rem;font-size:14px;text-overflow:ellipsis;overflow:hidden;white-space:nowrap}.fsu-unassigned-fastsbctsub{line-height:12px;max-width:10rem;font-size:12px;color:rgb(166,166,166)}.fsu-unassigned-fastsbctsub span{margin:0px 2px}                                                                   /*可开球员tile和特殊品质tile*/.fsu-showPlayerstile header p{padding-top:4px;color:#a6a6a1}.fsu-showPlayerstile .img-box{text-align:center;height:160px}.fsu-showPlayerstile .img-box img{height:auto;width:80%}.fsu-showPlayerstile.fsu-specialTile .img-box img{height:80%;width:auto}.fsu-showPlayerstile.fsu-specialTile .img-box img:first-child{height:70%}.fsu-showPlayerstile.fsu-specialTile .img-box img:last-child{height:70%}.fsu-showPlayerstile .ut-label-view{margin-top:-32px}                               /*包内球员*/.fsu-showPlayers{}.fsu-showPlayersList{grid-template-columns:repeat(auto-fill,300px);display:grid;justify-content:center;gap:30px;padding:48px}.fsu-showPlayersItem{background-color:#2d2c36;border-radius:16px;color:#fcfcfc;padding:16px 16px 48px 16px;overflow:clip;position:relative}.phone .fsu-showPlayersList{padding:8px;gap:8px;grid-template-columns:1fr 1fr}.phone .fsu-showPlayersItem{zoom:0.6}.fsu-showPlayersTrais{display:flex;gap:8px;justify-content:center;font-size:24px;margin:8px 0;padding:8px 0;opacity:0.6;flex-wrap: wrap;}.fsu-showPlayersCard{display:grid;justify-content:center}.fsu-showPlayersBtn{width:100%;margin:0 -16px;border-radius:0;border:none;line-height:32px;position:absolute;bottom:0}.fsu-showPlayersLabel{position:absolute;left:0;top:0;line-height:32px;font-size:14px;color:#0f0f0f;background-color:#0b96ff;padding:0 20px;border-radius:0 0 16px 0}                               /*移除部分界面name的内间距*/.fsu-removeNamePadding ~ div.name{padding-top:14px !important;padding-bottom:0px !important}                                            /*卡组展示*/.fsu-showPlayersItem.fsu-showRarity{display:flex;flex-direction:column;font-size:14px;line-height:14px}.fsu-showRarityCard{display:grid;text-align:center;position:relative;margin-top:-16px}.fsu-showRarityCard img{height:200px;margin:auto}.fsu-showRarityCount{position:absolute;top:138px;width:100%;line-height:32px;font-size:32px;font-family:UltimateTeamCondensed,sans-serif;font-weight:bold}.fsu-showRarityBtns{display:flex;position:absolute;bottom:0;width:100%;margin:0 -16px;gap:1px;background-color:rgba(222,222,216,.25)}.fsu-showRarityBtns > button{flex:1;border:0;border-radius:0;line-height:32px}.fsu-showRarityBtns > button.btn-standard.disabled{background-color:#6a6a65}.fsu-showRarityTips{padding:0 16px;background-color:#0b96ff;color:#0f0f0f;height:32px;line-height:32px;position:absolute;top:0;left:0;border-bottom-right-radius:19px}.fsu-showRarityInfo{padding:16px 0;display:flex;flex-direction:column;gap:4px;font-size:12px;line-height:12px}.fsu-showRarityAttrs,.fsu-showRarityExpiry{display:flex;align-items:center;gap:8px;justify-content:center;flex-wrap:wrap}.fsu-showRarityExpiry{gap:6px}.fsu-showRarityExpiry i{color:#f7b702}.fsu-showRarityAttrs div{padding:4px 8px;background-color:rgba(7,244,104,.4);border-radius:20px}                          /*新SBC右侧快捷列表*/.fsu-substitutionBox{margin:0 16px;padding:12px;display:flex;flex-direction:column;gap:6px}.fsu-substitutionTitle{font-size:12px;line-height:14px}.fsu-substitutionBtns{background:#6a696d;display:flex;justify-content:space-around;font-size:14px;line-height:14px;gap:1px;border-radius:12px;overflow:clip;align-items:center}.fsu-substitutionBtns > button{flex:1;text-align:center;padding:12px 0;background:#504f52;font-size:inherit;line-height:inherit;border-radius:0;border:0;min-height:auto;}.fsu-substitutionTitle:not(:first-of-type) {margin-top: 12px;}                                                    /*新排序筛选*/.fsu-SortFilterBox{display:flex;gap:8px;margin:0px 16px 8px 16px}.fsu-SortFilterItem{flex:1;min-width:0}.fsu-SortFilterTitle{font-size:12px;line-height:14px;margin-bottom:4px;color:#a6a6a1}.fsu-SortFilterBtn{border:none;border-radius:8px;width:100%;min-height:auto;font-size:14px;background:#504f52;padding:8px 0px;white-space:nowrap;line-height:14px;overflow:hidden}.fsu-SortFilterBtn.priority{background: #786735;}                                   /*新阵容价值*/.fsu-SquadValue{position:absolute;right:20px;top:20px;font-family:UltimateTeamCondensed,sans-serif;font-weight:400}.fsu-SquadValueItem{background:#4e4f4dcc;font-size:17px;line-height:18px;padding:8px 10px 6px 10px;border-radius:4px;display:flex;align-items:center;gap:8px;color:#fcfcfc;justify-content:space-between;margin-bottom:10px}.fsu-SquadValueTitle{font-size:14px}.fsu-SquadValuePrice{}.phone .fsu-SquadValue{right:auto;left:14px;top:auto;bottom:62px;text-shadow:2px 2px 3px rgba(0,0,0,.5)}.phone .fsu-SquadValueItem{font-size:15px;line-height:16px;padding:0px;margin-bottom:0px;background:none;margin-top:8px}.phone .fsu-SquadValueTitle{font-size:13px}                               /*新价格显示框*/.fsu-PriceBar{position:absolute;transform:translateX(-50%) scale(0.9) !important;left:50%;z-index:2;font-family:UltimateTeamCondensed,sans-serif;display:flex;gap:8px}.fsu-PriceBarItem{display:flex;align-items:stretch;justify-content:center;background-color:#13151d;border:1px solid #3f444b;font-size:15px;border-radius:4px;overflow:hidden;height:17px;box-shadow:0px 1px 3px rgb(63 68 75 / 40%)}.fsu-PriceBarItem .fsu-PriceValue{display:flex;align-items:center;padding:3px 4px 0px 4px;color:#f7b702}.fsu-PriceBarItem .fsu-PriceType{display:flex;align-items:center;padding:2px 3px 0 1.6px;background-color:#2b3036;color:#a0a0a0;font-size:11px;font-weight:700;font-style:italic;letter-spacing:.4px;text-transform:uppercase}.large.player .fsu-PriceBar{transform:translateX(-50%) scale(1.2) !important;top:4px}.fsu-PriceRightBox{position:absolute;right:16px;z-index:2;transform:translateY(-50%) !important;top:50%;display:flex;gap:16px;font-family:UltimateTeamCondensed,sans-serif}.fsu-PriceRightItem{background-color:#3b4754;border-radius:8px;padding:8px 6px;color:#a4a9b4;display:flex;flex-direction:column;gap:8px;align-items:center}.fsu-PriceRightBox.top{top:16px}.fsu-PriceRightBox.top .fsu-PriceRightItem{flex-direction:row;padding:4px 6px 2px}.fsu-PriceRightBoxTitle{font-size:14px;text-align:center;line-height:14px}.fsu-PriceRightBoxBar{display:flex;justify-content:center;align-items:center}.fsu-PriceRightItem .fsu-PriceValue{font-size:22px;line-height:18px;color:#f7b702}.fsu-PriceRightItem .fsu-PriceType{text-transform:uppercase;font-size:14px;font-weight:500;padding:3px 4px 2.2px 1.6px;background-color:#2b3036;color:#a0a0a0;font-style:italic;margin-left:4px;border-radius:4px;margin-top:-3px}.fsu-PriceBarItem[data-show='0'],.fsu-PriceRightItem[data-show='0']{display:none !important}.fsu-PriceBarItem.tradable .fsu-PriceValue,.fsu-PriceRightItem.tradable .fsu-PriceValue{color:#fcfcfc}.fsu-PriceType[data-content='ut']{font-size:0}.fsu-PriceType[data-content='ut']::after{background-position:right top;content:'';background-repeat:no-repeat;background-size:100%;display:inline-block;height:12px;vertical-align:middle;width:12px;background-image:url(../web-app/images/coinIcon.png);margin-top:-2px;margin-right:-1px}.fsu-PriceBarItem.precious .fsu-PriceType{background-color:#fd7254}.fsu-PriceBarItem.precious{background:#ee2208;border-color:#fd7254}.fsu-PriceRightBoxBar .fsu-PriceType[data-content='ut']{height:16px;width:16px}.fsu-PriceRightBoxBar .fsu-PriceType[data-content='ut']::after{margin-top:0.5px;margin-right:0px;margin-left:2px;height:14px;width:14px}                                /*进化增加属性展示*/.fsu-academyAttribute{font-family:UltimateTeam-Icons,sans-serif;font-size:14px;line-height:16px;color:#80807a}.fsu-academyAttributeIncrease{padding-left:8px;padding-right:4px}.fsu-academyAttributeIncrease span{color:#07f468}.fsu-academyAttributeValue{font-weight:bold;font-size:16px}.fsu-academyAttributeValue.added{color:#0b96ff}.fsu-academyAttributeValue.addedMain{color:#fd4821}                                    /*进化属性显示*/.academieBtn{background:#2d2c36;border-radius:8px;padding:8px 12px 6px 12px;cursor:pointer;margin-bottom:8px;font-family:UltimateTeamCondensed,sans-serif;border:1px solid #2d2c36}.academieBtn.not{opacity:0.5}.academieBtn:hover{border-color:#1fc3c1}.academieBtnTitle{display:flex;align-items:center;justify-content:space-between;line-height:14px;margin-bottom:6px}.academieBtnName{color:#b5b9c3;font-size:14px}.academieBtnTime{font-size:12px;color:#9e9e9a}.academyBoostsBox{display:flex;gap:4px;font-size:12px;line-height:11px;text-transform:uppercase;flex-wrap:wrap;flex-direction:row}.academyBoostsItem{padding:4px 4px 1px 4px;border-radius:4px;font-weight:500;background:#3a4652;color:#d4d8de}.academyBoostsItem span{color:#07f468;font-size:16px;padding-left:2px;font-weight:100}.academyBoostsTips{flex:100%;padding-top:6px;color:#9e9e9a}.academyBtnTips{color:#fd7254;padding:8px 4px;font-size:14px;text-align:center}.academyViewBox{background:#191820;border-radius:8px;padding:8px 12px 6px 12px;margin-bottom:8px;font-family:UltimateTeamCondensed,sans-serif}.academyViewBox .academyBoostsBox{gap:8px;justify-content:center}.academyViewBox .academyBoostsTips{text-align:center}.academyViewBox.itemList{padding:24px 8px 8px;margin:-32px 16px 16px}.academyViewBox.itemList .academyBoostsBox{gap:4px}.academyViewBox.itemList .academyBoostsBox > *{zoom:0.8}                                    /*进化需求按钮*/.fsu-substitutionBtns>button.fsu-substitutionReqBtn{display:flex;align-items:center;justify-content:center;gap:4px;position:relative;height:36px}.fsu-substitutionReqBtn>img{height:24px;width:auto}.fsu-substitutionReqBtn>img.small{height:20px;width:20px}.fsu-substitutionReqBtn>div{position:absolute;right:0;bottom:0;padding:3px 4px 0px;background:rgb(253 114 84 / 70%);font-size:14px;line-height:12px;border-top-left-radius:4px}.fsu-substitutionReqBtn.state-meet>div{background:rgb(38 133 53 / 70%)} */                                                     /*CSS*/";
 
-  // src/fsu/infra/RatingPrices.js
-  function gamePlatformKey(platform) {
-    return platform === "pc" ? "pc" : "ps";
-  }
-  function parseLowpricePlatform(data, platform) {
-    const entries = data?.[gamePlatformKey(platform)];
-    if (!entries || typeof entries !== "object") {
-      return {};
-    }
-    const prices = {};
-    for (const [ratingKey, value] of Object.entries(entries)) {
-      const rating = Number.parseInt(ratingKey, 10);
-      if (!Number.isFinite(rating)) {
-        continue;
-      }
-      prices[rating] = Number.parseInt(value, 10) || 0;
-    }
-    return prices;
-  }
-  function applyLowpriceToInfo(info, data) {
-    info.base.price = parseLowpricePlatform(data, info.base.platform);
-  }
-  function resolvePriceByRating(info, rating) {
-    return Number.parseInt(info.base?.price?.[rating], 10) || 0;
-  }
-  function buildPriceByRating(info, ratings) {
-    const priceByRating = {};
-    for (const rating of ratings) {
-      priceByRating[rating] = resolvePriceByRating(info, rating);
-    }
-    return priceByRating;
-  }
-
-  // src/fsu/patches/app-init.js
-  function registerAppInitEvents(deps) {
-    const { events, info, fy: fy2, cntlr: cntlr2, isPhone: isPhone2, services: services2, repositories: repositories2, debug: debug2, SBCCount, set, build, lock, GM_getValue: GM_getValue2, GM_setValue: GM_setValue2, GM_xmlhttpRequest: GM_xmlhttpRequest2, GM_info: GM_info2 } = deps;
-    UTHomeHubView.prototype.getAcademyTile = function() {
-      if (info.evolutions.newCount > 0 && !this._academyTile.__root.querySelector(".fsu-task")) {
-        this._academyTile.__tileContent.before(
-          events.createDF(`<div class="fsu-task">${info.evolutions.html}</div>`)
-        );
-      }
-      return this._academyTile;
-    };
-    events.addLoadingElment = () => {
-      if (!info.base.close) {
-        info.base.close = events.createButton(
-          new UTButtonControl(),
-          fy2("loadingclose.text"),
-          async (e2) => {
-            events.hideLoader();
-          },
-          "fsu-loading-close"
-        );
-        document.querySelector(".ut-click-shield").append(info.base.close.__root);
-      }
-    };
-    events.wait = (min, max) => {
-      const delay = Math.floor(Math.random() * (max * 1e3 - min * 1e3 + 1)) + min * 1e3;
-      return new Promise((resolve) => setTimeout(resolve, delay));
-    };
-    events.changeLoadingText = (t, s2) => {
-      let text = fy2(t);
-      if (s2 && s2 !== "") {
-        text += `<br>${fy2(s2)}`;
-      }
-      events.addLoadingElment();
-      const closeEl = document.querySelector(".fsu-loading-close");
-      if (closeEl) {
-        closeEl.innerHTML = text;
-      }
-    };
-    events.enhanceStyleChange = () => {
-      GM_addStyle(`
-        .has-add-player .filter-btn.fsu-eligibilitysearch{right: 36px}
-        .ut-search-filter-control select option{color: #2d2c36}
-    `);
-    };
-  }
-  function installAppInitPatches(deps) {
-    const {
-      events,
-      info,
-      fy: fy2,
-      services: services2,
-      cntlr: cntlr2,
-      isPhone: isPhone2,
-      SBCCount,
-      set,
-      build,
-      lock,
-      futbinId: futbinId2,
-      debug: debug2,
-      GM_getValue: GM_getValue2,
-      GM_setValue: GM_setValue2,
-      GM_xmlhttpRequest: GM_xmlhttpRequest2,
-      GM_info: GM_info2
-    } = deps;
-    events.notice = function(text, type) {
-      services2.Notification.queue([fy2(text), type]);
-    };
-    events.init = async function() {
-      SBCCount.init();
-      set.init();
-      build.init();
-      lock.init();
-      futbinId2.init();
-      info.myPacksSort = GM_getValue2("packsSort", "desc");
-      let nav = cntlr2.current().parentViewController.navigationBar;
-      if (nav) {
-        if (nav instanceof UTCurrencyNavigationBarView && info.set.sbc_headentrance) {
-          if (!info.douagain.hasOwnProperty("SBCListHtml")) {
-            info.douagain.SBCListHtml = events.createElementWithConfig("div", {
-              classList: ["fsu-navsbc"],
-              style: {
-                display: "flex"
-              }
-            });
-          }
-          if (isPhone2()) {
-            nav.__root.classList.add("fsu-shownavsbc");
-            if (nav.rightContainer) {
-              nav.rightContainer.style.display = "none";
-            }
-          }
-          nav._fsuSBCList = info.douagain.SBCListHtml;
-          if (nav.__root.querySelector(".view-navbar-currency")) {
-            nav.__root.insertBefore(nav._fsuSBCList, nav.__currencies);
-          }
-        }
-        SBCCount.createElement(cntlr2.current().parentViewController.getView());
-      }
-      let history_a = JSON.parse(GM_getValue2("history", "[]")), history_b = [];
-      if (history_a && _.isArray(history_a)) {
-        let newSize = _.size(new UTSearchCriteriaDTO());
-        let filteredMembers = _.filter(history_a, (item) => _.isArray(item) && item.length === newSize);
-        history_b = _.concat(history_b, filteredMembers);
-      }
-      debug2.log(history_b);
-      info.market.mb = history_b;
-      info.market.ts = Date.now();
-      info.base.sId = services2.Authentication.utasSession.id;
-      info.base.year = APP_YEAR_SHORT;
-      MAX_NEW_ITEMS = 100;
-      const cutoff = Math.floor(info.market.ts / 1e3) - 168 * 3600;
-      info.ggr = JSON.parse(GM_getValue2("ggr", "{}"));
-      for (const [id, data] of Object.entries(info.ggr)) {
-        const time = parseInt(data.time, 10);
-        if (isNaN(time) || time < cutoff) {
-          delete info.ggr[id];
-        }
-      }
-      GM_setValue2("ggr", JSON.stringify(info.ggr));
-      GM_xmlhttpRequest2({
-        method: "GET",
-        url: "https://api.fut.to/26/updata.json",
-        timeout: 8e3,
-        headers: {
-          "Content-type": "application/json",
-          "Cache-Control": "no-cache",
-          "Pragma": "no-cache"
-        },
-        onload: function(res) {
-          let urlText = fy2("top.readme");
-          let urlLink = "https://mfrasi851i.feishu.cn/wiki/wikcng1Ih7fFRidBfMdNS9SrucR";
-          if (res.status == 404) {
-            events.notice("notice.upgradefailed", 2);
-          } else {
-            let data = JSON.parse(res.response);
-            let myVersion = Number(GM_info2.script.version) || 0;
-            if (data["version"] > myVersion) {
-              urlText = fy2("top.upgrade");
-              urlLink = data["updateURL"];
-              events.notice("notice.upgradeconfirm", 1);
-            }
-            if (_.size(data["api"])) {
-              info.api = data["api"];
-              if (_.has(info.api, "meta")) {
-                GM_xmlhttpRequest2({
-                  method: "GET",
-                  url: `https://api.fut.to/26/meta.json?${info.api.meta}`,
-                  headers: {
-                    "Content-type": "application/json",
-                    "Cache-Control": "max-age=31536000"
-                  },
-                  onload: function(res2) {
-                    let metaJson = JSON.parse(res2.response);
-                    if (_.has(metaJson, "bodyType")) {
-                      info.meta.bodyType = _.fromPairs(
-                        _.flatMap(
-                          metaJson.bodyType,
-                          (ids, bodyType) => ids.map((id) => [id, Number(bodyType)])
-                        )
-                      );
-                    }
-                    _.has(metaJson, "baseBodyType") && (info.meta.baseBodyType = metaJson.baseBodyType);
-                    _.has(metaJson, "realFace") && (info.meta.realFace = metaJson.realFace);
-                    debug2.log(`meta加载完毕！`);
-                  }
-                });
-              }
-              if (_.has(info.api, "fastsbc")) {
-                GM_xmlhttpRequest2({
-                  method: "GET",
-                  url: `https://api.fut.to/26/fast.json?${info.api.fastsbc}`,
-                  headers: {
-                    "Content-type": "application/json",
-                    "Cache-Control": "max-age=31536000"
-                  },
-                  onload: function(res2) {
-                    _.forEach(JSON.parse(res2.responseText), (i2, k) => {
-                      let nowTime = Math.floor(Date.now() / 1e3);
-                      if (i2.t > nowTime) {
-                        info.base.fastsbc[k] = i2.g;
-                      }
-                    });
-                  }
-                });
-              }
-              if (_.has(info.api, "pack")) {
-                GM_xmlhttpRequest2({
-                  method: "GET",
-                  url: `https://api.fut.to/26/pack.json?${info.api.pack}`,
-                  headers: {
-                    "Content-type": "application/json",
-                    "Cache-Control": "max-age=31536000"
-                  },
-                  onload: function(res2) {
-                    info.base.oddo = JSON.parse(res2.response);
-                  }
-                });
-              }
-              if (_.has(info.api, "sbc")) {
-                GM_xmlhttpRequest2({
-                  method: "GET",
-                  url: `https://api.fut.to/26/sbc.json?${info.api.sbc}`,
-                  headers: {
-                    "Content-type": "application/json",
-                    "Cache-Control": "max-age=31536000"
-                  },
-                  onload: function(res2) {
-                    let sbcJson = JSON.parse(res2.response);
-                    info.task.sbc.stat = sbcJson;
-                    let sbcRewardArray = _.map(sbcJson.reward, (i2) => {
-                      return i2 == 1 ? fy2("task.player") : i2 == 2 ? fy2("task.pack") : "";
-                    });
-                    info.task.sbc.html = events.taskHtml(sbcJson.new.length, sbcRewardArray.join("、"));
-                  }
-                });
-              }
-              if (_.has(info.api, "ggrating")) {
-                GM_xmlhttpRequest2({
-                  method: "GET",
-                  url: `https://api.fut.to/26/ggrating.json?${info.api.ggrating}`,
-                  headers: {
-                    "Content-type": "application/json",
-                    "Cache-Control": "max-age=31536000"
-                  },
-                  onload: function(res2) {
-                    info.GGRRAR = JSON.parse(res2.response);
-                    debug2.log(`GGRRAR加载完毕！`);
-                  }
-                });
-              }
-              if (_.has(info.api, "evolutions")) {
-                GM_xmlhttpRequest2({
-                  method: "GET",
-                  url: `https://api.fut.to/26/evolutions.json?${info.api.evolutions}`,
-                  headers: {
-                    "Content-type": "application/json",
-                    "Cache-Control": "max-age=31536000"
-                  },
-                  onload: function(res2) {
-                    info.evolutions.new = JSON.parse(res2.response).new;
-                    debug2.log(`evolutions加载完毕！`);
-                  }
-                });
-              }
-              if (_.has(info.api, "inpacks")) {
-                GM_xmlhttpRequest2({
-                  method: "GET",
-                  url: `https://api.fut.to/26/inpacks.json?${info.api.inpacks}`,
-                  headers: {
-                    "Content-type": "application/json",
-                    "Cache-Control": "max-age=31536000"
-                  },
-                  onload: function(res2) {
-                    const { defIds, rarityIds } = JSON.parse(res2.response);
-                    info.inpacks.defIds = defIds;
-                    info.inpacks.rarityIds = rarityIds;
-                    debug2.log(`inpacks加载完毕！`);
-                  }
-                });
-              }
-              if (_.has(info.api, "other")) {
-                GM_xmlhttpRequest2({
-                  method: "GET",
-                  url: `https://api.fut.to/26/other.json?${info.api.other}`,
-                  headers: {
-                    "Content-type": "application/json",
-                    "Cache-Control": "max-age=31536000"
-                  },
-                  onload: function(res2) {
-                    const { dynamic, chem } = JSON.parse(res2.response);
-                    info.specialPlayers = {
-                      "dynamic": dynamic,
-                      "DList": Object.entries(dynamic).filter(([key, value]) => {
-                        return value.exp && value.exp > Date.now() / 1e3;
-                      }).map(([key, value]) => Number(key)),
-                      "extraChem": chem,
-                      "ECList": Object.keys(chem).map((key) => Number(key))
-                    };
-                    debug2.log(`other加载完毕！`);
-                  }
-                });
-              }
-              if (_.has(info.api, "fgconfig")) {
-                GM_xmlhttpRequest2({
-                  method: "GET",
-                  url: `https://api.fut.to/26/fgconfig.json?${info.api.fgconfig}`,
-                  headers: {
-                    "Content-type": "application/json",
-                    "Cache-Control": "max-age=31536000"
-                  },
-                  onload: function(res2) {
-                    info.fgconfig = JSON.parse(res2.response);
-                    debug2.log(`fgconfig加载完毕！`);
-                  }
-                });
-              }
-              if (_.has(info.api, "playermeta")) {
-                GM_xmlhttpRequest2({
-                  method: "GET",
-                  url: `https://api.fut.to/26/playermeta.json?${info.api.playermeta}`,
-                  headers: {
-                    "Content-type": "application/json",
-                    "Cache-Control": "max-age=31536000"
-                  },
-                  onload: function(res2) {
-                    let data2 = JSON.parse(res2.response);
-                    info.playermeta = {};
-                    _.forEach(data2, (value) => {
-                      if (value.length == 4) {
-                        info.playermeta[value[0]] = {
-                          "badytype": value[1],
-                          "weight": value[2],
-                          "realface": value[3]
-                        };
-                      }
-                    });
-                    debug2.log(`playermeta加载完毕！`);
-                  }
-                });
-              }
-              if (_.has(info.api, "lowprice")) {
-                GM_xmlhttpRequest2({
-                  method: "GET",
-                  url: `https://api.fut.to/26/lowprice.json?${info.api.lowprice}`,
-                  headers: {
-                    "Content-type": "application/json",
-                    "Cache-Control": "max-age=31536000"
-                  },
-                  onload: function(res2) {
-                    applyLowpriceToInfo(info, JSON.parse(res2.response));
-                    debug2.log(`lowprice加载完毕！`);
-                  }
-                });
-              }
-            }
-          }
-          getAppMain()._FCHeader.getView().__easportsLink.insertAdjacentHTML("afterend", `<a class="header_explain" href="${urlLink}" target="_blank">${urlText}</a>`);
-        },
-        onerror: function() {
-          events.notice("notice.upgrade.failed", 2);
-        }
-      });
-      let user = services2.User.getUser().getSelectedPersona();
-      if (user.isXbox || user.isPlaystation || user.isStadia) {
-        info.base.platform = "ps";
-      }
-      services2.User.maxAllowedAuctions = 100;
-      info.playerMetaData = JSON.parse(GM_getValue2(`playerMetaData_${info.base.year}`, "{}"));
-      events.addLoadingElment();
-      info.base.localization = services2.Localization.repository._collection;
-      services2.SBC.requestSets().observe(getAppMain().getRootViewController(), function(e2, t) {
-        if (e2.unobserve(getAppMain().getRootViewController()), t.success && JSUtils.isObject(t.data)) {
-          let tempSBCList = JSON.parse(GM_getValue2("sbclist", "[]")).reverse();
-          tempSBCList.forEach((sbcId) => {
-            events.SBCListInsertToFront(sbcId, 1);
-          });
-        }
-      });
-      services2.Store.getPacks(PurchasePackType.ALL, true, true);
-      services2.Objectives.objectivesDAO.getCategories().observe(getAppMain().getRootViewController(), function(e2, t) {
-        e2.unobserve(getAppMain().getRootViewController());
-        if (t.success && t.response && !JSUtils.isString(t.response)) {
-          let nowDate = Math.round((/* @__PURE__ */ new Date()).getTime() / 1e3), objNewJson = {
-            new: [],
-            catNew: {},
-            expiry: [],
-            catExpiry: {},
-            reward: [],
-            catReward: 0
-          };
-          _.map(t.response.categories, (cat) => {
-            objNewJson.catNew[cat.id] = 0;
-            objNewJson.catExpiry[cat.id] = 0;
-            objNewJson.catReward += cat.countNumberOfUnclaimedRewards();
-            _.map(cat.getGroups(), (g) => {
-              if (g.type !== 2) {
-                let oId = g.compositeId;
-                if (g.startTime >= nowDate - 86400 && g.startTime < nowDate) {
-                  objNewJson.new.push(oId);
-                  objNewJson.catNew[cat.id]++;
-                  if (g?.rewards) {
-                    let rewards = _.concat(_.cloneDeep(g.rewards.rewards), _.flatten(_.map(g.objectives.values(), "rewards.rewards")));
-                    debug2.log(rewards);
-                    if (rewards.length) {
-                      _.map(rewards, (r) => {
-                        if (r.isPack || r.isItem && r.item.isMiscItem()) {
-                          objNewJson.reward.push(fy2("task.pack"));
-                        }
-                        if (r.isItem && r.item.isPlayer()) {
-                          objNewJson.reward.push(fy2("task.pack"));
-                        }
-                        if (r.isXP) {
-                          objNewJson.reward.push("XP");
-                        }
-                      });
-                    }
-                  }
-                }
-                if (g.endTime <= nowDate + 86400 && g.endTime !== 0) {
-                  objNewJson.expiry.push(oId);
-                  objNewJson.catExpiry[cat.id]++;
-                }
-              }
-            });
-          });
-          objNewJson.reward = _.uniq(objNewJson.reward);
-          info.task.obj.stat = objNewJson;
-          info.task.obj.source = t.response.categories;
-          info.task.obj.html = events.taskHtml(objNewJson.new.length, objNewJson.reward.join("、"));
-        }
-      });
-      if (document.querySelectorAll(".app-logo").length) {
-        debug2.log("加载了 enhancer！！！");
-        info.isEnhancer = true;
-        events.enhanceStyleChange();
-      } else {
-        debug2.log("没加载 enhancer");
-        info.isEnhancer = false;
-      }
-      await events.reloadPlayers();
-      if (repositories.Academy.isCacheExpired()) {
-        let academyDTO = new UTAcademySlotSearchCriteriaDTO();
-        academyDTO.count = 40;
-        const simpleAcademyTypes = [AcademyStatEnum.RARITY, AcademyStatEnum.COSMETIC_UPGRADE];
-        const nowTime = Math.floor(Date.now() / 1e3);
-        services2.Academy.requestAcademyHub(academyDTO).observe(getAppMain().getRootViewController(), function(e2, t) {
-          e2.unobserve(getAppMain().getRootViewController());
-          GM_setValue2("academy", JSON.stringify({}));
-          if (t.success && t.data && !JSUtils.isString(t.data)) {
-            _.map(t.data.categories, (c) => {
-              let DTO = new UTAcademySlotSearchCriteriaDTO();
-              DTO.categoryId = c.id;
-              DTO.count = 40;
-              services2.Academy.requestSlotsByCategory(DTO).observe(getAppMain().getRootViewController(), function(ee, tt) {
-                ee.unobserve(getAppMain().getRootViewController());
-                if (tt.success && tt.data && !JSUtils.isString(tt.data)) {
-                  info.evolutions.newCount += _.filter(tt.data.slots, (i2) => info.evolutions.new.includes(i2.id)).length;
-                  info.evolutions.html = events.taskHtml(info.evolutions.newCount, "");
-                  let academyCache = JSON.parse(GM_getValue2("academy", "{}"));
-                  _.map(tt.data.slots, (s2) => {
-                    academyCache[s2.id] = {
-                      "name": s2.slotName,
-                      "status": s2.status == AcademySlotState.NOT_STARTED ? 1 : 0,
-                      "category": repositories.Academy.categories.get(s2.categoryId).description,
-                      "time": s2.endTimePurchaseVisibility
-                    };
-                    const rewardCondition = s2.academyTopRewards.length > 1 || s2.academyTopRewards.length === 1 && !simpleAcademyTypes.includes(s2.academyTopRewards[0].type);
-                    const startedOffset = s2.status === AcademySlotState.NOT_STARTED ? 0 : 1;
-                    const remainingQuantity = s2.numberOfRepetitions - Math.max(s2.repetitionIndex, 0) + 1 - startedOffset;
-                    if (remainingQuantity > 0) {
-                      let time = -1;
-                      let timeDiff = Infinity;
-                      let timeDiffText = "";
-                      if (_.max(s2.endTime, s2.endTimePurchaseVisibility) !== 0) {
-                        time = _.min(_.filter([s2.endTime, s2.endTimePurchaseVisibility], (v) => v && v !== 0));
-                        timeDiff = time - nowTime;
-                        timeDiffText = services2.Localization.localizeAuctionTimeRemaining(timeDiff);
-                      }
-                      const allRewards = s2.getAllSlotRewards();
-                      let reqRating = s2.eligibilityRequirements.find(
-                        (item) => item.attribute === AcademyEligibilityAttribute.OVR
-                      )?.targets?.[0] ?? 0;
-                      info.academy.push(
-                        {
-                          id: s2.id,
-                          name: s2.slotName,
-                          practical: rewardCondition,
-                          time,
-                          timeDiff,
-                          timeDiffText,
-                          el: _.cloneDeep(s2.eligibilityRequirements),
-                          attr: allRewards,
-                          isGK: s2.isGkExclusive(),
-                          rating: reqRating,
-                          attrText: events.academyAddAttr(allRewards, s2.isGkExclusive()).map
-                        }
-                      );
-                    }
-                  });
-                  info.academy = _.orderBy(info.academy, "timeDiff");
-                  GM_setValue2("academy", JSON.stringify(academyCache));
-                  if (cntlr2.current().className == "UTHomeHubViewController" && info.evolutions.newCount > 0) {
-                    cntlr2.current().getView()._academyTile.getRootElement()?.querySelector(".fsu-task")?.remove();
-                    cntlr2.current().getView()._academyTile.__tileContent.before(
-                      events.createDF(`<div class="fsu-task">${info.evolutions.html}</div>`)
-                    );
-                  }
-                }
-              });
-            });
-          }
-        });
-      }
-      info.squad = _.map(repositories.Squad.squads.get(services2.User.getUser().selectedPersona).get(services2.Squad.activeSquad).getPlayers(), "item.id");
-      debug2.log(info.squad);
-    };
-  }
-
   // src/fsu/patches/unassigned.js
   function installUnassignedPatches(deps) {
-    const { call, events, fy: fy2, cntlr: cntlr2, info, debug: debug2 } = deps;
+    const { call, events, fy: fy2, cntlr: cntlr2, info } = deps;
     UTUnassignedItemsViewController.prototype.updateUntradeableDuplicateSectionOptions = function(...args) {
       call.view.unassignedUpdateUDSO.call(this, ...args);
       let section = this.getView().getSection(UTUnassignedItemsViewModel.SECTION.UNTRADABLEDUPLICATES);
@@ -2212,7 +1660,7 @@
         section._fsuRefreshBtn = events.createButton(
           new UTStandardButtonControl(),
           fy2("unassignedlist.refresh.btn"),
-          async (e2) => {
+          async (_e) => {
             await services.Item.itemDao.itemRepo.unassigned.reset();
             await controller.getUnassignedItems();
             events.notice("notice.uasreset", 0);
@@ -2238,7 +1686,7 @@
             section._fsuTransfer = events.createButton(
               new UTImageButtonControl(),
               "",
-              async (e3) => {
+              async (_e) => {
                 controller.sendStorablesToTransferList();
               },
               "filter-btn fsu-transfer"
@@ -2253,7 +1701,7 @@
           section._fsuClub = events.createButton(
             new UTImageButtonControl(),
             "",
-            async (e3) => {
+            async (_e) => {
               controller.storeInClub();
             },
             "filter-btn fsu-club"
@@ -2270,7 +1718,7 @@
             section._fsuTransfer = events.createButton(
               new UTImageButtonControl(),
               "",
-              async (e3) => {
+              async (_e) => {
                 controller.sendDuplicatesToTransferList();
               },
               "filter-btn fsu-transfer"
@@ -2334,7 +1782,7 @@
             section._fsuStorage = events.createButton(
               new UTImageButtonControl(),
               "",
-              async (e3) => {
+              async (_e) => {
                 controller.confirmStoreUntradeablesTapped();
               },
               "filter-btn fsu-storage"
@@ -2348,7 +1796,7 @@
             section._fsuHighStorage = events.createButton(
               new UTImageButtonControl(),
               "",
-              async (e3) => {
+              async (_e) => {
                 const controller2 = isPhone() ? cntlr2.current() : cntlr2.left();
                 let movePlayers = storageLack < hPlayers.length ? _.take(hPlayers, storageLack) : hPlayers;
                 services.Item.move(movePlayers, ItemPile.STORAGE, true).observe(controller2, controller2.onMoveToStorageComplete);
@@ -2366,7 +1814,7 @@
             section._fsuSwap = events.createButton(
               new UTImageButtonControl(),
               "",
-              async (e3) => {
+              async (_e) => {
                 controller.confirmSwapUntradeablesTapped();
               },
               "filter-btn fsu-swap"
@@ -2401,7 +1849,7 @@
         controller._fsuRefreshBtn = events.createButton(
           new UTImageButtonControl(),
           "",
-          async (e3) => {
+          async (_e) => {
             await services.Item.itemDao.itemRepo.unassigned.reset();
             await controller.getUnassignedItems();
             events.notice("notice.uasreset", 0);
@@ -2578,7 +2026,7 @@
             }
             debug2.log("apiPlatform:", info.apiPlatform);
           },
-          onerror: function(err) {
+          onerror: function(_err) {
             info.apiPlatform = 3;
             debug2.log("apiPlatform:", info.apiPlatform);
           }
@@ -2694,7 +2142,7 @@
 
   // src/fsu/patches/misc-item.js
   function installMiscItemPatch(deps) {
-    const { call, events, fy: fy2, cntlr: cntlr2, info, lock } = deps;
+    const { call, events, fy: fy2, cntlr: cntlr2 } = deps;
     UTMiscItemView.prototype.renderItem = function(t, e2) {
       call.view.miscItem.call(this, t, e2);
       if (t.isPlayerPickItem()) {
@@ -2800,7 +2248,7 @@
             let accele = events.createButton(
               new UTButtonControl(),
               events.getAcceleRate(p) + `${isLoadMeta ? "" : "*"}`,
-              async (e2) => {
+              async (_e) => {
                 events.accelePopup(p);
               },
               "fsu-cards-accele"
@@ -2815,11 +2263,11 @@
             let bodytype = events.createButton(
               new UTButtonControl(),
               "",
-              async (e2) => {
+              async (_e) => {
                 events.popup(
                   fy2("plyers.bodytype.popupt"),
                   fy2(["plyers.bodytype.popupm", info.bodytypetext[bodyTypeId], fy2(`players.bodytype_${bodyTypeId}`)]),
-                  (t2) => {
+                  (_t) => {
                   }
                 );
               },
@@ -2836,7 +2284,7 @@
             this._fsu.realFace = events.createButton(
               new UTButtonControl(),
               realFace == 1 ? "YES" : "NO",
-              async (e2) => {
+              async (_e) => {
                 events.notice(fy2(["notice.players.realface", p._staticData.name, fy2(`players.realface_${realFace}`)]), realFace == 1 ? 0 : 2);
               },
               ""
@@ -2986,7 +2434,7 @@
             let metaElement = events.createButton(
               new UTButtonControl(),
               "",
-              async (e2) => {
+              async (_e) => {
                 events.fgPopup(p);
               },
               "item fsu-cards fsu-cards-meta"
@@ -3008,67 +2456,11 @@
               extraElement.prepend(metaRating);
             }
           }
-          if (info.set.card_meta && [1, 2].includes(info.apiPlatform) && false) {
-            let playerGGR = events.getPlayerGGR(p);
-            playerGGR["textColor"] = "#0f1010";
-            if (info.set.card_style == 1) {
-              playerGGR.gradeColor = `rgb(0,64,166)`;
-              playerGGR.textColor = "#fcfcf7";
-            }
-            let metaElement = events.createButton(
-              new UTButtonControl(),
-              "",
-              async (e2) => {
-                GM_openInTab(`https://www.fut.gg/players/${p.databaseId}/${info.base.year}-${p.definitionId}/`, { active: true, insert: true, setParent: true });
-              },
-              "item fsu-cards fsu-cards-meta"
-            );
-            this._fsu.meta = metaElement;
-            metaElement.getRootElement().setAttribute("data-id", p.id);
-            metaElement.getRootElement().setAttribute("data-defid", p.definitionId);
-            metaElement.getRootElement().style.borderColor = playerGGR.gradeColor;
-            let mRk = events.createElementWithConfig("div", {
-              textContent: playerGGR.grade,
-              style: {
-                color: playerGGR.textColor,
-                backgroundColor: playerGGR.gradeColor,
-                lineHeight: `1.1rem`
-              },
-              classList: ["mrk"]
-            });
-            metaElement.getRootElement().appendChild(mRk);
-            let mPr = events.createElementWithConfig("div", {
-              textContent: playerGGR.scoreText,
-              classList: ["mpr"]
-            });
-            metaElement.getRootElement().appendChild(mPr);
-            let mRp = events.createElementWithConfig("div", {
-              textContent: playerGGR.posText,
-              classList: ["mrp"]
-            });
-            metaElement.getRootElement().appendChild(mRp);
-            if (isSmall) {
-              let metaRating = events.createElementWithConfig("div", {
-                textContent: playerGGR.grade,
-                classList: ["fsu-cards-metarating"],
-                attributes: {
-                  "data-id": p.id,
-                  "data-defid": p.definitionId
-                }
-              });
-              this._fsu.metaRating = metaRating;
-              extraElement.prepend(metaRating);
-              if (playerGGR.score === 0) {
-                metaRating.style.display = "none";
-                metaElement.getRootElement().style.display = "none";
-              }
-            }
-          }
           if (info.specialPlayers?.DList?.includes(p.rareflag) || info.specialPlayers?.ECList?.includes(p.rareflag)) {
             this._fsu.special = events.createButton(
               new UTButtonControl(),
               "",
-              async (e2) => {
+              async (_e) => {
                 events.noticeSpecialPlayerInfo(p);
               },
               "fsu-specialPlayer"
@@ -3138,10 +2530,9 @@
               }
             }
             if (cs == 7 && document.querySelector(".icon-transfer.selected")) cs = 12;
-            if (cs == 8 && (document.querySelector(".icon-club.selected") || document.querySelector(".fsu-aotobuy"))) cs = 9;
+            if (cs == 8 && document.querySelector(".icon-club.selected")) cs = 9;
             if (cs == 2 && controller.className == "UTWatchListViewController") cs = 11;
             if (cs == 8 && controller.className == "UTAcademyPlayerFromClubViewController") cs = 3;
-            if (cs == 6 && document.querySelector(".fsu-autobuy-right")) cs = 13;
             if (isPhone() && cs === 3) {
               cs = 8;
             }
@@ -3185,7 +2576,7 @@
                     this._fsu.removeBtn = events.createButton(
                       new UTImageButtonControl(),
                       "",
-                      (e2) => {
+                      (_e) => {
                         events.showLoader();
                         let newSquad = _.cloneDeep(_.last(cntlr2.current()._squad._fsu.oldSquad));
                         newSquad = _.map(newSquad, (item) => {
@@ -3224,20 +2615,15 @@
                 }
                 if ([2, 11, 12].includes(cs)) {
                   parentNode.append(priceBoxElement);
-                } else if ([6, 8, 7, 4, 13].includes(cs)) {
+                } else if ([6, 8, 7, 4].includes(cs)) {
                   this.__root.prepend(priceElement);
                 } else {
                   this.__root.after(priceBoxElement);
                 }
                 if (cs == 12 || cs == 6) otherElement.querySelector(".fsu-other-low").remove();
-                if (cs == 1 || cs == 8 || cs == 9 || cs == 13) otherElement.querySelector(".fsu-other-dup").remove();
+                if (cs == 1 || cs == 8 || cs == 9) otherElement.querySelector(".fsu-other-dup").remove();
                 if (![7, 4].includes(cs)) {
                   parentNode.append(otherElement);
-                }
-                if (cs == 13 && info.autobuy.infoViews[p.definitionId]) {
-                  debug.log(info.autobuy.infoViews[p.definitionId].goToSalesBtn, info.autobuy.infoViews[p.definitionId].setPriceBtn);
-                  parentElement.querySelector(".fsu-autobuy-btn").remove();
-                  parentElement.appendChild(info.autobuy.infoViews[p.definitionId]._cardBtnBox);
                 }
               }
               if ([8, 9].includes(cs) && playerLock) {
@@ -3289,13 +2675,7 @@
             if (!cardParen) {
               return;
             }
-            let isCompare = false;
-            if (document.querySelector(`.CompareDetails .large.player span[p-id="${pId}"]`) && info.set.card_meta && [1, 2].includes(info.apiPlatform) && false) {
-              isCompare = true;
-              extraElement.classList.add("reserve");
-              this._fsu.meta.getRootElement().classList.add("reserve");
-            }
-            if (p.loans == -1 && !p.concept && p.state == ItemState.FREE && !p.isDuplicate() && events.getItemBy(1, { "id": p.id }).length && !isCompare) {
+            if (p.loans == -1 && !p.concept && p.state == ItemState.FREE && !p.isDuplicate() && events.getItemBy(1, { "id": p.id }).length) {
               let lockElement2 = events.createButton(
                 new UTStandardButtonControl(),
                 playerLock ? fy2("locked.unlock") : fy2("locked.lock"),
@@ -3319,9 +2699,7 @@
               cardParen.insertBefore(lockElement2.getRootElement(), cardParen.firstChild);
             }
             if (cardParen.querySelectorAll(".player").length > 1) {
-              if (!isCompare) {
-                this.__root.prepend(posElement);
-              }
+              this.__root.prepend(posElement);
               this.__root.prepend(extraElement);
             } else {
               this.__root.after(posElement);
@@ -3479,7 +2857,7 @@
 
   // src/fsu/patches/squad-overview-view.js
   function installSquadOverviewViewPatches(deps) {
-    const { call, events, info, fy: fy2, cntlr: cntlr2, isPhone: isPhone2, repositories: repositories2, services: services2, debug: debug2, SBCEligibilityKey: SBCEligibilityKey2, GM_openInTab: GM_openInTab2 } = deps;
+    const { call, events, info, fy: fy2, isPhone: isPhone2, repositories: repositories2, SBCEligibilityKey: SBCEligibilityKey2, GM_openInTab: GM_openInTab2 } = deps;
     UTSquadOverviewViewController.prototype.viewDidAppear = function() {
       call.plist.squad.call(this);
       this._fsu ??= {};
@@ -3857,7 +3235,7 @@
 
   // src/fsu/patches/sectioned-list.js
   function installSectionedListPatches(deps) {
-    const { call, events, info, fy: fy2, cntlr: cntlr2, services: services2, debug: debug2 } = deps;
+    const { call, events, info, fy: fy2, cntlr: cntlr2, services: services2 } = deps;
     UTSectionedItemListView.prototype.addItems = function(t, e2, i2, r) {
       call.plist.sectioned.call(this, t, e2, i2, r);
       events.loadPlayerInfo(_.map(this.listRows, "data"), this);
@@ -4053,7 +3431,7 @@
         type: EADialogView.Type.MESSAGE
       });
       mp.init();
-      mp.onExit.observe(mp, (e2, z) => {
+      mp.onExit.observe(mp, (e2, _z) => {
         e2.unobserve(mp);
         events.ignorePlayerPopup();
       });
@@ -4253,9 +3631,6 @@
           csbc = true;
         }
       } else {
-        if (_.has(c.leftController, "_fsuAutoBuy") && _.has(c, "rightController") && c.rightController) {
-          c.removeRightController();
-        }
         if (c.hasOwnProperty("rightController") && c.rightController) {
           c = cntlr2.right().parentViewController;
         }
@@ -4318,15 +3693,6 @@
       return r;
     };
     events.loadPlayerInfo = async (items, el, type) => {
-      if (info.set.card_meta && [1, 2].includes(info.apiPlatform) && false) {
-        const ggrList = _.filter(items, function(i2) {
-          return _.has(i2, "type") && i2.type == "player" && i2.rating >= 75 && !_.has(info.ggr, i2.definitionId) && i2.definitionId > 0;
-        });
-        let ggrChunks = _.chunk(ggrList, 30);
-        for (let chunk of ggrChunks) {
-          events.getGGRating(chunk, el);
-        }
-      }
       const list = _.map(
         _.filter(items, function(i2) {
           return _.has(i2, "type") && i2.type == "player" && !events.getCachePrice(i2.definitionId, 3) && i2.definitionId > 0;
@@ -4359,7 +3725,7 @@
             } else {
               playerPrice = await events.getPriceForUrl(pu[k]);
             }
-          } catch (error) {
+          } catch {
             continue;
           }
           info.roster.data = Object.assign(info.roster.data, playerPrice);
@@ -4397,19 +3763,6 @@
             sPrice += events.getCachePrice(i2, 1).num;
           });
           el._fsuScreenshot._header.setText(fy2(["screenshot.text", list.length, sPrice.toLocaleString()]));
-        } else if (el.className == "UTStorePackRevealModalListViewController" && "_packoddo" in el) {
-          let packItemsPriceElements = el.getView().getRootElement().querySelectorAll(".fsu-price-val");
-          const packItesmPrices = _.sumBy(packItemsPriceElements, (i2) => Number(i2.getAttribute("data-value")));
-          el.getView().getRootElement().querySelector(".trypack-count").innerText = packItesmPrices.toLocaleString();
-          let sDiff = Math.round((packItesmPrices / el._packoddo - 1) * 100);
-          let diffElement = el.getView().getRootElement().querySelector(".trypack-diff");
-          if (sDiff > 0) {
-            diffElement.style.color = "#36b84b";
-            diffElement.textContent = `+${sDiff}%`;
-          } else {
-            diffElement.style.color = "#d21433";
-            diffElement.textContent = `${sDiff}%`;
-          }
         } else {
           events.losAuctionCount(el, 0);
         }
@@ -4422,94 +3775,6 @@
           events.loadPlayerInfo(lackPlayers, el, 2);
         }
       }
-    };
-    events.getGGRating = async (list, el) => {
-      const now = Math.floor(Date.now() / 1e3);
-      const filtered = _.map(list, "definitionId");
-      if (filtered.length) {
-        let baseUrl = info.apiPlatform === 2 ? `${info.apiProxy}?futggapi=` : "https://www.fut.gg/api/fut/";
-        const response = await events.externalRequest("GET", baseUrl + "metarank/players/?ids=" + filtered.join("%2C"));
-        const originalJson = JSON.parse(response);
-        _.forEach(originalJson.data, (v, k) => {
-          info.ggr[v.eaId] = {
-            "score": v.score,
-            "position": v.position,
-            "time": now
-          };
-          for (let i2 of list) {
-            let ggrGrade = document.querySelector(`.fsu-cards-metarating[data-id="${i2.id}"][data-defid="${i2.definitionId}"]`);
-            let ggrBox = document.querySelector(`.fsu-cards-meta[data-id="${i2.id}"][data-defid="${i2.definitionId}"]`);
-            if (ggrGrade || ggrBox) {
-              const ggr = events.getPlayerGGR(i2);
-              if (ggr.score) {
-                if (ggrGrade) {
-                  ggrGrade.innerText = ggr.grade;
-                  ggrGrade.style.display = "block";
-                }
-                if (ggrBox) {
-                  const ggrBoxMrk = ggrBox.querySelector(".mrk");
-                  ggrBoxMrk.innerText = ggr.grade;
-                  if (info.set.card_style !== 1) {
-                    ggrBoxMrk.style.backgroundColor = ggr.gradeColor;
-                  }
-                  ggrBox.querySelector(".mpr").innerText = ggr.scoreText;
-                  ggrBox.querySelector(".mrp").innerText = ggr.posText;
-                  ggrBox.style.display = "";
-                }
-              }
-            }
-          }
-        });
-        GM_setValue("ggr", JSON.stringify(info.ggr));
-        debug2.log(el);
-      } else {
-        debug2.log("无需要读取的GGRating");
-      }
-    };
-    events.getPlayerGGR = (player) => {
-      const result = {
-        "score": 0,
-        "scoreText": "0",
-        "grade": "F",
-        "pos": 0,
-        "posText": "NONE",
-        "gradeColor": "rgba(255,255,255,0.8)"
-      };
-      if (_.has(info.ggr, player.definitionId)) {
-        const grades = ["S", "A", "B", "C", "D"];
-        const gradeColors = [
-          "rgba(255,215,0,0.9)",
-          // S - 金色
-          "rgba(220,38,38,0.8)",
-          // A - 红
-          "rgba(251,146,60,0.8)",
-          // B - 橙
-          "rgba(6,182,212,0.8)",
-          // C - 青
-          "rgba(34,197,94,0.8)"
-          // D - 绿
-        ];
-        result.pos = info.ggr[player.definitionId].position;
-        result.posText = services2.Localization.localize(`extendedPlayerInfo.positions.position${result.pos}`);
-        const isNoAcademy = player.academy == null || !player.academy._attributes.length && !player.academy._baseTraits.length && !player.academy._iconTraits.length && !player.academy._skillMoves && !player.academy._weakFoot;
-        result.score = info.ggr[player.definitionId].score;
-        result.scoreText = result.score.toFixed(1);
-        if (!isNoAcademy) {
-          const ratingMaxScore = info.GGRRAR.rating[result.pos][player.rating];
-          if (player.rating == player._rating) {
-            result.score = ratingMaxScore;
-          } else {
-            result.score = ratingMaxScore - (player.rating - player._rating) * 0.02;
-          }
-          result.scoreText = `${result.score.toFixed(1)}*`;
-        }
-        const customSortedIndex = _.findIndex(info.GGRRAR.rank[result.pos], (value) => value <= result.score);
-        if (customSortedIndex !== -1) {
-          result.grade = grades[customSortedIndex] + (result.score < player.rating ? " ↓" : " ↑");
-          result.gradeColor = gradeColors[customSortedIndex];
-        }
-      }
-      return result;
     };
   }
 
@@ -4566,7 +3831,7 @@
     const originalSetData = UTSBCSetTileView.prototype.setData;
     const originalRender = UTSBCChallengeTableRowView.prototype.render;
     const originalSetRewards = UTSBCGroupRewardListView.prototype.setRewards;
-    const originalGetCategories = UTSBCSetsViewModel.prototype.getCategories;
+    const _originalGetCategories = UTSBCSetsViewModel.prototype.getCategories;
     events.navigationAddCount = (e2, c) => navigationAddCount(events, e2, c);
     events.sbcFilter = (e2) => sbcFilter({ info, cntlr: cntlr2 }, e2);
     UTSBCGroupRewardListView.prototype.setRewards = function(e2, o) {
@@ -4838,10 +4103,6 @@
             e2.__mainReward.querySelector(".ut-pack-graphic-view").appendChild(packBox);
           }
         }
-        if (e2._infoBtn.getRootElement().style.display != "none" && e2.data.awards[0]?.item?.isPlayerPickItem()) {
-          e2._infoBtn.removeTarget(e2, e2._eCheckMoreInfo, EventType.TAP);
-          e2._infoBtn.addTarget(e2, () => events.fixedPickPopup(e2.data.awards[0].item), EventType.TAP);
-        }
       }
     };
   }
@@ -5020,7 +4281,7 @@
             subPrice = await events.getFutbinUrl(
               `https://www.futbin.org/futbin/api/${info.base.year}/getChallengesBySetId?set_id=${id}`
             );
-          } catch (error) {
+          } catch {
             return;
           }
           if ("data" in subPrice) {
@@ -5146,7 +4407,7 @@
     };
   }
   function registerSbcHeaderEvents(deps) {
-    const { events, info, services: services2, cntlr: cntlr2, debug: debug2 } = deps;
+    const { events, info, services: services2 } = deps;
     events.changeHeaderSBCEntrance = () => {
       let completeId = _.filter(
         info.douagain.SBCList,
@@ -5324,22 +4585,8 @@
             return btn2;
           };
           let btn;
-          if (item.isItem) {
-            if (item.item.isPlayer()) {
-              btn = createBtn("sbc.watchplayer", (e2) => events.openFutbinPlayerUrl(e2, item.item));
-            } else if (item.item.isPlayerPickItem()) {
-              btn = createBtn("sbc.watchplayer", () => events.fixedPickPopup(item.item));
-            }
-          } else if (item.isPack) {
-            btn = createBtn("trypack.button.subtext", () => {
-              events.showLoader();
-              events.tryPack({
-                id: item.value,
-                odds: false,
-                packName: services2.Localization.localize(`FUT_STORE_PACK_${item.value}_NAME`),
-                tradable: item.tradable
-              });
-            });
+          if (item.isItem && item.item.isPlayer()) {
+            btn = createBtn("sbc.watchplayer", (e2) => events.openFutbinPlayerUrl(e2, item.item));
           }
           if (btn) {
             li.appendChild(btn.getRootElement());
@@ -5726,7 +4973,7 @@
 
   // src/fsu/patches/objectives-hub.js
   function installObjectivesHubPatches(deps) {
-    const { call, events, info, fy: fy2, isPhone: isPhone2, services: services2 } = deps;
+    const { call, events, info, fy: fy2, isPhone: isPhone2 } = deps;
     UTObjectivesHubView.prototype.setupNavigation = function(e2) {
       call.task.objN.call(this, e2);
       const stat = info.task?.obj?.stat;
@@ -5861,79 +5108,104 @@
   }
 
   // src/fsu/patches/home-hub.js
+  function applyHomeTaskTiles(events, info, cntlr2) {
+    if (cntlr2.current().className == "UTHomeHubViewController" && info.task.obj.html && cntlr2.current().getView()._objectivesTile.__tileContent.querySelector(".ut-tile-view--subtitle")) {
+      if (!cntlr2.current().getView()._objectivesTile.__root.querySelector(".fsu-task")) {
+        cntlr2.current().getView()._objectivesTile.__tileContent.before(
+          events.createDF(`<div class="fsu-task">${info.task.obj.html}</div>`)
+        );
+      }
+      const objCountElement = cntlr2.current().getView()._objectivesTile.getRootElement().querySelector(".fsu-obj-count");
+      if (objCountElement && info.task.obj.stat.catReward) {
+        objCountElement.textContent = info.task.obj.stat.catReward;
+        objCountElement.style.display = "block";
+      }
+    }
+    if (cntlr2.current().className == "UTHomeHubViewController" && info.task.sbc.html && !cntlr2.current().getView()._sbcTile.__root.querySelector(".fsu-task") && cntlr2.current().getView()._sbcTile.__tileContent.querySelector(".ut-tile-content-graphic-info")) {
+      cntlr2.current().getView()._sbcTile.__tileContent.before(events.createDF(`<div class="fsu-task">${info.task.sbc.html}</div>`));
+    }
+  }
+  function searchClubPage(services2, stat, pageIndex, playersCount) {
+    const playersCriteria = new UTSearchCriteriaDTO();
+    playersCriteria.type = "player";
+    playersCriteria.sortBy = "ovr";
+    playersCriteria.sort = "desc";
+    playersCriteria.count = playersCount;
+    playersCriteria.offset = pageIndex * playersCount;
+    return new Promise((resolve, reject) => {
+      services2.Club.search(playersCriteria).observe(stat, (observer, response) => {
+        observer.unobserve(stat);
+        if (response.success && JSUtils.isObject(response.response)) {
+          resolve(response.response);
+        } else {
+          reject(new Error("Search operation failed"));
+        }
+      });
+    });
+  }
+  function searchStorageItems(services2, current) {
+    return new Promise((resolve) => {
+      services2.Item.searchStorageItems(new UTSearchCriteriaDTO()).observe(current, (observer) => {
+        observer.unobserve(current);
+        resolve();
+      });
+    });
+  }
   function registerHomeHubEvents(deps) {
-    const { events, info, cntlr: cntlr2, isPhone: isPhone2, services: services2 } = deps;
+    const { events, info, cntlr: cntlr2, services: services2 } = deps;
     events.reloadPlayers = async () => {
       GM_setValue("players", JSON.stringify({}));
-      let current = getAppMain().getRootViewController();
-      await services2.Club.getStats().observe(current, async function _onGetStats(e2, t) {
-        e2.unobserve(current);
-        t.success ? t.response.stats.forEach(async function(stat) {
-          if (stat.type == "players") {
-            if (stat.count !== services2.Club.clubDao.clubRepo.items.length) {
-              events.showLoader();
-              let playersCount = 200;
-              let playersPage = Math.ceil(stat.count / playersCount);
-              for (let i2 = 0; i2 < playersPage; i2++) {
-                let playersCriteria = new UTSearchCriteriaDTO();
-                playersCriteria.type = "player";
-                playersCriteria.sortBy = "ovr";
-                playersCriteria.sort = "desc";
-                playersCriteria.count = playersCount;
-                playersCriteria.offset = i2 * playersCount;
-                events.changeLoadingText(["loadingclose.ldata", `${i2}`, `${playersPage}`]);
-                try {
-                  await new Promise((resolve, reject) => {
-                    services2.Club.search(playersCriteria).observe(stat, (p, t2) => {
-                      if (p.unobserve(p), t2.success && JSUtils.isObject(t2.response)) {
-                        resolve(t2.response);
-                      } else {
-                        reject(new Error("Search operation failed"));
-                      }
-                    });
-                  });
-                  await events.wait(0.2, 0.5);
-                } catch (error) {
-                  console.error("Search error:", error);
-                  services2.Notification.queue([
-                    services2.Localization.localize("notification.club.failedToLoad"),
-                    UINotificationType.NEGATIVE
-                  ]);
-                  const navController = stat.getNavigationController();
-                  if (navController) {
-                    navController.popViewController(true);
-                  }
-                }
-              }
-              await services2.Item.searchStorageItems(new UTSearchCriteriaDTO()).observe(
-                current,
-                function(e3, t2) {
-                  e3.unobserve(current);
-                }
-              );
+      const current = getAppMain().getRootViewController();
+      const playersCount = 200;
+      await new Promise((resolve) => {
+        services2.Club.getStats().observe(current, async (observer, response) => {
+          observer.unobserve(current);
+          if (!response.success) {
+            if (NetworkErrorManager.checkCriticalStatus(response.status) && NetworkErrorManager.handleStatus(response.status)) {
               events.hideLoader();
-              info.base.state = true;
-              events.notice("notice.ldatasuccess", 0);
-              if (cntlr2.current().className == "UTHomeHubViewController" && info.task.obj.html && cntlr2.current().getView()._objectivesTile.__tileContent.querySelector(".ut-tile-view--subtitle")) {
-                if (!cntlr2.current().getView()._objectivesTile.__root.querySelector(".fsu-task")) {
-                  cntlr2.current().getView()._objectivesTile.__tileContent.before(
-                    events.createDF(`<div class="fsu-task">${info.task.obj.html}</div>`)
-                  );
-                }
-                let objCountElement = cntlr2.current().getView()._objectivesTile.getRootElement().querySelector(".fsu-obj-count");
-                if (objCountElement && info.task.obj.stat.catReward) {
-                  objCountElement.textContent = info.task.obj.stat.catReward;
-                  objCountElement.style.display = "block";
-                }
-              }
-              if (cntlr2.current().className == "UTHomeHubViewController" && info.task.sbc.html && !cntlr2.current().getView()._sbcTile.__root.querySelector(".fsu-task") && cntlr2.current().getView()._sbcTile.__tileContent.querySelector(".ut-tile-content-graphic-info")) {
-                cntlr2.current().getView()._sbcTile.__tileContent.before(
-                  events.createDF(`<div class="fsu-task">${info.task.sbc.html}</div>`)
-                );
-              }
+              events.notice("notice.ldataerror", 2);
+            }
+            resolve();
+            return;
+          }
+          const playerStat = _.find(response.response.stats, { type: "players" });
+          if (!playerStat) {
+            resolve();
+            return;
+          }
+          if (playerStat.count === services2.Club.clubDao.clubRepo.items.length) {
+            info.base.state = true;
+            applyHomeTaskTiles(events, info, cntlr2);
+            resolve();
+            return;
+          }
+          events.showLoader();
+          const playersPage = Math.ceil(playerStat.count / playersCount);
+          const storagePromise = searchStorageItems(services2, current);
+          try {
+            for (let page = 0; page < playersPage; page++) {
+              events.changeLoadingText(["loadingclose.ldata", `${page + 1}`, `${playersPage}`]);
+              await searchClubPage(services2, playerStat, page, playersCount);
+            }
+            await storagePromise;
+            events.hideLoader();
+            info.base.state = true;
+            events.notice("notice.ldatasuccess", 0);
+            applyHomeTaskTiles(events, info, cntlr2);
+          } catch (error) {
+            console.error("Search error:", error);
+            events.hideLoader();
+            services2.Notification.queue([
+              services2.Localization.localize("notification.club.failedToLoad"),
+              UINotificationType.NEGATIVE
+            ]);
+            const navController = playerStat.getNavigationController?.();
+            if (navController) {
+              navController.popViewController(true);
             }
           }
-        }) : NetworkErrorManager.checkCriticalStatus(t.status) && NetworkErrorManager.handleStatus(t.status) && events.hideLoader() && events.notice("notice.ldataerror", 2);
+          resolve();
+        });
       });
     };
   }
@@ -6004,8 +5276,6 @@
   // src/fsu/patches/market.js
   function installMarketPatches(deps) {
     const { call, events, info, cntlr: cntlr2, isPhone: isPhone2, fy: fy2, debug: debug2, repositories: repositories2, services: services2, GM_setValue: GM_setValue2 } = deps;
-    const UTClubSearchResultsViewController_onTableCellSelected = UTClubSearchResultsViewController.prototype.onTableCellSelected;
-    const UTClubSearchResultsViewController_refreshPinnedItem = UTClubSearchResultsViewController.prototype.refreshPinnedItem;
     UTTransferMarketPaginationViewModel.prototype.startAuctionUpdates = function(...args) {
       call.view.transferMarket.call(this, ...args);
       if (services2.Item.marketRepository.pages.length) {
@@ -6191,7 +5461,7 @@
           this._fsuHistory.btns.length = 0;
           this._fsuHistory.element.querySelector(".fsu-historybox").innerHTML = "";
           let criteriaKeys = Object.keys(e2.searchCriteria);
-          _.map(info.market.mb, (item, index) => {
+          _.map(info.market.mb, (item, _index) => {
             let playerInfo = repositories2.Item.getStaticDataByDefId(
               item[criteriaKeys.indexOf("maskedDefId")]
             );
@@ -6204,18 +5474,18 @@
                   let current = cntlr2.current().viewmodel.searchCriteria;
                   let keys = Object.keys(current);
                   if (!(keys.length - e3.criteria.length)) {
-                    keys.forEach(function(value, index2) {
+                    keys.forEach(function(value, index) {
                       let condition = false;
                       if (Array.isArray(current[value])) {
-                        condition = current[value].length !== e3.criteria[index2].length;
+                        condition = current[value].length !== e3.criteria[index].length;
                       } else {
-                        condition = current[value] !== e3.criteria[index2];
+                        condition = current[value] !== e3.criteria[index];
                       }
                       if (condition) {
                         debug2.log(
-                          `${value}，目前的元素 ${current[value]}，存储值为 ${e3.criteria[index2]}`
+                          `${value}，目前的元素 ${current[value]}，存储值为 ${e3.criteria[index]}`
                         );
-                        current[value] = e3.criteria[index2];
+                        current[value] = e3.criteria[index];
                       }
                     });
                     cntlr2.current().getView().eSearchButtonSelected();
@@ -6258,35 +5528,96 @@
         this._fsuHistory.element.style.display = "none";
       }
     };
-    UTClubSearchResultsViewController.prototype.onTableCellSelected = function(e2, t, i2) {
-      if (this._fsuAutoBuy) {
-        events.autoBuyRightRefresh(this._fsuAutoBuyRight, i2.item);
-        if (isPhone2()) {
-          this.getNavigationController().pushViewController(this.getView()._list._fsuAutoBuyRight);
-        } else {
-          _.forEach(e2._list.listRows, (rows) => {
-            rows.setSelected(rows.data.definitionId == i2.item.definitionId);
-          });
-        }
-      } else {
-        UTClubSearchResultsViewController_onTableCellSelected.call(this, e2, t, i2);
-      }
-    };
-    UTClubSearchResultsViewController.prototype.refreshPinnedItem = function() {
-      if (this._fsuAutoBuy && this._fsuAutoBuyPlayers.length) {
-        events.autoBuyRightRefresh(this._fsuAutoBuyRight, this._fsuAutoBuyPlayers[0]);
-      } else {
-        UTClubSearchResultsViewController_refreshPinnedItem.call(this);
-      }
-    };
   }
 
   // src/fsu/patches/store.js
   var inPacksController;
   var specialPlayersController;
   function installStorePatches(deps) {
-    const { call, events, info, cntlr: cntlr2, isPhone: isPhone2, fy: fy2, debug: debug2, repositories: repositories2, services: services2, GM_setValue: GM_setValue2, AssetLocationUtils: AssetLocationUtils2, unsafeWindow: unsafeWindow2 } = deps;
+    const { call, events, info, cntlr: cntlr2, isPhone: isPhone2, fy: fy2, repositories: repositories2, services: services2, GM_setValue: GM_setValue2, AssetLocationUtils: AssetLocationUtils2, unsafeWindow: unsafeWindow2 } = deps;
     const GM_openInTab2 = unsafeWindow2.GM_openInTab;
+    events.showPlayerListPopup = (title, text, players, desc) => {
+      const popupController = new EADialogViewController({
+        dialogOptions: [{ labelEnum: enums.UIDialogOptions.OK }],
+        message: "",
+        title,
+        type: EADialogView.Type.MESSAGE
+      });
+      popupController.init();
+      popupController.onExit.observe(popupController, (e2, _z) => {
+        e2.unobserve(popupController);
+        popupController.dealloc();
+        const current = cntlr2.current();
+        if (current instanceof UTStorePackViewController) {
+          current.getStorePacks(true);
+        }
+      });
+      popupController._fsu = {};
+      const popupView = popupController.getView();
+      popupView.__msg.remove();
+      popupView.__btnContainer.querySelector("button").classList.remove("text");
+      popupView.__btnContainer.querySelector("button").classList.add("primary", "mini");
+      const popupBox = document.createElement("div");
+      if (players.length) {
+        popupController._fsu.listBox = events.createElementWithConfig("div", {
+          classList: "ut-store-reveal-modal-list-view",
+          style: { borderRadius: "0", padding: "0" }
+        });
+        popupController._fsu.list = events.createElementWithConfig("ul", {
+          classList: ["itemList", "fsu-popupItemList"]
+        });
+        popupController._fsu.listBox.appendChild(popupController._fsu.list);
+        players.forEach((i2) => {
+          const row = new UTItemTableCellView();
+          row.setData(i2, void 0, ListItemPriority.DEFAULT);
+          row.render();
+          if (!desc && i2._playStyles.length) {
+            const popupItemOther = events.createElementWithConfig("div", {
+              classList: "fsu-popupItemOther"
+            });
+            const traitBox = events.createElementWithConfig("div", {
+              classList: "fsu-popupItemTrait"
+            });
+            popupItemOther.appendChild(traitBox);
+            _.map(
+              _.orderBy(i2._playStyles, [(item) => item.isIcon ? 0 : 1, "category"], ["asc", "asc"]),
+              (t) => {
+                const classList = ["fut_icon", "fsu-traitIcon"];
+                if (t.isIcon) {
+                  classList.push(`icon_icontrait${t.traitId}`, "icon");
+                } else {
+                  classList.push(`icon_basetrait${t.traitId}`);
+                }
+                traitBox.appendChild(events.createElementWithConfig("i", { classList }));
+              }
+            );
+            const popupItemOtherBtn = events.createButton(
+              new UTButtonControl(),
+              fy2("sbc.watchplayer"),
+              (e2) => events.openFutbinPlayerUrl(e2, i2),
+              "btn-standard mini"
+            );
+            popupItemOther.appendChild(popupItemOtherBtn.getRootElement());
+            row.__rowContent.appendChild(popupItemOther);
+          }
+          popupController._fsu.list.appendChild(row.getRootElement());
+        });
+        popupBox.appendChild(popupController._fsu.listBox);
+      }
+      popupBox.appendChild(events.createElementWithConfig("div", {
+        textContent: text,
+        style: { paddingTop: ".5rem", fontSize: "1rem" }
+      }));
+      if (desc) {
+        popupBox.appendChild(events.createElementWithConfig("div", {
+          textContent: desc,
+          style: { paddingTop: ".5rem", fontSize: "1rem", opacity: ".5" }
+        }));
+      }
+      events.loadPlayerInfo(players, popupView);
+      popupView.getRootElement().querySelector(".ea-dialog-view--body").prepend(popupBox);
+      gPopupClickShield.setActivePopup(popupController);
+    };
     UTStoreRevealModalListView.prototype.addItems = function(e2, t, i2, o) {
       const showPlayers = _.orderBy(e2, [(i3) => i3.isPlayer(), "rareflag", "rating"], ["desc", "desc", "desc"]);
       call.plist.storeReveal.call(this, showPlayers, t, i2, o);
@@ -6422,56 +5753,6 @@
               item._pack.getRootElement().appendChild(packInfoBox);
             }
           }
-          if (packCoin && !itemElement.querySelector(".fsu-trypack")) {
-            itemElement;
-            item._fsuTryPack = events.createButton(
-              new UTCurrencyButtonControl(),
-              fy2("trypack.button.subtext"),
-              (e3) => {
-                e3.setInteractionState(0);
-                events.showLoader();
-                events.tryPack(repositories2.Store.getArticle(item.articleId));
-                setTimeout(() => {
-                  e3.setInteractionState(1);
-                }, 2e3);
-              },
-              "fsu-trypack"
-            );
-            item._fsuTryPackBox = document.createElement("div");
-            item._fsuTryPackBox.classList.add("fsu-trypack-box");
-            item._fsuTryPackBox.append(item._fsuTryPack.getRootElement());
-            let parentElement = item.getRootElement().querySelector(".ut-store-pack-details-view--pack-counts");
-            parentElement.style.position = "relative";
-            parentElement.append(item._fsuTryPackBox);
-          }
-          if (packCoin && !itemElement.querySelector(".fsu-raelprod")) {
-            let rp = events.createButton(
-              new UTStandardButtonControl(),
-              fy2("realprob.btn"),
-              (e3) => {
-                e3.setInteractionState(0);
-                events.showLoader();
-                events.raelProbability(packData);
-                setTimeout(() => {
-                  e3.setInteractionState(1);
-                }, 2e3);
-              },
-              "fsu-raelprod mini"
-            );
-            Object.assign(rp.getRootElement().style, {
-              height: "2rem",
-              lineHeight: "2rem",
-              padding: "0",
-              width: "6rem",
-              flexBasis: "auto",
-              ...isPhone2() && {
-                width: "100%",
-                marginBottom: "1rem"
-              }
-            });
-            item._fsuRealProd = rp;
-            item._fsuExtraInfo.appendChild(item._fsuRealProd.getRootElement());
-          }
           if (HideAndShow) {
             const packInfo = this._fsuPacks[`${item.articleId}-${!item.__root.classList.contains("is-untradeable")}`];
             if (packInfo) {
@@ -6493,20 +5774,6 @@
                   }
                 });
                 itemElement.appendChild(packCount);
-              }
-              if (packInfo.isPlayers && !itemElement.querySelector(".fsu-bulkopen")) {
-                let bulkOpenBtn = events.createButton(
-                  new UTCurrencyButtonControl(),
-                  fy2("openpack.storebtn.text") + ` (${packInfo.count})`,
-                  (e3) => {
-                    events.showLoader();
-                    events.openPacks(item.articleId, packInfo.fullName, packInfo.count);
-                  },
-                  "fsu-bulkopen call-to-action"
-                );
-                bulkOpenBtn.__currencyLabel.textContent = fy2("openpack.storebtn.subtext");
-                item.__articleActionContainer.prepend(bulkOpenBtn.getRootElement());
-                item.__articleActionContainer.style.gap = "1rem";
               }
             }
           }
@@ -6625,7 +5892,7 @@
             let packTile = events.createTile(
               fy2("douagain.packtile.title"),
               fy2("douagain.packtile.text"),
-              (e3) => {
+              (_e) => {
                 let current = cntlr2.current();
                 let pack = current.viewmodel.getPacks("mypacks").filter((i3) => i3.id == info.douagain.pack).pop();
                 current.eOpenPack(
@@ -6648,7 +5915,7 @@
             let sbcTile = events.createTile(
               fy2("douagain.sbctile.title"),
               fy2("douagain.sbctile.text"),
-              (e3) => {
+              (_e) => {
                 if (info.douagain.sbc) {
                   events.goToSBC(services2.SBC.repository.getSetById(info.douagain.sbc));
                 } else {
@@ -6682,7 +5949,7 @@
           this._fsuUnassignedTile = uTile;
           this._fsuUnassignedTile.addTarget(
             this._fsuUnassignedTile,
-            (e3) => {
+            (_e) => {
               TelemetryManager.trackEvent(TelemetryManager.Sections.STORE, TelemetryManager.Categories.BUTTON_PRESS, "Store - Unassigned Tile"), cntlr2.current().gotoUnassigned();
             },
             EventType.TAP
@@ -6780,7 +6047,7 @@
         inPacksTile.fsuCount.setLabel(services2.Localization.localize("tile.label.itemCount", [info.inpacks.defIds.length.toString()]));
         inPacksTile.__tileContent.appendChild(inPacksTile.fsuCount.getRootElement());
         view._fsuInPacksTile = inPacksTile;
-        view._fsuInPacksTile.addTarget(view, (e3) => {
+        view._fsuInPacksTile.addTarget(view, (_e) => {
           events.goToInPacks(this.getNavigationController());
         }, EventType.TAP);
         view._fsuInPacksTile.setInteractionState(true);
@@ -6812,7 +6079,7 @@
         specialTile.fsuCount.setLabel(services2.Localization.localize("tile.label.itemCount", [_.size(info.specialPlayers.dynamic) + _.size(info.specialPlayers.extraChem)]));
         specialTile.__tileContent.appendChild(specialTile.fsuCount.getRootElement());
         view._fsuSpecialTile = specialTile;
-        view._fsuSpecialTile.addTarget(view, (e3) => {
+        view._fsuSpecialTile.addTarget(view, (_e) => {
           this.getNavigationController().pushViewController(new specialPlayersController());
         }, EventType.TAP);
         view._fsuSpecialTile.setInteractionState(true);
@@ -6869,7 +6136,7 @@
         nav.pushViewController(controller);
       }
     };
-    const inPacksControllerView = function(t) {
+    const inPacksControllerView = function(_t) {
       EAView.call(this);
     };
     JSUtils.inherits(inPacksControllerView, EAView);
@@ -6915,8 +6182,8 @@
           let itemViewBtn = events.createButton(
             new UTStandardButtonControl(),
             fy2("quicklist.gotofutbin"),
-            (e2) => {
-              events.openFutbinPlayerUrl(e2, player);
+            (_e) => {
+              events.openFutbinPlayerUrl(_e, player);
             },
             "call-to-action mini fsu-showPlayersBtn"
           );
@@ -6942,7 +6209,7 @@
       events.fsuDispose(this, "_fsu");
       this.__root = null;
     };
-    inPacksController = function(t) {
+    inPacksController = function(_t) {
       EAViewController.call(this);
     };
     JSUtils.inherits(inPacksController, EAViewController);
@@ -6955,7 +6222,7 @@
     inPacksController.prototype.getNavigationTitle = function() {
       return fy2("inpacktile.title") + `(${info.inpacks.players.length})`;
     };
-    const specialPlayersControllerView = function(t) {
+    const specialPlayersControllerView = function(_t) {
       EAView.call(this);
     };
     JSUtils.inherits(specialPlayersControllerView, EAView);
@@ -7032,12 +6299,12 @@
             let clubBtn = events.createButton(
               new UTStandardButtonControl(),
               btnText,
-              (e2) => {
+              (_e) => {
                 let players = _.cloneDeep(events.getItemBy(2, { _rareflag: d.id, BTWrating: [99, 45], loans: -1 }, repositories2.Item.getTransferItems()));
                 _.forEach(players, (p) => {
                   p.storeLoc = true;
                 });
-                events.openPacksResultPopup(SL.localize(`item.raretype${d.id}`), fy2("special.dynamic.popupm"), players);
+                events.showPlayerListPopup(SL.localize(`item.raretype${d.id}`), fy2("special.dynamic.popupm"), players);
               },
               "call-to-action mini"
             );
@@ -7049,7 +6316,7 @@
             let futbinBtn = events.createButton(
               new UTStandardButtonControl(),
               fy2("quicklist.gotofutbin"),
-              (e2) => {
+              (_e) => {
                 GM_openInTab2(`https://www.futbin.com/${d.url}`, { active: true, insert: true, setParent: true });
               },
               "call-to-action mini"
@@ -7120,12 +6387,12 @@
             let clubBtn = events.createButton(
               new UTStandardButtonControl(),
               btnText,
-              (e2) => {
+              (_e) => {
                 let players = _.cloneDeep(events.getItemBy(2, { rareflag: ec.id, BTWrating: [99, 45], loans: -1 }, repositories2.Item.getTransferItems()));
                 _.forEach(players, (p) => {
                   p.storeLoc = true;
                 });
-                events.openPacksResultPopup(SL.localize(`item.raretype${ec.id}`), fy2("special.extrachem.popupm"), players);
+                events.showPlayerListPopup(SL.localize(`item.raretype${ec.id}`), fy2("special.extrachem.popupm"), players);
               },
               "call-to-action mini"
             );
@@ -7137,7 +6404,7 @@
             let futbinBtn = events.createButton(
               new UTStandardButtonControl(),
               fy2("quicklist.gotofutbin"),
-              (e2) => {
+              (_e) => {
                 GM_openInTab2(`https://www.futbin.com/${ec.url}`, { active: true, insert: true, setParent: true });
               },
               "call-to-action mini"
@@ -7154,7 +6421,7 @@
         this._generated = true;
       }
     };
-    specialPlayersController = function(t) {
+    specialPlayersController = function(_t) {
       EAViewController.call(this);
     };
     specialPlayersControllerView.prototype.dealloc = function() {
@@ -7245,7 +6512,7 @@
               25: 132,
               26: 132,
               27: 132
-            }, posName = excludeCriteria.preferredPositionOnly ? "preferredPosition" : "possiblePositions";
+            };
             groupedData = basePlayers.reduce((acc, item) => {
               function posToPa(p, a) {
                 a.push(p);
@@ -7577,7 +6844,7 @@
 
   // src/fsu/patches/sbc-fill-events.js
   function registerSbcFillEvents(deps) {
-    const { call, events, info, cntlr: cntlr2, isPhone: isPhone2, services: services2, debug: debug2, repositories: repositories2, build, fastSbcService, oneFillCriteriaService, sbcSquadFillService, sbcTemplateService, sbcSquadSaveService } = deps;
+    const { call, events, info, cntlr: cntlr2, isPhone: isPhone2, services: services2, debug: debug2, repositories: repositories2, fastSbcService, oneFillCriteriaService, sbcSquadFillService, sbcTemplateService, sbcSquadSaveService } = deps;
     events.fastSBCQuantity = (clubMode, playerPool, criteria) => fastSbcService.calculateQuantity({
       clubMode,
       playerPool,
@@ -7739,7 +7006,7 @@
 
   // src/fsu/patches/sbc-fill-patches.js
   function installSbcFillPatches(deps) {
-    const { call, events, info, cntlr: cntlr2, isPhone: isPhone2, services: services2, debug: debug2, repositories: repositories2, build, fsuSC, fy: fy2, enums: enums2, GM_setValue: GM_setValue2 } = deps;
+    const { call, events, info, cntlr: cntlr2, services: services2, debug: debug2, repositories: repositories2, fsuSC, fy: fy2, enums: enums2, GM_setValue: GM_setValue2 } = deps;
     UTSBCService.prototype.loadChallengeData = function(r) {
       var s2 = this, a = new EAObservable();
       return this.sbcDAO.loadChallenge(r.id, r.isInProgress()).observe(this, function(t, e2) {
@@ -7757,7 +7024,7 @@
         this._fsu.setBtn = events.createButton(
           new UTGroupButtonControl(),
           `FSU ${services2.Localization.localize("button.settings")}`,
-          async (e2) => {
+          async (_e) => {
             var n = cntlr2.current().getNavigationController();
             if (n) {
               var t = new fsuSC();
@@ -7770,7 +7037,7 @@
         this._fsu.proxyBtn = events.createButton(
           new UTGroupButtonControl(),
           fy2("apiprroxy.popupt"),
-          async (e2) => {
+          async (_e) => {
             events.popup(
               fy2("apiprroxy.popupt"),
               fy2("apiprroxy.popupm"),
@@ -7812,7 +7079,7 @@
         }
         services2.Item.requestMarketData(i2).observe(
           this,
-          async function(sender, response) {
+          async function(_sender, _response) {
             resolve();
           }
         );
@@ -7995,7 +7262,7 @@
       }
     };
     events.goToSBC = (SBCSetEntity) => {
-      let controller = cntlr2.current(), view = controller.getView(), eventText = UTSBCHubView.Event.TILE_SELECTED, r;
+      let controller = cntlr2.current(), view = controller.getView(), r;
       view.setInteractionState(false);
       services2.SBC.requestChallengesForSet(SBCSetEntity).observe(controller, (e2, t) => {
         if (e2.unobserve(controller), t.success && 0 < t.data.challenges.length) {
@@ -8104,7 +7371,7 @@
 
   // src/fsu/patches/sbc-reward-events.js
   function registerSbcRewardEvents(deps) {
-    const { events, info, cntlr: cntlr2, isPhone: isPhone2, repositories: repositories2, services: services2, debug: debug2, oneFillCriteriaService, SBCEligibilityKey: SBCEligibilityKey2 } = deps;
+    const { events, info, cntlr: cntlr2, isPhone: isPhone2, repositories: repositories2, debug: debug2, oneFillCriteriaService, SBCEligibilityKey: SBCEligibilityKey2 } = deps;
     events.oneFillCreationGF = (req, miss) => oneFillCriteriaService.createFromRequirements(req, miss, SBCEligibilityKey2);
     events.getCurrent = (type) => {
       let r = cntlr2.current();
@@ -8326,7 +7593,7 @@
 
   // src/fsu/patches/club-select.js
   function installClubSelectPatches(deps) {
-    const { call, events, info, fy: fy2, cntlr: cntlr2, isPhone: isPhone2, repositories: repositories2, services: services2, debug: debug2 } = deps;
+    const { call, events, fy: fy2, isPhone: isPhone2 } = deps;
     UTSelectItemFromClubViewController.prototype.requestItems = function() {
       if (this.clubViewModel.canShowPage() && !this.clubViewModel.shouldRequestItems()) {
         this.updateItemList(this.clubViewModel.getPageItems());
@@ -8336,7 +7603,7 @@
           const searchView = this?.getParentViewController()?.getPreviousController().getView();
           const type = this.getParentViewController()._fsuFillType;
           if (![1, 2, 9].includes(type)) {
-            let players = _.clone(this.getParentViewController()._fsuFillArray), sort = _.split(_.replace(_.toLower(SearchSortID[this.getParentViewController()._fsuFillSort]), "rating", "ovr"), "_");
+            let players = _.clone(this.getParentViewController()._fsuFillArray);
             if (this.getParentViewController()._fsuFillSort == 2) {
               players = _.orderBy(players, "rating", "desc");
             }
@@ -8640,7 +7907,7 @@
 
   // src/fsu/patches/club-select-events.js
   function registerClubSelectEvents(deps) {
-    const { events, info, cntlr: cntlr2, isPhone: isPhone2, services: services2, repositories: repositories2, debug: debug2, fy: fy2 } = deps;
+    const { events, info, cntlr: cntlr2, services: services2, repositories: repositories2, fy: fy2 } = deps;
     events.setListFilterTitleAndState = (element, players, initPlayers) => {
       let parentElement = element[1]._parent;
       let rBtn = element[1];
@@ -8824,12 +8091,12 @@
       }
       return type;
     };
-    events.accelePopup = (player, isLoadMeta) => {
+    events.accelePopup = (player, _isLoadMeta) => {
       let sl = services2.Localization;
       gClickShield.showShield(EAClickShieldView.Shield.LOADING);
       const currentStyleId = player.playStyle;
       const styleIds = _.range(250, 269);
-      services2.PlayerMetaData.updateItemPlayerMeta([player]).observe(cntlr2.current(), function(t, e2) {
+      services2.PlayerMetaData.updateItemPlayerMeta([player]).observe(cntlr2.current(), function(t, _e) {
         t.unobserve(cntlr2.current());
         const acceleToGroup = {};
         styleIds.forEach((styleId) => {
@@ -8860,7 +8127,7 @@
         events.popup(
           fy2("accelerate.popupt"),
           accelePopupText,
-          (t2) => {
+          (_t) => {
           }
         );
         gClickShield.hideShield(EAClickShieldView.Shield.LOADING);
@@ -8877,7 +8144,7 @@
 
   // src/fsu/patches/club-select-search-patches.js
   function installClubSelectSearchPatches(deps) {
-    const { call, events, info, fy: fy2, cntlr: cntlr2, repositories: repositories2, services: services2 } = deps;
+    const { call, events, info, fy: fy2, repositories: repositories2, services: services2 } = deps;
     UTClubSearchResultsViewController.prototype._requestItems = function(r) {
       if ("_fsuLock" in this && this._fsuLock) {
         var s2 = this;
@@ -8903,30 +8170,6 @@
           } else
             services2.Notification.queue([services2.Localization.localize("notification.club.failedToLoad"), UINotificationType.NEGATIVE]), null === (i2 = s2.getNavigationController()) || void 0 === i2 || i2.popViewController(true);
         });
-      } else if ("_fsuAutoBuy" in this && this._fsuAutoBuy) {
-        this.clubViewModel.resetCollection([]);
-        this.clubViewModel.addArray(this._fsuAutoBuyPlayers);
-        this.clubViewModel.isFull = true;
-        this.clubViewModel.getIndex();
-        this.updateItemList(this.clubViewModel.getPageItems(), 1);
-        if (this._fsuAutoBuyPlayers.length == 0) {
-          this.getView()._list.noResultsView.setHeading(fy2("autobuy.noresult.title"));
-          this.getView()._list.noResultsView.setDescription(fy2("autobuy.noresult.text"));
-          this.getView()._list.noResultsView._button.hide();
-          this.getView().getRootElement().classList.add("fsu-aotobuy");
-        } else {
-          this.getView().header.getButton().hide();
-          _.forEach(this.getView()._list.listRows, (rows) => {
-            const clubPlayers = events.getItemBy(1, { "definitionId": rows.data.definitionId });
-            if (clubPlayers.length > 0) {
-              let tag = new UTListActiveTagView();
-              tag.setIconClass("club");
-              rows.setActiveTagComponent(tag);
-              rows.addClass("is-active");
-              rows.__rowContent.appendChild(tag.getRootElement());
-            }
-          });
-        }
       } else if ("_fsuInPacks" in this && this._fsuInPacks) {
         events.showLoader();
         const index = this.clubViewModel.getIndex();
@@ -8960,7 +8203,7 @@
           let setClubButton = events.createButton(
             new UTStandardButtonControl(),
             fy2(`storage.setclub.button`),
-            (e2) => {
+            (_e) => {
               events.transferToClub(controller, sendClubPlayers);
               setClubHeader.hide();
             },
@@ -8970,36 +8213,6 @@
           setClubHeader.getRootElement().appendChild(setClubButton.getRootElement());
           this.getView().getRootElement().prepend(setClubHeader.getRootElement());
         }
-      }
-      if ("_fsuAutoBuy" in this && this._fsuAutoBuy && !_.has(this, "_playerNameInput")) {
-        this.getNavigationController().setNavigationTitle(fy2("autobuy.nav.tilte"));
-        let searchBox = document.createElement("div");
-        searchBox.classList.add("fsu-sbcfilter-box");
-        let searchOption = document.createElement("div");
-        searchOption.classList.add("fsu-sbcfilter-option");
-        searchOption.style.maxWidth = "400px";
-        this._playerNameInput = new UTPlayerSearchControl();
-        this._playerNameInput.init();
-        this._playerNameInput.getRootElement().style.flex = 1;
-        searchOption.appendChild(this._playerNameInput.getRootElement());
-        this._searchButton = events.createButton(
-          new UTStandardButtonControl(),
-          services2.Localization.localize("button.search"),
-          (e2) => {
-            if (this._playerNameInput.getSelected()) {
-              events.showLoader();
-              events.autoBuySearchPlayer(this._playerNameInput.getSelected(), this);
-            } else {
-              events.notice("autobuy.noselected.notice", 2);
-            }
-          },
-          "call-to-action"
-        );
-        this._searchButton.getRootElement().style.marginLeft = "1rem";
-        this._searchButton.getRootElement().style.width = "6rem";
-        searchOption.appendChild(this._searchButton.getRootElement());
-        searchBox.appendChild(searchOption);
-        this.getView().header.getRootElement().after(searchBox);
       }
     };
     UTItemDetailsNavigationController.prototype.setSquadContext = function(e2) {
@@ -9195,12 +8408,12 @@
   // src/fsu/patches/club-hub.js
   function installClubHubPatches(deps) {
     const { call, events, info, fy: fy2, cntlr: cntlr2, isPhone: isPhone2, repositories: repositories2, services: services2 } = deps;
-    UTClubHubView.prototype.clearTileContent = function(...args) {
+    UTClubHubView.prototype.clearTileContent = function(..._args) {
       call.view.clubHub.call(this);
       if (services2.Configuration.checkFeatureEnabled(UTServerSettingsRepository.KEY.STORAGE_PILE_ENABLED)) {
         let v = this;
         let e2 = new UTSearchCriteriaDTO();
-        services2.Item.searchStorageItems(e2).observe(v, function(e3, t) {
+        services2.Item.searchStorageItems(e2).observe(v, function(e3, _t) {
           e3.unobserve(v);
           if (this._sbcStorageTile) {
             this.addTileStats(this._sbcStorageTile, repositories2.Item.numItemsInCache(ItemPile.STORAGE));
@@ -9418,7 +8631,7 @@
 
   // src/fsu/patches/ui-utils.js
   function registerUiUtilsEvents(deps) {
-    const { events, info, cntlr: cntlr2, debug: debug2, fy: fy2, services: services2 } = deps;
+    const { events, info, cntlr: cntlr2, fy: fy2, services: services2 } = deps;
     events.waitForClickShieldToHide = (callback, timeout = 5e3) => {
       const start = Date.now();
       const interval = setInterval(() => {
@@ -9447,12 +8660,12 @@
       }
       return type;
     };
-    events.accelePopup = (player, isLoadMeta) => {
+    events.accelePopup = (player, _isLoadMeta) => {
       let sl = services2.Localization;
       gClickShield.showShield(EAClickShieldView.Shield.LOADING);
       const currentStyleId = player.playStyle;
       const styleIds = _.range(250, 269);
-      services2.PlayerMetaData.updateItemPlayerMeta([player]).observe(cntlr2.current(), function(t, e2) {
+      services2.PlayerMetaData.updateItemPlayerMeta([player]).observe(cntlr2.current(), function(t, _e) {
         t.unobserve(cntlr2.current());
         const acceleToGroup = {};
         styleIds.forEach((styleId) => {
@@ -9483,7 +8696,7 @@
         events.popup(
           fy2("accelerate.popupt"),
           accelePopupText,
-          (t2) => {
+          (_t) => {
           }
         );
         gClickShield.hideShield(EAClickShieldView.Shield.LOADING);
@@ -9602,7 +8815,6 @@
       }
     };
     events.getPlayerMetaPopupText = (meta, pos) => {
-      let t = "";
       let v = "";
       let sl = services2.Localization;
       let desc = meta.id == -1 ? meta.name : sl.localize(`tactics.roles.role${meta.id}.description`);
@@ -9646,7 +8858,7 @@
 
   // src/fsu/patches/misc-patches.js
   function registerMiscEvents(deps) {
-    const { events, info, cntlr: cntlr2, services: services2, repositories: repositories2, debug: debug2, fy: fy2 } = deps;
+    const { events } = deps;
     events.jsonToItemEntity = (json, isUntradeable) => {
       const baseItem = {
         "assetId": 0,
@@ -9716,149 +8928,9 @@
         return false;
       }
     };
-    const UTSplitViewController_setRightController = UTSplitViewController.prototype.setRightController;
-    UTSplitViewController.prototype.setRightController = function(t, e2) {
-      const leftController = this.leftController;
-      if (leftController && leftController.className && leftController.className == "UTClubSearchResultsViewController" && _.has(leftController, "_fsuAutoBuy")) {
-        UTSplitViewController_setRightController.call(this, leftController._fsuAutoBuyRight, e2);
-      } else {
-        UTSplitViewController_setRightController.call(this, t, e2);
-      }
-    };
-    const UTPlayerBioView_setupNavigation = UTPlayerBioView.prototype.setupNavigation;
-    UTPlayerBioView.prototype.setupNavigation = function(t, e2) {
-      if (this.isFsuAutoBuy) {
-        this._navigation.clearTabs(), this._navigation.addTab(444101, fy2("autobuy.tabs.text0")), this._navigation.addTab(444102, fy2("autobuy.tabs.text1")), this._navigation.setActiveTab(444101), this._navigation.addTarget(this, t, EventType.TAP), this._navigation.layoutSubviews();
-        this._fsuSubviews = {};
-      } else {
-        UTPlayerBioView_setupNavigation.call(this, t, e2);
-      }
-    };
   }
   function installMiscPatches(deps) {
-    const { events, info, fy: fy2, debug: debug2 } = deps;
-    const UTTransfersHubView_init = UTTransfersHubView.prototype.init;
-    UTTransfersHubView.prototype.init = function() {
-      UTTransfersHubView_init.call(this);
-      return;
-      let autoBuyTile = new UTPlayerPicksTileView();
-      autoBuyTile.init();
-      autoBuyTile.title = fy2("autobuy.tile.title");
-      autoBuyTile.__label.innerHTML = fy2("autobuy.tile.content");
-      autoBuyTile.addClass("col-1-1");
-      const hubMessages = services.Messages.messagesRepository.getHubMessages();
-      if (hubMessages.length) {
-        const firstMessage = hubMessages[0];
-        if (firstMessage.goToLink == "gotostore") {
-          let img = autoBuyTile.getRootElement().querySelector(".img");
-          img.style.backgroundImage = `url(${firstMessage.bodyImagePath})`;
-          img.style.width = "22rem";
-          img.style.right = "-1rem";
-        }
-      }
-      autoBuyTile.addTarget(
-        autoBuyTile,
-        (e2) => {
-          events.goToAutoBuy();
-        },
-        EventType.TAP
-      );
-      this._extLinkTile.getRootElement().after(autoBuyTile.getRootElement());
-      this._fsuAutoBuyTile = autoBuyTile;
-    };
-    let UTItemView_requestResource = UTItemView.prototype.requestResource;
-    UTItemView.prototype.requestResource = async function(t, e2, i2, r) {
-      if (false) {
-        const imgName = t.split("/").pop().split("?")[0].replace(/\.[^/.]+$/, "");
-        const imgData = await events.getImageByName(imgName);
-        let imgUrl = t;
-        if (imgData) {
-          debug2.log("✅ 从缓存获取", imgName);
-          imgUrl = imgData;
-        } else {
-          const res = await fetch(t);
-          const blob = await res.blob();
-          if (blob.type === "image/png") {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-              const img = new Image();
-              img.src = reader.result;
-              img.onload = () => {
-                const canvas = document.createElement("canvas");
-                const ctx = canvas.getContext("2d");
-                canvas.width = img.width;
-                canvas.height = img.height;
-                ctx.drawImage(img, 0, 0);
-                const dataURL = canvas.toDataURL("image/webp", 0.5);
-                events.saveImageToIndexedDB(imgName, dataURL);
-              };
-            };
-            reader.readAsDataURL(blob);
-          }
-        }
-        UTItemView_requestResource.call(this, imgUrl, e2, i2, r);
-      } else {
-        UTItemView_requestResource.call(this, t, e2, i2, r);
-      }
-    };
-    events.getDB = async function() {
-      if (info.base.imgDB) return info.base.imgDB;
-      return new Promise((resolve, reject) => {
-        const request = indexedDB.open("ImageCacheDB", 1);
-        request.onupgradeneeded = function(event) {
-          const db = event.target.result;
-          if (!db.objectStoreNames.contains("images")) {
-            db.createObjectStore("images");
-          }
-        };
-        request.onsuccess = function(event) {
-          info.base.imgDB = event.target.result;
-          resolve(info.base.imgDB);
-        };
-        request.onerror = function(event) {
-          reject(event.target.error);
-        };
-      });
-    };
-    events.saveImageToIndexedDB = async function(name, dataURL) {
-      const db = await events.getDB();
-      const expiresAt = Date.now() + 30 * 24 * 60 * 60 * 1e3;
-      const tx = db.transaction("images", "readwrite");
-      const store = tx.objectStore("images");
-      const data = {
-        dataURL,
-        expiresAt
-      };
-      store.put(data, name);
-      return new Promise((resolve, reject) => {
-        tx.oncomplete = () => {
-          debug2.log(`✅ 已保存图片：${name}`);
-          resolve();
-        };
-        tx.onerror = reject;
-      });
-    };
-    events.getImageByName = async function(imgName) {
-      if (info.base.imgCache[imgName]) {
-        return info.base.imgCache[imgName];
-      }
-      const db = await events.getDB();
-      return new Promise((resolve, reject) => {
-        const tx = db.transaction("images", "readonly");
-        const store = tx.objectStore("images");
-        const req = store.get(imgName);
-        req.onsuccess = () => {
-          const result = req.result;
-          if (result && result.dataURL) {
-            info.base.imgCache[imgName] = result.dataURL;
-            resolve(result.dataURL);
-          } else {
-            resolve(null);
-          }
-        };
-        req.onerror = reject;
-      });
-    };
+    const { events } = deps;
     events.goToUnassigned = (controller) => {
       repositories.Item.unassigned.reset();
       services.Item.requestUnassignedItems().observe(controller, (e2, t) => {
@@ -9870,43 +8942,10 @@
         }
       });
     };
-    events.fixedPickPopup = async (pickItem) => {
-      events.showLoader();
-      let pickIdList = await events.getTryPackData(pickItem);
-      debug2.log(pickIdList);
-      if (pickIdList && _.size(pickIdList)) {
-        let searchCriteria = new UTSearchCriteriaDTO();
-        searchCriteria.count = 200;
-        searchCriteria.defId = pickIdList;
-        services.Item.searchConceptItems(searchCriteria).observe(cntlr.current(), function(e2, t) {
-          e2.unobserve(cntlr.current());
-          if (t.success) {
-            if (t.response.items.length) {
-              let resultItems = _.filter(t.response.items, (item) => {
-                if (_.includes(pickIdList, item.definitionId)) {
-                  item.concept = false;
-                  return true;
-                }
-                return false;
-              });
-              debug2.log(resultItems);
-              events.openPacksResultPopup(pickItem._staticData.description, fy2("pickpreview.popupm"), resultItems);
-            } else {
-              events.notice("没有匹配的球员数据，需EA更新！", 2);
-            }
-          } else {
-            events.notice("读取球员数据失败！", 2);
-          }
-          events.hideLoader();
-        });
-      }
-    };
   }
 
   // src/fsu/core/CachePruner.js
   var DEFAULT_ROSTER_TTL_MS = 30 * 60 * 1e3;
-  var DEFAULT_IMG_CACHE_MAX = 120;
-  var DEFAULT_INFO_VIEW_MAX = 80;
   var CachePruner = class {
     /**
      * @param {() => object} getInfo
@@ -9925,50 +8964,8 @@
         }
       }
     }
-    pruneGgr(maxAgeSeconds = 168 * 3600) {
-      const info = this.getInfo();
-      const ggr = info.ggr;
-      if (!ggr || typeof ggr !== "object") return;
-      const cutoff = Math.floor(Date.now() / 1e3) - maxAgeSeconds;
-      for (const [id, entry] of Object.entries(ggr)) {
-        const time = parseInt(entry?.time, 10);
-        if (isNaN(time) || time < cutoff) {
-          delete ggr[id];
-        }
-      }
-    }
-    pruneImgCache(maxSize = DEFAULT_IMG_CACHE_MAX) {
-      const info = this.getInfo();
-      const cache = info.base?.imgCache;
-      if (!cache || typeof cache !== "object") return;
-      const keys = Object.keys(cache);
-      if (keys.length <= maxSize) return;
-      const removeCount = keys.length - maxSize;
-      for (let i2 = 0; i2 < removeCount; i2++) {
-        delete cache[keys[i2]];
-      }
-    }
-    pruneAutoBuyInfoViews(maxSize = DEFAULT_INFO_VIEW_MAX) {
-      const info = this.getInfo();
-      const views = info.autobuy?.infoViews;
-      if (!views || typeof views !== "object") return;
-      const keys = Object.keys(views);
-      if (keys.length <= maxSize) return;
-      const removeCount = keys.length - maxSize;
-      for (let i2 = 0; i2 < removeCount; i2++) {
-        const key = keys[i2];
-        const view = views[key];
-        if (view instanceof EAView) {
-          view.dealloc();
-        }
-        delete views[key];
-      }
-    }
     pruneAll() {
       this.pruneRosterData();
-      this.pruneGgr();
-      this.pruneImgCache();
-      this.pruneAutoBuyInfoViews();
     }
   };
 
@@ -10140,7 +9137,7 @@
 
   // src/fsu/patches/academy-details.js
   function installAcademyDetailsPatches(deps) {
-    const { info, events, repositories: repositories2, services: services2, cntlr: cntlr2, isPhone: isPhone2, debug: debug2 } = deps;
+    const { info, events, repositories: repositories2, services: services2, cntlr: cntlr2, isPhone: isPhone2 } = deps;
     const UTAcademySlotItemDetailsViewController_renderPopulatedSlot = UTAcademySlotItemDetailsViewController.prototype.renderPopulatedSlot;
     UTAcademySlotItemDetailsViewController.prototype.renderPopulatedSlot = function(e2) {
       UTAcademySlotItemDetailsViewController_renderPopulatedSlot.call(this, e2);
@@ -10204,7 +9201,7 @@
         });
       };
       if (!repositories2.PlayerMeta.get(boost.definitionId)) {
-        services2.PlayerMetaData.updateItemPlayerMeta([boost]).observe(controller, function(t, e3) {
+        services2.PlayerMetaData.updateItemPlayerMeta([boost]).observe(controller, function(t, _e) {
           t.unobserve(controller);
           boost.setMetaData(repositories2.PlayerMeta.get(boost.definitionId));
           renderUI();
@@ -10362,7 +9359,7 @@
             this._fsu[`reqBtn_${index}`] = events.createButton(
               new UTImageButtonControl(),
               "",
-              (e2) => {
+              (_e) => {
                 events.squadPositionSelection(
                   thisController,
                   criteria,
@@ -10385,7 +9382,7 @@
         this._fsu.bulkBuyBtn = events.createButton(
           new UTStandardButtonControl(),
           fy2("bibconcept.btntext"),
-          (e2) => {
+          (_e) => {
             let conceptPlayers = _.map(_.filter(thisController._squad.getPlayers(), (slot) => {
               return slot.item.concept;
             }), "item");
@@ -10506,7 +9503,7 @@
             this._fsu.fastSbcStatsBtn = events.createButton(
               new UTStandardButtonControl(),
               fy2(`fastsbc.${fastSbcStats}`),
-              (q) => {
+              (_q) => {
                 if (fastSbcStats == "add") {
                   info.base.fastsbc[fastSbcName] = fastSbcNeedInfo;
                 } else {
@@ -10607,7 +9604,7 @@
           this._fsu.squadCmplBtn = events.createButton(
             new UTStandardButtonControl(),
             fy2("squadcmpl.btntext"),
-            (e2) => {
+            (_e) => {
               debug2.log(thisController._challenge);
               let va = thisController._squad.getNumOfRequiredPlayers() - thisController._squad.getFieldPlayers().filter((i2) => i2.isValid()).length, fillRating = events.needRatingsCount(hasRating, thisController._squad), inputText = fy2(va ? "squadcmpl.placeholder" : "squadcmpl.placeholder_zero");
               if (fillRating.length && fillRating[0].lackRatings.length == 0 && fillRating[0].ratings.length && hasRating) {
@@ -10655,7 +9652,7 @@
     };
   }
   function installSbcSquadDetailPanelPatches(deps) {
-    const { events, info, cntlr: cntlr2 } = deps;
+    const { info } = deps;
     const UTSBCSquadDetailPanelViewController_initWithSBCSet = UTSBCSquadDetailPanelViewController.prototype.initWithSBCSet;
     UTSBCSquadDetailPanelViewController.prototype.initWithSBCSet = function(...args) {
       UTSBCSquadDetailPanelViewController_initWithSBCSet.call(this, ...args);
@@ -10711,25 +9708,10 @@
 
   // src/fsu/patches/player-bio.js
   function installPlayerBioPatches(deps) {
-    const { events, info, cntlr: cntlr2, services: services2, debug: debug2, fy: fy2, repositories: repositories2 } = deps;
+    const { events, cntlr: cntlr2, services: services2, debug: debug2, fy: fy2, repositories: repositories2 } = deps;
     const UTPlayerBioView_render = UTPlayerBioView.prototype.render;
     UTPlayerBioView.prototype.render = function(t, e2, i2) {
-      if (this.isFsuAutoBuy) {
-        DOMKit.empty(this.__dataDisplay);
-        if (t == 444101 || !t) {
-          if (!_.has(info.autobuy.infoViews, e2.definitionId)) {
-            info.autobuy.infoViews[e2.definitionId] = events.autoBuyCreateInfoView(e2);
-          }
-          this.__dataDisplay.appendChild(info.autobuy.infoViews[e2.definitionId].getRootElement());
-        } else if (t == 444102) {
-          if (_.isEmpty(info.autobuy.logView)) {
-            events.autoBuyCreateLogView();
-          }
-          this.__dataDisplay.appendChild(info.autobuy.logView.getRootElement());
-        }
-      } else {
-        UTPlayerBioView_render.call(this, t, e2, i2);
-      }
+      UTPlayerBioView_render.call(this, t, e2, i2);
       if (_.some(cntlr2.current().getNavigationController()._childViewControllers, { className: "UTAcademySlotItemDetailsViewController" })) {
         this.fsuAcademy = true;
       }
@@ -10746,7 +9728,7 @@
           this.fsuAcademyChange = {};
           const nowPlayer = this.fsuAcademy.nowPlayer;
           debug2.log(e2, nowPlayer);
-          let infoChange = [], CA = e2.academy, attrChange = [], styleChange = [], roleChange = [];
+          let infoChange = [], attrChange = [], styleChange = [], roleChange = [];
           if (e2.rareflag !== nowPlayer.rareflag) {
             infoChange.push({ type: 0, index: 0, value: 0, count: true });
           }
@@ -10849,7 +9831,7 @@
                   roleCont++;
                 });
               } else {
-                _.forEach(roleIds, (roleId) => {
+                _.forEach(roleIds, (_roleId) => {
                   roleCont++;
                 });
               }
@@ -11310,7 +10292,7 @@
         services: services2
       } = helpers;
       const info = getInfo();
-      let players = replaceData ? replaceData : _.concat(getClubPlayers(), getStorageItems()), ratingOrder = queryOptions.hasOwnProperty("LTrating") ? "desc" : "asc", specialOrder = [], firstStorage = 0, currentSquad;
+      let players = replaceData ? replaceData : _.concat(getClubPlayers(), getStorageItems()), ratingOrder = queryOptions.hasOwnProperty("LTrating") ? "desc" : "asc", specialOrder = [], firstStorage = 0;
       if (queryOptions.hasOwnProperty("os") && _.isArray(queryOptions.os)) {
         specialOrder = queryOptions.os;
         delete queryOptions.os;
@@ -11950,7 +10932,7 @@
             } else {
               await futbinId2.getId(player);
             }
-          } catch (error) {
+          } catch {
             return;
           }
           searchCriteria.maxBuy = getCachePrice(defId, 1).num;
@@ -11992,7 +10974,7 @@
       }
       return result;
     }
-    searchTransferMarket(criteria, type, helpers) {
+    searchTransferMarket(criteria, type, _helpers) {
       return new Promise(async (resolve) => {
         services.Item.searchTransferMarket(criteria, type).observe(this, async function(sender, response) {
           resolve(response);
@@ -12034,7 +11016,7 @@
           } else {
             await futbinId2.getId(i2);
           }
-        } catch (error) {
+        } catch {
           return;
         }
         const price = getCachePrice(i2.definitionId, 1).num;
@@ -12144,7 +11126,7 @@
     losAuctionCount(e2, t, helpers) {
       const { getCachePrice } = helpers;
       if (e2.hasOwnProperty("_fsuAkbCurrent") && e2.hasOwnProperty("_fsuAkbNumber") && e2.hasOwnProperty("_fsuAkbArray")) {
-        let pn = 0, qs = {};
+        let pn = 0;
         for (let n in e2._fsuAkbArray) {
           const ppValue = getCachePrice(e2._fsuAkbArray[n]._pId, 1);
           pn += ppValue.num;
@@ -12169,1071 +11151,6 @@
           e2._fsuAkbButton.setInteractionState(0);
         }
       }
-    }
-  };
-
-  // src/fsu/domain/PackService.js
-  var PackService = class {
-    async raelProbability(pack, helpers) {
-      const { fy: fy2, hideLoader, createElementWithConfig: createElementWithConfig2 } = helpers;
-      let prod = await this.getRealProbability(pack, helpers);
-      if (prod.rarity.length) {
-        hideLoader();
-        let mp = new EADialogViewController({
-          dialogOptions: [{ labelEnum: enums.UIDialogOptions.OK }],
-          message: fy2(`realprob.popupm`),
-          title: fy2(["realprob.popupt", services.Localization.localize(pack.packName)]),
-          type: EADialogView.Type.MESSAGE
-        });
-        mp.init();
-        mp.onExit.observe(mp, (e2, z) => {
-          e2.unobserve(mp);
-        });
-        gPopupClickShield.setActivePopup(mp);
-        _.flatMap(mp.getView().dialogOptions, (v, i2) => {
-          if (v.__text.innerHTML == "*") {
-            v.setText(fy2(`popupButtonsText.${mp.options[i2].labelEnum}`));
-          }
-        });
-        mp.getView().__msg.style.padding = "1rem";
-        mp.getView().__msg.style.fontSize = "100%";
-        let pBox = createElementWithConfig2("div", {
-          style: {
-            marginTop: "1rem"
-          }
-        });
-        let pBoxTiltle = createElementWithConfig2("div", {
-          classList: "fsu-realProdTitle"
-        });
-        _.times(4, (index) => {
-          if (!prod.eaOddo && index === 1) return;
-          pBoxTiltle.appendChild(
-            createElementWithConfig2("div", {
-              textContent: fy2(`realprob.title_${index + 1}`)
-            })
-          );
-        });
-        pBox.appendChild(pBoxTiltle);
-        let pBoxBody = createElementWithConfig2("div", {
-          classList: "fsu-realProdBody",
-          style: {
-            height: "auto",
-            maxHeight: "30vh"
-          }
-        });
-        _.forEach(prod.rarity, (item, index) => {
-          let pBoxBodyItem = createElementWithConfig2("div", {
-            classList: "fsu-realProdBodyItem"
-          });
-          let prodKeys = ["name", "odds", "count"];
-          if (prod.eaOddo) {
-            prodKeys.splice(1, 0, "ea");
-          }
-          _.forEach(prodKeys, (key) => {
-            pBoxBodyItem.appendChild(
-              createElementWithConfig2("div", {
-                textContent: item[key]
-              })
-            );
-          });
-          pBoxBody.appendChild(pBoxBodyItem);
-        });
-        pBox.appendChild(pBoxBody);
-        mp.getView().__msg.appendChild(pBox);
-      } else {
-        hideLoader();
-      }
-    }
-    async tryPack(pack, helpers) {
-      const { getInfo, jsonToItemEntity, debug: debug2, notice, hideLoader, fy: fy2 } = helpers;
-      const info = getInfo();
-      let packJson = await this.getTryPackData(pack, helpers);
-      info.base.oddo[pack.id] = packJson.packItem.pack.returns.avgReturns;
-      const items = jsonToItemEntity(packJson, !pack.tradable);
-      if (items) {
-        debug2.log(items);
-        this.tryPackPopup(pack, _.orderBy(items, ["rareflag", "rating"], ["desc", "desc"]), helpers);
-      } else {
-        notice(fy2("notice.loaderror") + "player data error", 2);
-        hideLoader();
-      }
-    }
-    async tryPackPopup(pack, items, helpers) {
-      const {
-        createElementWithConfig: createElementWithConfig2,
-        createButton: createButton2,
-        fy: fy2,
-        getOddo,
-        loadPlayerInfo,
-        hideLoader,
-        showLoader,
-        getCurrentController,
-        debug: debug2
-      } = helpers;
-      const storeVM = new UTStoreViewModel(repositories.Store.values(), []);
-      let tryPackController = new UTStorePackRevealModalListViewController(
-        true,
-        storeVM.getPackById(10301),
-        storeVM
-      );
-      tryPackController.init();
-      tryPackController.viewmodel.addArray(items);
-      tryPackController.onExit.observe(getCurrentController(), function(e2, d, i2) {
-        e2.unobserve(getCurrentController());
-        if (getCurrentController().className == `UTStorePackViewController`) {
-          getCurrentController().isPreviewingPack = false;
-          getCurrentController().updateViewCategories();
-          getCurrentController().getView().setInteractionState(true);
-        }
-        tryPackController.dealloc();
-      });
-      tryPackController.getView().__list.classList.add("fsu-popupItemList");
-      tryPackController.getView().__footerElement.style.display = "none";
-      const sumRare = _.map(items, "rareflag");
-      const specialRare = _.filter(sumRare, (num) => num >= 2);
-      let tryPackFooter = createElementWithConfig2("footer", {
-        style: {
-          marginTop: "1rem"
-        }
-      });
-      let footInfo_1 = document.createElement("div");
-      let footInfo_paddingLeft = "0";
-      if (_.has(pack, "categoryId") && pack.getPrice(GameCurrency.COINS)) {
-        footInfo_1.innerHTML = `<span>${fy2("trypack.foot.info1_1")}</span><span class="currency-coins">${pack.getPrice(GameCurrency.COINS).toLocaleString()}</span>`;
-        if (pack.getPrice(GameCurrency.POINTS)) {
-          footInfo_1.insertAdjacentHTML(
-            "beforeend",
-            `<span class="currency-points" style="padding-left: 0.5rem;">${pack.getPrice(GameCurrency.POINTS).toLocaleString()}</span>`
-          );
-        }
-        footInfo_paddingLeft = "1rem";
-      }
-      footInfo_1.insertAdjacentHTML(
-        "beforeend",
-        `<span style="padding-left: ${footInfo_paddingLeft};">${fy2(["trypack.foot.info1_2", sumRare.length, specialRare.length])}</span>`
-      );
-      tryPackFooter.appendChild(footInfo_1);
-      let footInfo_2 = createElementWithConfig2("div", {
-        style: {
-          paddingTop: ".2rem"
-        }
-      });
-      footInfo_2.innerHTML = `<span>${fy2("trypack.foot.info2_1")}</span>`;
-      let packOddo = getOddo(pack.id);
-      footInfo_2.insertAdjacentHTML(
-        "beforeend",
-        `<span class="currency-coins">${packOddo.toLocaleString()}</span><span style="padding-left: 1rem;">${fy2("trypack.foot.info2_2")}</span><span class="currency-coins trypack-count">0</span><span style="padding-left: 1rem;">${fy2("trypack.foot.info2_3")}</span><span class="trypack-diff">0%</span>`
-      );
-      tryPackFooter.appendChild(footInfo_2);
-      let footInfo_3 = createElementWithConfig2("div", {
-        textContent: fy2("trypack.foot.info3"),
-        style: {
-          paddingTop: ".2rem",
-          opacity: ".5"
-        }
-      });
-      tryPackFooter.appendChild(footInfo_3);
-      let againButton = createButton2(
-        new UTButtonControl(),
-        fy2("trypack.button.again"),
-        async (e2) => {
-          tryPackController.getView()._exitBtn._tapDetected();
-          showLoader();
-          const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-          const randomDelay = _.random(500, 1e3);
-          await delay(randomDelay);
-          this.tryPack(pack, helpers);
-        },
-        "btn-standard primary mini"
-      );
-      againButton.getRootElement().style.marginTop = "1rem";
-      againButton.getRootElement().style.cursor = "pointer";
-      againButton.setInteractionState(0);
-      tryPackFooter.appendChild(againButton.getRootElement());
-      tryPackController._packoddo = packOddo;
-      loadPlayerInfo(items, tryPackController);
-      tryPackController.getView().getRootElement().appendChild(tryPackFooter);
-      gPopupClickShield.setActivePopup(tryPackController);
-      debug2.log(tryPackController, items);
-      tryPackController.getView().setHeader(services.Localization.localize(`FUT_STORE_PACK_${pack.id}_NAME_MOBILE`));
-      let titleSuffix = createElementWithConfig2("span", {
-        textContent: fy2("trypack.popup.suffix"),
-        style: {
-          color: "#36b84b",
-          fontWeight: "600"
-        }
-      });
-      tryPackController.getView().__title.appendChild(titleSuffix);
-      hideLoader();
-      setTimeout(() => {
-        againButton.setInteractionState(1);
-      }, 2e3);
-    }
-    async getTryPackData(pack, helpers) {
-      const { externalRequest, notice, hideLoader, fy: fy2, debug: debug2 } = helpers;
-      try {
-        let packId, packName, dir, isPick;
-        if (_.has(pack, "odds")) {
-          packId = pack.id;
-          packName = services.Localization.localize(pack.packName);
-          dir = "pack";
-          isPick = false;
-        } else if (pack.isPlayerPickItem()) {
-          packId = pack.id;
-          packName = pack.getStaticData().name;
-          dir = "playerpick";
-          isPick = true;
-        } else {
-          throw new Error("pack is not valid");
-        }
-        packName = packName.replace(/\s+/g, "-").replace(/\//g, "&");
-        const packOpenResponse = await externalRequest(
-          "GET",
-          `https://www.futnext.com/${dir}/${packName}/${pack.id}/open`,
-          false,
-          `text/x-component`
-        );
-        let textResponse = packOpenResponse;
-        if (isPick) {
-          const matches = [...textResponse.matchAll(/https:\/\/cdn\.futnext\.com\/player\/(\d+)\.png/g)];
-          return matches.map((m) => Number(m[1]));
-        } else {
-          let textStart = textResponse.indexOf("packItem");
-          let textEnd = textResponse.indexOf(`"renderItemByDefault`);
-          debug2.log(textStart, textEnd);
-          let textResult = _.slice(textResponse, textStart, textEnd).join("");
-          textResult = textResult.replace(/\\/g, "");
-          textResult = '{"' + textResult + "}";
-          textResult = textResult.replace(/,\}/g, "}");
-          debug2.log(JSON.parse(textResult));
-          return JSON.parse(textResult);
-        }
-      } catch (error) {
-        notice(fy2("notice.loaderror") + error, 2);
-        hideLoader();
-        throw error;
-      }
-    }
-    async getRealProbability(pack, helpers) {
-      const { externalRequest, notice, hideLoader, fy: fy2, debug: debug2 } = helpers;
-      try {
-        let packName = services.Localization.localize(pack.packName);
-        packName = packName.replace(/\s+/g, "-").replace(/\//g, "&");
-        const packResponse = await externalRequest(
-          "GET",
-          `https://www.futnext.com/pack/${packName}/${pack.id}/`,
-          false,
-          `text/x-component`
-        );
-        let textResponse = packResponse;
-        let textStart = textResponse.indexOf(`"rarityOdds`);
-        let textEnd = textResponse.indexOf(`},\\"returns`);
-        let textResult = _.slice(textResponse, textStart, textEnd).join("");
-        let step1 = textResult.replace(/\\/g, "");
-        const jsonData = JSON.parse(`{${step1}}`);
-        let resultJson = { rarity: [], rating: [], eaOddo: false };
-        _.forEach(jsonData.rarityOdds, (j) => {
-          let odds = j.odds * 100;
-          resultJson.rarity.push({
-            id: j.rarity.id,
-            odds: `${odds.toFixed(odds >= 0.1 ? 1 : 2)}%`,
-            count: (1 / j.odds).toFixed(0),
-            name: services.Localization.localize("item.raretype" + j.rarity.id)
-          });
-        });
-        if (pack.odds.length) {
-          resultJson.eaOddo = true;
-          _.forEach(resultJson.rarity, (r) => {
-            let eaOdds = _.find(pack.odds, (item) => item.description.includes(`${r.name} `));
-            if (eaOdds) {
-              r.ea = eaOdds.odds;
-            } else {
-              r.ea = "-";
-            }
-          });
-        }
-        _.forEach(jsonData.ratingOdds, (j) => {
-          let odds = j.odds * 100;
-          resultJson.rating.push({
-            rating: j.rating,
-            odds: `${odds.toFixed(odds >= 0.1 ? 1 : 2)}%`
-          });
-        });
-        debug2.log(resultJson);
-        return resultJson;
-      } catch (error) {
-        notice(fy2("notice.loaderror") + error, 2);
-        hideLoader();
-        throw error;
-      }
-    }
-    async openPacks(packId, packName, packNum, helpers) {
-      const {
-        getInfo,
-        getCurrentController,
-        hideLoader,
-        notice,
-        fy: fy2,
-        changeLoadingText,
-        showLoader,
-        debug: debug2,
-        getItemBy
-      } = helpers;
-      const info = getInfo();
-      const controller = getCurrentController();
-      repositories.Item.unassigned.reset();
-      const unassignedItems = await new Promise((resolve) => {
-        services.Item.requestUnassignedItems().observe(controller, (e2, t) => {
-          e2.unobserve(controller);
-          resolve(t);
-        });
-      });
-      if (unassignedItems.success && JSUtils.isObject(unassignedItems.response)) {
-        if (0 < unassignedItems.response.items.length) {
-          hideLoader();
-          getCurrentController().gotoUnassigned();
-          notice(fy2("openpack.unassigned.notice"), 2);
-          return;
-        }
-      } else {
-        hideLoader();
-        errorNotice(unassignedItems);
-        return;
-      }
-      function errorNotice(e2) {
-        const code = e2.error?.code || e2.status;
-        notice(fy2(["openpack.openerror.notice", code]), 2);
-      }
-      const storeResult = await new Promise((resolve) => {
-        services.Store.getPacks(PurchasePackType.ALL, true, true).observe(controller, (e2, t) => {
-          e2.unobserve(controller);
-          resolve(t);
-        });
-      });
-      if (!storeResult.success || !JSUtils.isObject(storeResult.response)) {
-        hideLoader();
-        errorNotice(storeResult);
-        return;
-      }
-      const loadingTitle = ["openpack.progress.loadertext1", packName];
-      changeLoadingText(loadingTitle);
-      const allPacks = _.filter(repositories.Store.myPacks.values(), { id: packId });
-      if (allPacks.length < packNum) {
-        notice(fy2(["openpack.packnotenough.notice", packName, allPacks.length, packNum]), 2);
-        return;
-      }
-      showLoader();
-      info.run.openPacks = true;
-      const packs = _.take(allPacks, packNum);
-      const assignPlayer = [];
-      let packOpened = 0;
-      let errorOccurred = false;
-      const toUnassigned = (showError = false) => {
-        if (showError) {
-          services.Notification.queue([
-            services.Localization.localize("notification.item.moveFailed"),
-            UINotificationType.NEGATIVE
-          ]);
-        }
-        repositories.Store.setDirty();
-        getCurrentController().gotoUnassigned();
-        popupEnd();
-      };
-      const popupEnd = () => {
-        hideLoader();
-        if (assignPlayer.length) {
-          repositories.Store.setDirty();
-          debug2.log(assignPlayer);
-          const result = _.reduce(
-            assignPlayer,
-            (acc, e2) => {
-              if (e2.storeLoc === 1) acc.clubCount++;
-              else if (e2.storeLoc === 2) acc.storageCount++;
-              if (e2.isSpecial()) acc.specialCount++;
-              const rating = e2.rating;
-              if (rating > acc.playerMaxRating) {
-                acc.playerMaxRating = rating;
-              }
-              if (e2.packCount > acc.packCount) {
-                acc.packCount = e2.packCount;
-              }
-              return acc;
-            },
-            {
-              clubCount: 0,
-              storageCount: 0,
-              specialCount: 0,
-              packCount: 0,
-              playerMaxRating: 0
-            }
-          );
-          const { clubCount, storageCount, specialCount, packCount, playerMaxRating } = result;
-          const showPlayers = _.orderBy(assignPlayer, ["rareflag", "rating"], ["desc", "desc"]).slice(
-            0,
-            20
-          );
-          const popupText = fy2([
-            "openpack.result.popupm1",
-            packCount,
-            packNum - packCount,
-            clubCount,
-            storageCount,
-            specialCount,
-            playerMaxRating
-          ]);
-          const popupTitle = fy2(["openpack.result.popupt", packName]);
-          this.openPacksResultPopup(
-            popupTitle,
-            popupText,
-            showPlayers,
-            fy2("openpack.result.popupm2"),
-            helpers
-          );
-        }
-      };
-      try {
-        for (const [index, pack] of packs.entries()) {
-          if (!info.run.openPacks) {
-            break;
-          }
-          changeLoadingText(loadingTitle, [
-            "openpack.progress.loadertext2",
-            index + 1,
-            packNum
-          ]);
-          const openResult = await new Promise((resolve) => {
-            pack.open().observe(controller, (e2, t) => {
-              e2.unobserve(controller);
-              resolve(t);
-            });
-          });
-          if (!openResult.success || !JSUtils.isObject(openResult.response)) {
-            errorNotice(openResult);
-            errorOccurred = true;
-            break;
-          }
-          if (pack instanceof UTStoreItemPackEntity && pack?.isMyPack) {
-            services.User.getUser().decrementNumUnopenedPacks();
-          }
-          const logData = {
-            [RevenueAnalytics.Key.CURRENCY]: GameCurrency.COINS,
-            [RevenueAnalytics.Key.TYPE]: pack?.dealType ?? "unknown",
-            [RevenueAnalytics.Key.ID]: pack?.id?.toString() ?? "unknown"
-          };
-          const sdk = unsafeWindow?.services?.revenueSDK;
-          if (sdk?.initialized && typeof sdk.logEvent === "function") {
-            sdk.logEvent(RevenueAnalytics.Event.STORE_PACK_PURCHASED, logData);
-          } else {
-            console.warn("⚠️ revenueSDK 尚未初始化，跳过上报");
-          }
-          packOpened++;
-          const toClubPlayers = [];
-          const toStoragePlayers = [];
-          const minStorageRating = _.min(_.map(repositories.Item.storage.values(), "rating"));
-          for (const item of openResult.response.items) {
-            const inClub = getItemBy(
-              2,
-              { definitionId: item.definitionId, upgrades: null },
-              false,
-              repositories.Item.club.items.values()
-            );
-            if (inClub.length) {
-              if (item.rating >= minStorageRating && repositories.Item.numItemsInCache(ItemPile.STORAGE) + toStoragePlayers.length < 100) {
-                item.duplicateId = _.find(inClub).id;
-                item.pile = ItemPile.PURCHASED;
-                item.injuryType = PlayerInjury.NONE;
-                toStoragePlayers.push(item);
-              }
-            } else {
-              toClubPlayers.push(item);
-            }
-          }
-          if (toClubPlayers.length > 0) {
-            const moveClubResult = await new Promise((resolve) => {
-              services.Item.move(toClubPlayers, ItemPile.CLUB).observe(controller, (e2, t) => {
-                e2.unobserve(controller);
-                resolve(t);
-              });
-            });
-            if (moveClubResult.success) {
-              assignPlayer.push(
-                ...toClubPlayers.map((item) => {
-                  const copy = _.cloneDeep(item);
-                  copy.storeLoc = 1;
-                  copy.packCount = index + 1;
-                  return copy;
-                })
-              );
-            } else {
-              toUnassigned(true);
-              errorOccurred = true;
-              break;
-            }
-          }
-          if (toStoragePlayers.length > 0) {
-            const moveStorageResult = await new Promise((resolve) => {
-              services.Item.move(toStoragePlayers, ItemPile.STORAGE, true).observe(controller, (e2, t) => {
-                e2.unobserve(controller);
-                resolve(t);
-              });
-            });
-            if (moveStorageResult.success) {
-              assignPlayer.push(
-                ...toStoragePlayers.map((item) => {
-                  const copy = _.cloneDeep(item);
-                  copy.storeLoc = 2;
-                  copy.packCount = index + 1;
-                  return copy;
-                })
-              );
-            } else {
-              toUnassigned(true);
-              errorOccurred = true;
-              break;
-            }
-          }
-          if (toClubPlayers.length + toStoragePlayers.length !== openResult.response.items.length) {
-            toUnassigned(true);
-            errorOccurred = true;
-            break;
-          }
-          debug2.log(`✅ 已开包：${pack.id}`, openResult.response.items);
-          await new Promise((resolve) => {
-            const randomDelay = 500 + Math.floor(Math.random() * 1e3);
-            setTimeout(resolve, randomDelay);
-          });
-        }
-      } finally {
-        hideLoader();
-        info.run.openPacks = false;
-        if (!errorOccurred && packOpened > 0) {
-          popupEnd();
-        }
-      }
-    }
-    openPacksConfirmPopup(packId, packName, packCount, helpers) {
-      const { fy: fy2, getInfo, showLoader, debug: debug2 } = helpers;
-      const info = getInfo();
-      let popupController = new EADialogViewController({
-        dialogOptions: [
-          { labelEnum: enums.UIDialogOptions.OK },
-          { labelEnum: enums.UIDialogOptions.CANCEL }
-        ],
-        message: fy2(["openpack.storebtn.popupm", info.set.goldenrange]),
-        title: fy2(["openpack.storebtn.popupt", packName]),
-        type: EADialogView.Type.MESSAGE
-      });
-      popupController.init();
-      let popupView = popupController.getView();
-      let numberInput = new UTNumericInputSpinnerControl();
-      numberInput.init();
-      numberInput._currencyInput.roundToNearestStep = (t) => {
-        return t;
-      };
-      numberInput._currencyInput.increase = function(e2) {
-        this.value = (JSUtils.isNumber(e2) ? e2 : this.value) + 1;
-      };
-      numberInput._currencyInput.decrease = function(e2) {
-        this.value = (JSUtils.isNumber(e2) ? e2 : this.value) - 1;
-      };
-      Object.assign(numberInput.getRootElement().style, {
-        height: "3rem",
-        width: "80%",
-        margin: "2rem auto 1rem"
-      });
-      Object.assign(numberInput._decrementBtn.getRootElement().style, {
-        height: "3rem",
-        width: "4rem"
-      });
-      Object.assign(numberInput._incrementBtn.getRootElement().style, {
-        height: "3rem",
-        width: "4rem"
-      });
-      Object.assign(numberInput._currencyInput.getRootElement().style, {
-        height: "3rem",
-        backgroundImage: "none",
-        backgroundColor: "#222",
-        paddingRight: "0",
-        textAlign: "center",
-        fontSize: "1.4rem"
-      });
-      numberInput.setMaxValue(packCount);
-      numberInput.setMinValue(1);
-      numberInput.setValue(packCount);
-      popupView.__msg.appendChild(numberInput.getRootElement());
-      popupController.onExit.observe(popupController, (e2, z) => {
-        e2.unobserve(popupController);
-        if (z == 2) {
-          showLoader();
-          this.openPacks(packId, packName, numberInput.getValue(), helpers);
-        }
-      });
-      debug2.log(popupView, numberInput);
-      gPopupClickShield.setActivePopup(popupController);
-    }
-    openPacksResultPopup(title, text, players, desc, helpers) {
-      const {
-        createElementWithConfig: createElementWithConfig2,
-        createButton: createButton2,
-        fy: fy2,
-        loadPlayerInfo,
-        openFutbinPlayerUrl,
-        getCurrentController
-      } = helpers;
-      let popupController = new EADialogViewController({
-        dialogOptions: [{ labelEnum: enums.UIDialogOptions.OK }],
-        message: "",
-        title,
-        type: EADialogView.Type.MESSAGE
-      });
-      popupController.init();
-      popupController.onExit.observe(popupController, (e2, z) => {
-        e2.unobserve(popupController);
-        popupController.dealloc();
-        if (getCurrentController() instanceof UTStorePackViewController) {
-          getCurrentController().getStorePacks(true);
-        }
-      });
-      popupController._fsu = {};
-      let popupView = popupController.getView();
-      popupView.__msg.remove();
-      popupView.__btnContainer.querySelector("button").classList.remove("text");
-      popupView.__btnContainer.querySelector("button").classList.add("primary", "mini");
-      let popupBox = document.createElement("div");
-      if (players.length) {
-        popupController._fsu.listBox = createElementWithConfig2("div", {
-          classList: "ut-store-reveal-modal-list-view",
-          style: {
-            borderRadius: "0",
-            padding: "0"
-          }
-        });
-        popupController._fsu.list = createElementWithConfig2("ul", {
-          classList: ["itemList", "fsu-popupItemList"]
-        });
-        popupController._fsu.listBox.appendChild(popupController._fsu.list);
-        players.forEach((i2) => {
-          var o = new UTItemTableCellView();
-          o.setData(i2, void 0, ListItemPriority.DEFAULT);
-          o.render();
-          if (!desc && i2._playStyles.length) {
-            let popupItemOther = createElementWithConfig2("div", {
-              classList: "fsu-popupItemOther"
-            });
-            let traitBox = createElementWithConfig2("div", {
-              classList: "fsu-popupItemTrait"
-            });
-            popupItemOther.appendChild(traitBox);
-            _.map(
-              _.orderBy(i2._playStyles, [(item) => item.isIcon ? 0 : 1, "category"], ["asc", "asc"]),
-              (t) => {
-                let classList = ["fut_icon", "fsu-traitIcon"];
-                if (t.isIcon) {
-                  classList.push(`icon_icontrait${t.traitId}`);
-                  classList.push("icon");
-                } else {
-                  classList.push(`icon_basetrait${t.traitId}`);
-                }
-                traitBox.appendChild(
-                  createElementWithConfig2("i", {
-                    classList
-                  })
-                );
-              }
-            );
-            let popupItemOtherBtn = createButton2(
-              new UTButtonControl(),
-              fy2("sbc.watchplayer"),
-              (e2) => {
-                openFutbinPlayerUrl(e2, i2);
-              },
-              "btn-standard mini"
-            );
-            popupController._fsu[`popupItemOtherBtn_${i2.id}`] = popupItemOtherBtn;
-            popupItemOther.appendChild(popupItemOtherBtn.getRootElement());
-            o.__rowContent.appendChild(popupItemOther);
-            popupController._fsu[`popupItemOther_${i2.id}`] = popupItemOther;
-          }
-          popupController._fsu.list.appendChild(o.getRootElement());
-          popupController._fsu[`popupItemView_${i2.id}`] = o;
-        });
-        popupBox.appendChild(popupController._fsu.listBox);
-      }
-      popupController.__text = createElementWithConfig2("div", {
-        textContent: text,
-        style: {
-          paddingTop: ".5rem",
-          fontSize: "1rem"
-        }
-      });
-      popupBox.appendChild(popupController.__text);
-      if (desc) {
-        popupController.__desc = createElementWithConfig2("div", {
-          textContent: desc,
-          style: {
-            paddingTop: ".5rem",
-            fontSize: "1rem",
-            opacity: ".5"
-          }
-        });
-        popupBox.appendChild(popupController.__desc);
-      }
-      loadPlayerInfo(players, popupView);
-      popupView.getRootElement().querySelector(".ea-dialog-view--body").prepend(popupBox);
-      popupController._fsu.popupBox = popupBox;
-      gPopupClickShield.setActivePopup(popupController);
-    }
-  };
-
-  // src/fsu/domain/AutoBuyService.js
-  var AutoBuyService = class {
-    goToAutoBuy(e2, helpers) {
-      const { getInfo, getNavigationController, isPhone: isPhone2 } = helpers;
-      const info = getInfo();
-      let nav = getNavigationController();
-      if (nav) {
-        if (info.autobuy.controller) {
-          nav.pushViewController(info.autobuy.controller);
-        } else {
-          let criteria = new UTSearchCriteriaDTO();
-          criteria.type = SearchType.PLAYER;
-          let controller = isPhone2() ? new UTClubSearchResultsViewController() : new controllers.club.ClubSearchResultsLandscape();
-          controller.initWithSearchCriteria(criteria);
-          controller.dealloc = function() {
-            info.autobuy.controller = this;
-          };
-          let searchController = isPhone2() ? controller : controller._listController;
-          searchController._fsuAutoBuy = true;
-          searchController._fsuAutoBuyPlayers = [];
-          let rightContainer = new UTPlayerBioViewController();
-          rightContainer.initWithItem(new UTItemEntity());
-          rightContainer.isFsuAutoBuy = true;
-          rightContainer.getView().getRootElement().style.width = "40%";
-          rightContainer.getView().addClass("fsu-autobuy-right");
-          rightContainer.getView().isFsuAutoBuy = true;
-          searchController._fsuAutoBuyRight = rightContainer;
-          nav.pushViewController(controller);
-        }
-      }
-    }
-    autoBuySearchPlayer(inputSelected, controller, helpers) {
-      const { getInfo, getFutbinUrl, hideLoader, debug: debug2 } = helpers;
-      const info = getInfo();
-      let criteria = new UTSearchCriteriaDTO();
-      criteria.count = 200;
-      criteria.defId.push(inputSelected.id);
-      criteria.sortBy = "ovr";
-      services.Item.searchConceptItems(criteria).observe(
-        controller,
-        async (e2, t) => {
-          if (e2.unobserve(controller), JSUtils.isObject(t.response) && t.response.items) {
-            try {
-              const PlayerName = inputSelected.name.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/ø/g, "o");
-              const playerData = await getFutbinUrl(`https://www.futbin.org/futbin/api/${info.base.year}/searchPlayersByName?playername=${PlayerName}&year=${info.base.year}`);
-              let players = _.cloneDeep(t.response.items);
-              _.forEach(players, (p) => {
-                p._fsuPrice = 0;
-                p._fsuClosing = 0;
-                p._fsuMin = 0;
-                p._fsuMax = 0;
-                p._fsuFutbinId = "0";
-                let futbinPlayerData = _.find(playerData.data, { resource_id: _.toString(p.definitionId) });
-                if (futbinPlayerData && futbinPlayerData.pc_MaxPrice && futbinPlayerData.ps_MinPrice) {
-                  p.untradeableCount = 0;
-                  p._fsuFutbinId = futbinPlayerData.ID;
-                  5;
-                  p._fsuMin = futbinPlayerData[`${info.base.platform}_MinPrice`];
-                  p._fsuMax = futbinPlayerData[`${info.base.platform}_MaxPrice`];
-                  let pClosing = futbinPlayerData[`${info.base.platform}_LCPClosing`];
-                  if (pClosing !== null) {
-                    p._fsuClosing = pClosing;
-                  }
-                  let pPrice = futbinPlayerData[`${info.base.platform}_LCPrice`];
-                  if (pPrice !== null) {
-                    p._fsuPrice = pPrice;
-                    info.roster.data[p.definitionId] = {
-                      "n": pPrice,
-                      "t": pPrice.toLocaleString()
-                    };
-                  }
-                }
-                p.concept = false;
-              });
-              controller._fsuAutoBuyPlayers = players;
-              controller.getView().getRootElement().style.width = "60%";
-              controller._requestItems();
-            } catch (error) {
-              debug2.log(error);
-              return;
-            }
-          } else {
-            NetworkErrorManager.handleStatus(t.status);
-          }
-          hideLoader();
-        }
-      );
-    }
-    autoBuyRightRefresh(controller, item) {
-      controller.pinnedItemController.setItem(item);
-      controller.pinnedItem = item;
-      controller.render();
-    }
-    autoBuyCreateInfoView(item, helpers) {
-      const { getInfo, createElementWithConfig: createElementWithConfig2, fy: fy2, createButton: createButton2 } = helpers;
-      const info = getInfo();
-      let view = new EAView();
-      let display = view.getRootElement();
-      view._item = item;
-      let titleBox = createElementWithConfig2("div", {
-        style: {
-          display: "flex",
-          justifyContent: "space-between",
-          overflow: "hidden",
-          alignItems: "center",
-          boxSizing: "border-box",
-          width: "100%",
-          padding: "1rem"
-        }
-      });
-      let titleText = createElementWithConfig2("div", {
-        textContent: fy2("autobuy.info.title"),
-        style: {
-          fontSize: "1.2rem"
-        }
-      });
-      titleBox.appendChild(titleText);
-      let titleClear = new UTFlatButtonControl();
-      titleClear.init();
-      titleClear.setText(services.Localization.localize("search.button.clear"));
-      titleClear.setInteractionState(false);
-      titleClear.getRootElement().classList.add("camel-case");
-      titleBox.appendChild(titleClear.getRootElement());
-      view._clearButton = titleClear;
-      display.appendChild(titleBox);
-      let priceBox = createElementWithConfig2("div", {
-        style: {
-          padding: "0 1rem"
-        }
-      });
-      let minBox = createElementWithConfig2("div", {
-        style: {
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center"
-        }
-      });
-      let minText = createElementWithConfig2("div", {
-        textContent: fy2("autobuy.info.mintext"),
-        style: {
-          paddingRight: "1rem"
-        }
-      });
-      minBox.appendChild(minText);
-      const minBidPrice = item._fsuMin || AUCTION_MIN_BID;
-      const maxBidPrice = item._fsuMax || AUCTION_MAX_BID;
-      let minBuy = new UTNumericInputSpinnerControl();
-      minBuy.init();
-      minBuy.setMinValue(minBidPrice);
-      minBuy.setMaxValue(UTCurrencyInputControl.getIncrementBelowVal(maxBidPrice));
-      minBox.appendChild(minBuy.getRootElement());
-      view._min = minBuy;
-      priceBox.appendChild(minBox);
-      let maxBox = createElementWithConfig2("div", {
-        style: {
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginTop: "1rem"
-        }
-      });
-      let maxText = createElementWithConfig2("div", {
-        textContent: fy2("autobuy.info.maxtext"),
-        style: {
-          paddingRight: "1rem"
-        }
-      });
-      maxBox.appendChild(maxText);
-      let maxBuy = new UTNumericInputSpinnerControl();
-      maxBuy.init();
-      maxBuy.setMinValue(UTCurrencyInputControl.getIncrementAboveVal(minBidPrice));
-      maxBuy.setMaxValue(maxBidPrice);
-      maxBox.appendChild(maxBuy.getRootElement());
-      view._max = maxBuy;
-      priceBox.appendChild(maxBox);
-      titleClear.addTarget(view, () => {
-        maxBuy.setValue(0);
-        minBuy.setValue(0);
-      }, EventType.TAP);
-      minBuy.getInput().addTarget(view, () => {
-        this.autoBuyRightMinBuyChanged(minBuy, maxBuy, titleClear);
-      }, EventType.CHANGE);
-      maxBuy.getInput().addTarget(view, () => {
-        this.autoBuyRightMaxBuyChanged(minBuy, maxBuy, titleClear);
-      }, EventType.CHANGE);
-      view.setPriceBtn = createButton2(
-        new UTStandardButtonControl(),
-        fy2("autobuy.info.setprice"),
-        () => {
-          maxBuy.setValue(item._fsuPrice);
-          minBuy.setValue(UTCurrencyInputControl.getIncrementBelowVal(item._fsuPrice));
-        },
-        "call-to-action mini"
-      );
-      view.setPriceBtn.setInteractionState(item._fsuPrice);
-      view.goToSalesBtn = createButton2(
-        new UTStandardButtonControl(),
-        fy2("autobuy.info.gotosales"),
-        () => {
-          GM_openInTab(`https://www.futbin.com/${info.base.year}/sales/${item._fsuFutbinId}/${item.getStaticData().name.toLowerCase()}?platform=${info.base.platform}`, { active: true, insert: true, setParent: true });
-        },
-        "call-to-action mini"
-      );
-      let btnBox = createElementWithConfig2("div", {
-        style: {
-          display: "flex",
-          justifyContent: "space-evenly",
-          alignItems: "end",
-          position: "absolute",
-          top: "0",
-          right: "-1.6rem",
-          flexDirection: "column",
-          height: "100%"
-        },
-        classList: ["fsu-autobuy-btn"]
-      });
-      btnBox.appendChild(view.setPriceBtn.getRootElement());
-      btnBox.appendChild(view.goToSalesBtn.getRootElement());
-      view._cardBtnBox = btnBox;
-      display.appendChild(priceBox);
-      return view;
-    }
-    autoBuyCreateLogView(item, helpers) {
-      const { getInfo } = helpers;
-      const info = getInfo();
-      let view = new EAView();
-      let display = view.getRootElement();
-      info.autobuy.logView = view;
-    }
-    autoBuyRightRenderInfo(view, item, helpers) {
-      const { createElementWithConfig: createElementWithConfig2, fy: fy2, debug: debug2 } = helpers;
-      let display = view.__dataDisplay;
-      let titleBox = createElementWithConfig2("div", {
-        style: {
-          display: "flex",
-          justifyContent: "space-between",
-          overflow: "hidden",
-          alignItems: "center",
-          boxSizing: "border-box",
-          width: "100%",
-          padding: "1rem"
-        }
-      });
-      let titleText = createElementWithConfig2("div", {
-        textContent: fy2("autobuy.info.title"),
-        style: {
-          fontSize: "1.2rem"
-        }
-      });
-      titleBox.appendChild(titleText);
-      let titleClear = new UTFlatButtonControl();
-      titleClear.init();
-      titleClear.setText(services.Localization.localize("search.button.clear"));
-      titleClear.setInteractionState(false);
-      titleClear.getRootElement().classList.add("camel-case");
-      titleBox.appendChild(titleClear.getRootElement());
-      display.appendChild(titleBox);
-      let priceBox = createElementWithConfig2("div", {
-        style: {
-          padding: "0 1rem"
-        }
-      });
-      let minBox = createElementWithConfig2("div", {
-        style: {
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center"
-        }
-      });
-      let minText = createElementWithConfig2("div", {
-        textContent: fy2("autobuy.info.mintext"),
-        style: {
-          paddingRight: "1rem"
-        }
-      });
-      minBox.appendChild(minText);
-      const minBidPrice = item._fsuMin || AUCTION_MIN_BID;
-      const maxBidPrice = item._fsuMax || AUCTION_MAX_BID;
-      let minBuy = new UTNumericInputSpinnerControl();
-      minBuy.init();
-      minBuy.setMinValue(minBidPrice);
-      minBuy.setMaxValue(UTCurrencyInputControl.getIncrementBelowVal(maxBidPrice));
-      minBox.appendChild(minBuy.getRootElement());
-      priceBox.appendChild(minBox);
-      let maxBox = createElementWithConfig2("div", {
-        style: {
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          marginTop: "1rem"
-        }
-      });
-      let maxText = createElementWithConfig2("div", {
-        textContent: fy2("autobuy.info.maxtext"),
-        style: {
-          paddingRight: "1rem"
-        }
-      });
-      maxBox.appendChild(maxText);
-      let maxBuy = new UTNumericInputSpinnerControl();
-      maxBuy.init();
-      maxBuy.setMinValue(UTCurrencyInputControl.getIncrementAboveVal(minBidPrice));
-      maxBuy.setMaxValue(maxBidPrice);
-      maxBox.appendChild(maxBuy.getRootElement());
-      priceBox.appendChild(maxBox);
-      titleClear.addTarget(view, () => {
-        maxBuy.setValue(0);
-        minBuy.setValue(0);
-      }, EventType.TAP);
-      debug2.log(minBuy, maxBuy);
-      minBuy.getInput().addTarget(view, () => {
-        this.autoBuyRightMinBuyChanged(minBuy, maxBuy, titleClear);
-      }, EventType.CHANGE);
-      maxBuy.getInput().addTarget(view, () => {
-        this.autoBuyRightMaxBuyChanged(minBuy, maxBuy, titleClear);
-      }, EventType.CHANGE);
-      display.appendChild(priceBox);
-    }
-    autoBuyRightMinBuyChanged(eMin, eMax, eClear) {
-      let min = eMin.getValue(), max = eMax.getValue();
-      eClear.setInteractionState(eMin.getMinValue() < min || eMax.getMinValue() < max);
-      if (0 !== min && min >= max && min !== eMin.getMinValue()) {
-        eMax.setValue(UTCurrencyInputControl.getIncrementAboveVal(min));
-      }
-    }
-    autoBuyRightMaxBuyChanged(eMin, eMax, eClear) {
-      let min = eMin.getValue(), max = eMax.getValue();
-      eClear.setInteractionState(eMin.getMinValue() < min || eMax.getMinValue() < max);
-      if (0 !== max && min >= max && min !== eMin.getMinValue()) {
-        eMin.setValue(UTCurrencyInputControl.getIncrementBelowVal(max));
-      }
-    }
-    autoBuyRightRenderLog(view, item) {
-    }
-    autoBuyCreateItemController(controller, item) {
-    }
-    createFacade(helpers) {
-      return {
-        goToAutoBuy: (e2) => this.goToAutoBuy(e2, helpers),
-        autoBuySearchPlayer: (inputSelected, controller) => this.autoBuySearchPlayer(inputSelected, controller, helpers),
-        autoBuyRightRefresh: (controller, item) => this.autoBuyRightRefresh(controller, item),
-        autoBuyCreateInfoView: (item) => this.autoBuyCreateInfoView(item, helpers),
-        autoBuyCreateLogView: (item) => this.autoBuyCreateLogView(item, helpers),
-        autoBuyRightRenderInfo: (view, item) => this.autoBuyRightRenderInfo(view, item, helpers),
-        autoBuyRightMinBuyChanged: (eMin, eMax, eClear) => this.autoBuyRightMinBuyChanged(eMin, eMax, eClear),
-        autoBuyRightMaxBuyChanged: (eMin, eMax, eClear) => this.autoBuyRightMaxBuyChanged(eMin, eMax, eClear),
-        autoBuyRightRenderLog: (view, item) => this.autoBuyRightRenderLog(view, item),
-        autoBuyCreateItemController: (controller, item) => this.autoBuyCreateItemController(controller, item)
-      };
     }
   };
 
@@ -13540,7 +11457,7 @@
       const academy = new UTAcademyViewModel(services.Academy);
       academy.setSlots(repositories.Academy.getSlots());
       academy.setSelectedSlot(id);
-      services.PlayerMetaData.updateItemPlayerMeta([player]).observe(controller, function(q, w) {
+      services.PlayerMetaData.updateItemPlayerMeta([player]).observe(controller, function(q, _w) {
         q.unobserve(controller);
         player.setMetaData(repositories.PlayerMeta.get(player.definitionId));
         academy.getSlotPreview(id, player.id).observe(controller, function(e2, t) {
@@ -13761,7 +11678,7 @@
       newPlayer.upgrades = _.cloneDeep(player.upgrades) ?? new UTItemAcademyStatEntity({});
       const attrConfig = newPlayer.isGK() ? info.attributesGK : info.attributes;
       const calcFace = (subs, weight) => _.sum(_.map(subs, (v, i2) => v.value * weight[i2]));
-      _.forEach(attrConfig, (value, key) => {
+      _.forEach(attrConfig, (value, _key) => {
         const { list, weight, id } = value;
         const targetFace = newPlayer.getAttribute(id);
         let subs = _.map(list, (i2) => {
@@ -13848,7 +11765,7 @@
           type: EADialogView.Type.MESSAGE
         });
         mp.init();
-        mp.onExit.observe(mp, (e2, z) => {
+        mp.onExit.observe(mp, (e2, _z) => {
           e2.unobserve(mp);
         });
         gPopupClickShield.setActivePopup(mp);
@@ -13958,6 +11875,39 @@
       };
     }
   };
+
+  // src/fsu/infra/RatingPrices.js
+  function gamePlatformKey(platform) {
+    return platform === "pc" ? "pc" : "ps";
+  }
+  function parseLowpricePlatform(data, platform) {
+    const entries = data?.[gamePlatformKey(platform)];
+    if (!entries || typeof entries !== "object") {
+      return {};
+    }
+    const prices = {};
+    for (const [ratingKey, value] of Object.entries(entries)) {
+      const rating = Number.parseInt(ratingKey, 10);
+      if (!Number.isFinite(rating)) {
+        continue;
+      }
+      prices[rating] = Number.parseInt(value, 10) || 0;
+    }
+    return prices;
+  }
+  function applyLowpriceToInfo(info, data) {
+    info.base.price = parseLowpricePlatform(data, info.base.platform);
+  }
+  function resolvePriceByRating(info, rating) {
+    return Number.parseInt(info.base?.price?.[rating], 10) || 0;
+  }
+  function buildPriceByRating(info, ratings) {
+    const priceByRating = {};
+    for (const rating of ratings) {
+      priceByRating[rating] = resolvePriceByRating(info, rating);
+    }
+    return priceByRating;
+  }
 
   // src/fsu/domain/SbcRatingService.js
   var SbcRatingService = class {
@@ -14633,7 +12583,7 @@
 
   // src/fsu/core/DomainHelpers.js
   function createDomainHelpers(ctx) {
-    const { events, info, repositories: repositories2, services: services2, cntlr: cntlr2, debug: debug2, fy: fy2, eafy, futbinId: futbinId2, pdb, isPhone: isPhone2, priceService } = ctx;
+    const { events, info, repositories: repositories2, services: services2, cntlr: cntlr2, debug: debug2, fy: fy2, eafy, futbinId: futbinId2, pdb, isPhone: isPhone2 } = ctx;
     const eventProxy = (name) => (...args) => events[name](...args);
     return {
       market() {
@@ -14658,39 +12608,6 @@
           getLeftController: () => cntlr2.left(),
           playerGetLimits: eventProxy("playerGetLimits")
         };
-      },
-      pack() {
-        return {
-          fy: fy2,
-          hideLoader: () => events.hideLoader(),
-          showLoader: () => events.showLoader(),
-          changeLoadingText: eventProxy("changeLoadingText"),
-          wait: eventProxy("wait"),
-          createElementWithConfig: eventProxy("createElementWithConfig"),
-          createButton: eventProxy("createButton"),
-          getInfo: () => info,
-          jsonToItemEntity: eventProxy("jsonToItemEntity"),
-          debug: debug2,
-          notice: eventProxy("notice"),
-          getOddo: eventProxy("getOddo"),
-          loadPlayerInfo: eventProxy("loadPlayerInfo"),
-          getCurrentController: () => cntlr2.current(),
-          externalRequest: eventProxy("externalRequest"),
-          getItemBy: eventProxy("getItemBy"),
-          openFutbinPlayerUrl: eventProxy("openFutbinPlayerUrl"),
-          createDF: eventProxy("createDF")
-        };
-      },
-      autoBuy: {
-        getInfo: () => info,
-        getNavigationController: () => cntlr2.current()?.getNavigationController?.(),
-        isPhone: isPhone2,
-        getFutbinUrl: (url) => priceService.getFutbinUrl(url),
-        hideLoader: () => events.hideLoader(),
-        debug: debug2,
-        createElementWithConfig: eventProxy("createElementWithConfig"),
-        fy: fy2,
-        createButton: eventProxy("createButton")
       },
       academy: {
         getInfo: () => info,
@@ -14942,7 +12859,7 @@
 
   // src/fsu/core/ModuleRegistry.js
   function registerEarlyModules(ctx) {
-    const { events, info, debug: debug2, fy: fy2, SBCEligibilityKey: SBCEligibilityKey2, repositories: repositories2 } = ctx;
+    const { events, info, fy: fy2, SBCEligibilityKey: SBCEligibilityKey2 } = ctx;
     const helpers = createDomainHelpers(ctx);
     registerUiEvents({ events, info, fy: fy2 });
     const playerSearchService = new PlayerSearchService();
@@ -14978,17 +12895,6 @@
     events.playerToAuction = (d, p, time) => marketActionService.playerToAuction(d, p, time, marketHelpers());
     events.losAuctionSell = (e2, t) => marketActionService.losAuctionSell(e2, t, marketHelpers());
     events.losAuctionCount = (e2, t) => marketActionService.losAuctionCount(e2, t, marketHelpers());
-    const packService = new PackService();
-    const packHelpers = helpers.pack;
-    events.raelProbability = (pack) => packService.raelProbability(pack, packHelpers());
-    events.tryPack = (pack) => packService.tryPack(pack, packHelpers());
-    events.tryPackPopup = (pack, items) => packService.tryPackPopup(pack, items, packHelpers());
-    events.getTryPackData = (pack) => packService.getTryPackData(pack, packHelpers());
-    events.getRealProbability = (pack) => packService.getRealProbability(pack, packHelpers());
-    events.openPacks = (packId, packName, packNum) => packService.openPacks(packId, packName, packNum, packHelpers());
-    events.openPacksConfirmPopup = (packId, packName, packCount) => packService.openPacksConfirmPopup(packId, packName, packCount, packHelpers());
-    events.openPacksResultPopup = (title, text, players, desc) => packService.openPacksResultPopup(title, text, players, desc, packHelpers());
-    Object.assign(events, new AutoBuyService().createFacade(helpers.autoBuy));
     Object.assign(events, new AcademyCalcService().createFacade(helpers.academy));
     Object.assign(events, new FgRatingService().createFacade(helpers.fg));
     events.detailsButtonSet = (e2) => {
@@ -15321,6 +13227,496 @@
     return { fsuSC, fsuSV };
   }
 
+  // src/fsu/patches/app-init.js
+  function registerAppInitEvents(deps) {
+    const { events, info, fy: fy2 } = deps;
+    UTHomeHubView.prototype.getAcademyTile = function() {
+      if (info.evolutions.newCount > 0 && !this._academyTile.__root.querySelector(".fsu-task")) {
+        this._academyTile.__tileContent.before(
+          events.createDF(`<div class="fsu-task">${info.evolutions.html}</div>`)
+        );
+      }
+      return this._academyTile;
+    };
+    events.addLoadingElment = () => {
+      if (!info.base.close) {
+        info.base.close = events.createButton(
+          new UTButtonControl(),
+          fy2("loadingclose.text"),
+          async (_e) => {
+            events.hideLoader();
+          },
+          "fsu-loading-close"
+        );
+        document.querySelector(".ut-click-shield").append(info.base.close.__root);
+      }
+    };
+    events.wait = (min, max) => {
+      const delay = Math.floor(Math.random() * (max * 1e3 - min * 1e3 + 1)) + min * 1e3;
+      return new Promise((resolve) => setTimeout(resolve, delay));
+    };
+    events.changeLoadingText = (t, s2) => {
+      let text = fy2(t);
+      if (s2 && s2 !== "") {
+        text += `<br>${fy2(s2)}`;
+      }
+      events.addLoadingElment();
+      const closeEl = document.querySelector(".fsu-loading-close");
+      if (closeEl) {
+        closeEl.innerHTML = text;
+      }
+    };
+    events.enhanceStyleChange = () => {
+      GM_addStyle(`
+        .has-add-player .filter-btn.fsu-eligibilitysearch{right: 36px}
+        .ut-search-filter-control select option{color: #2d2c36}
+    `);
+    };
+  }
+  function installAppInitPatches(deps) {
+    const {
+      events,
+      info,
+      fy: fy2,
+      services: services2,
+      cntlr: cntlr2,
+      isPhone: isPhone2,
+      SBCCount,
+      set,
+      build,
+      lock,
+      futbinId: futbinId2,
+      debug: debug2,
+      GM_getValue: GM_getValue2,
+      GM_setValue: GM_setValue2,
+      GM_xmlhttpRequest: GM_xmlhttpRequest2,
+      GM_info: GM_info2
+    } = deps;
+    events.notice = function(text, type) {
+      services2.Notification.queue([fy2(text), type]);
+    };
+    events.init = async function() {
+      SBCCount.init();
+      set.init();
+      build.init();
+      lock.init();
+      futbinId2.init();
+      info.myPacksSort = GM_getValue2("packsSort", "desc");
+      let nav = cntlr2.current().parentViewController.navigationBar;
+      if (nav) {
+        if (nav instanceof UTCurrencyNavigationBarView && info.set.sbc_headentrance) {
+          if (!info.douagain.hasOwnProperty("SBCListHtml")) {
+            info.douagain.SBCListHtml = events.createElementWithConfig("div", {
+              classList: ["fsu-navsbc"],
+              style: {
+                display: "flex"
+              }
+            });
+          }
+          if (isPhone2()) {
+            nav.__root.classList.add("fsu-shownavsbc");
+            if (nav.rightContainer) {
+              nav.rightContainer.style.display = "none";
+            }
+          }
+          nav._fsuSBCList = info.douagain.SBCListHtml;
+          if (nav.__root.querySelector(".view-navbar-currency")) {
+            nav.__root.insertBefore(nav._fsuSBCList, nav.__currencies);
+          }
+        }
+        SBCCount.createElement(cntlr2.current().parentViewController.getView());
+      }
+      let history_a = JSON.parse(GM_getValue2("history", "[]")), history_b = [];
+      if (history_a && _.isArray(history_a)) {
+        let newSize = _.size(new UTSearchCriteriaDTO());
+        let filteredMembers = _.filter(history_a, (item) => _.isArray(item) && item.length === newSize);
+        history_b = _.concat(history_b, filteredMembers);
+      }
+      debug2.log(history_b);
+      info.market.mb = history_b;
+      info.market.ts = Date.now();
+      info.base.sId = services2.Authentication.utasSession.id;
+      info.base.year = APP_YEAR_SHORT;
+      MAX_NEW_ITEMS = 100;
+      GM_xmlhttpRequest2({
+        method: "GET",
+        url: "https://api.fut.to/26/updata.json",
+        timeout: 8e3,
+        headers: {
+          "Content-type": "application/json",
+          "Cache-Control": "no-cache",
+          "Pragma": "no-cache"
+        },
+        onload: function(res) {
+          let urlText = fy2("top.readme");
+          let urlLink = "https://mfrasi851i.feishu.cn/wiki/wikcng1Ih7fFRidBfMdNS9SrucR";
+          if (res.status == 404) {
+            events.notice("notice.upgradefailed", 2);
+          } else {
+            let data = JSON.parse(res.response);
+            let myVersion = Number(GM_info2.script.version) || 0;
+            if (data["version"] > myVersion) {
+              urlText = fy2("top.upgrade");
+              urlLink = data["updateURL"];
+              events.notice("notice.upgradeconfirm", 1);
+            }
+            if (_.size(data["api"])) {
+              info.api = data["api"];
+              if (_.has(info.api, "meta")) {
+                GM_xmlhttpRequest2({
+                  method: "GET",
+                  url: `https://api.fut.to/26/meta.json?${info.api.meta}`,
+                  headers: {
+                    "Content-type": "application/json",
+                    "Cache-Control": "max-age=31536000"
+                  },
+                  onload: function(res2) {
+                    let metaJson = JSON.parse(res2.response);
+                    if (_.has(metaJson, "bodyType")) {
+                      info.meta.bodyType = _.fromPairs(
+                        _.flatMap(
+                          metaJson.bodyType,
+                          (ids, bodyType) => ids.map((id) => [id, Number(bodyType)])
+                        )
+                      );
+                    }
+                    _.has(metaJson, "baseBodyType") && (info.meta.baseBodyType = metaJson.baseBodyType);
+                    _.has(metaJson, "realFace") && (info.meta.realFace = metaJson.realFace);
+                    debug2.log(`meta加载完毕！`);
+                  }
+                });
+              }
+              if (_.has(info.api, "fastsbc")) {
+                GM_xmlhttpRequest2({
+                  method: "GET",
+                  url: `https://api.fut.to/26/fast.json?${info.api.fastsbc}`,
+                  headers: {
+                    "Content-type": "application/json",
+                    "Cache-Control": "max-age=31536000"
+                  },
+                  onload: function(res2) {
+                    _.forEach(JSON.parse(res2.responseText), (i2, k) => {
+                      let nowTime = Math.floor(Date.now() / 1e3);
+                      if (i2.t > nowTime) {
+                        info.base.fastsbc[k] = i2.g;
+                      }
+                    });
+                  }
+                });
+              }
+              if (_.has(info.api, "pack")) {
+                GM_xmlhttpRequest2({
+                  method: "GET",
+                  url: `https://api.fut.to/26/pack.json?${info.api.pack}`,
+                  headers: {
+                    "Content-type": "application/json",
+                    "Cache-Control": "max-age=31536000"
+                  },
+                  onload: function(res2) {
+                    info.base.oddo = JSON.parse(res2.response);
+                  }
+                });
+              }
+              if (_.has(info.api, "sbc")) {
+                GM_xmlhttpRequest2({
+                  method: "GET",
+                  url: `https://api.fut.to/26/sbc.json?${info.api.sbc}`,
+                  headers: {
+                    "Content-type": "application/json",
+                    "Cache-Control": "max-age=31536000"
+                  },
+                  onload: function(res2) {
+                    let sbcJson = JSON.parse(res2.response);
+                    info.task.sbc.stat = sbcJson;
+                    let sbcRewardArray = _.map(sbcJson.reward, (i2) => {
+                      return i2 == 1 ? fy2("task.player") : i2 == 2 ? fy2("task.pack") : "";
+                    });
+                    info.task.sbc.html = events.taskHtml(sbcJson.new.length, sbcRewardArray.join("、"));
+                  }
+                });
+              }
+              if (_.has(info.api, "ggrating")) {
+                GM_xmlhttpRequest2({
+                  method: "GET",
+                  url: `https://api.fut.to/26/ggrating.json?${info.api.ggrating}`,
+                  headers: {
+                    "Content-type": "application/json",
+                    "Cache-Control": "max-age=31536000"
+                  },
+                  onload: function(res2) {
+                    info.GGRRAR = JSON.parse(res2.response);
+                    debug2.log(`GGRRAR加载完毕！`);
+                  }
+                });
+              }
+              if (_.has(info.api, "evolutions")) {
+                GM_xmlhttpRequest2({
+                  method: "GET",
+                  url: `https://api.fut.to/26/evolutions.json?${info.api.evolutions}`,
+                  headers: {
+                    "Content-type": "application/json",
+                    "Cache-Control": "max-age=31536000"
+                  },
+                  onload: function(res2) {
+                    info.evolutions.new = JSON.parse(res2.response).new;
+                    debug2.log(`evolutions加载完毕！`);
+                  }
+                });
+              }
+              if (_.has(info.api, "inpacks")) {
+                GM_xmlhttpRequest2({
+                  method: "GET",
+                  url: `https://api.fut.to/26/inpacks.json?${info.api.inpacks}`,
+                  headers: {
+                    "Content-type": "application/json",
+                    "Cache-Control": "max-age=31536000"
+                  },
+                  onload: function(res2) {
+                    const { defIds, rarityIds } = JSON.parse(res2.response);
+                    info.inpacks.defIds = defIds;
+                    info.inpacks.rarityIds = rarityIds;
+                    debug2.log(`inpacks加载完毕！`);
+                  }
+                });
+              }
+              if (_.has(info.api, "other")) {
+                GM_xmlhttpRequest2({
+                  method: "GET",
+                  url: `https://api.fut.to/26/other.json?${info.api.other}`,
+                  headers: {
+                    "Content-type": "application/json",
+                    "Cache-Control": "max-age=31536000"
+                  },
+                  onload: function(res2) {
+                    const { dynamic, chem } = JSON.parse(res2.response);
+                    info.specialPlayers = {
+                      "dynamic": dynamic,
+                      "DList": Object.entries(dynamic).filter(([_key, value]) => {
+                        return value.exp && value.exp > Date.now() / 1e3;
+                      }).map(([key, _value]) => Number(key)),
+                      "extraChem": chem,
+                      "ECList": Object.keys(chem).map((key) => Number(key))
+                    };
+                    debug2.log(`other加载完毕！`);
+                  }
+                });
+              }
+              if (_.has(info.api, "fgconfig")) {
+                GM_xmlhttpRequest2({
+                  method: "GET",
+                  url: `https://api.fut.to/26/fgconfig.json?${info.api.fgconfig}`,
+                  headers: {
+                    "Content-type": "application/json",
+                    "Cache-Control": "max-age=31536000"
+                  },
+                  onload: function(res2) {
+                    info.fgconfig = JSON.parse(res2.response);
+                    debug2.log(`fgconfig加载完毕！`);
+                  }
+                });
+              }
+              if (_.has(info.api, "playermeta")) {
+                GM_xmlhttpRequest2({
+                  method: "GET",
+                  url: `https://api.fut.to/26/playermeta.json?${info.api.playermeta}`,
+                  headers: {
+                    "Content-type": "application/json",
+                    "Cache-Control": "max-age=31536000"
+                  },
+                  onload: function(res2) {
+                    let data2 = JSON.parse(res2.response);
+                    info.playermeta = {};
+                    _.forEach(data2, (value) => {
+                      if (value.length == 4) {
+                        info.playermeta[value[0]] = {
+                          "badytype": value[1],
+                          "weight": value[2],
+                          "realface": value[3]
+                        };
+                      }
+                    });
+                    debug2.log(`playermeta加载完毕！`);
+                  }
+                });
+              }
+              if (_.has(info.api, "lowprice")) {
+                GM_xmlhttpRequest2({
+                  method: "GET",
+                  url: `https://api.fut.to/26/lowprice.json?${info.api.lowprice}`,
+                  headers: {
+                    "Content-type": "application/json",
+                    "Cache-Control": "max-age=31536000"
+                  },
+                  onload: function(res2) {
+                    applyLowpriceToInfo(info, JSON.parse(res2.response));
+                    debug2.log(`lowprice加载完毕！`);
+                  }
+                });
+              }
+            }
+          }
+          getAppMain()._FCHeader.getView().__easportsLink.insertAdjacentHTML("afterend", `<a class="header_explain" href="${urlLink}" target="_blank">${urlText}</a>`);
+        },
+        onerror: function() {
+          events.notice("notice.upgrade.failed", 2);
+        }
+      });
+      let user = services2.User.getUser().getSelectedPersona();
+      if (user.isXbox || user.isPlaystation || user.isStadia) {
+        info.base.platform = "ps";
+      }
+      services2.User.maxAllowedAuctions = 100;
+      info.playerMetaData = JSON.parse(GM_getValue2(`playerMetaData_${info.base.year}`, "{}"));
+      events.addLoadingElment();
+      info.base.localization = services2.Localization.repository._collection;
+      services2.SBC.requestSets().observe(getAppMain().getRootViewController(), function(e2, t) {
+        if (e2.unobserve(getAppMain().getRootViewController()), t.success && JSUtils.isObject(t.data)) {
+          let tempSBCList = JSON.parse(GM_getValue2("sbclist", "[]")).reverse();
+          tempSBCList.forEach((sbcId) => {
+            events.SBCListInsertToFront(sbcId, 1);
+          });
+        }
+      });
+      services2.Store.getPacks(PurchasePackType.ALL, true, true);
+      services2.Objectives.objectivesDAO.getCategories().observe(getAppMain().getRootViewController(), function(e2, t) {
+        e2.unobserve(getAppMain().getRootViewController());
+        if (t.success && t.response && !JSUtils.isString(t.response)) {
+          let nowDate = Math.round((/* @__PURE__ */ new Date()).getTime() / 1e3), objNewJson = {
+            new: [],
+            catNew: {},
+            expiry: [],
+            catExpiry: {},
+            reward: [],
+            catReward: 0
+          };
+          _.map(t.response.categories, (cat) => {
+            objNewJson.catNew[cat.id] = 0;
+            objNewJson.catExpiry[cat.id] = 0;
+            objNewJson.catReward += cat.countNumberOfUnclaimedRewards();
+            _.map(cat.getGroups(), (g) => {
+              if (g.type !== 2) {
+                let oId = g.compositeId;
+                if (g.startTime >= nowDate - 86400 && g.startTime < nowDate) {
+                  objNewJson.new.push(oId);
+                  objNewJson.catNew[cat.id]++;
+                  if (g?.rewards) {
+                    let rewards = _.concat(_.cloneDeep(g.rewards.rewards), _.flatten(_.map(g.objectives.values(), "rewards.rewards")));
+                    debug2.log(rewards);
+                    if (rewards.length) {
+                      _.map(rewards, (r) => {
+                        if (r.isPack || r.isItem && r.item.isMiscItem()) {
+                          objNewJson.reward.push(fy2("task.pack"));
+                        }
+                        if (r.isItem && r.item.isPlayer()) {
+                          objNewJson.reward.push(fy2("task.pack"));
+                        }
+                        if (r.isXP) {
+                          objNewJson.reward.push("XP");
+                        }
+                      });
+                    }
+                  }
+                }
+                if (g.endTime <= nowDate + 86400 && g.endTime !== 0) {
+                  objNewJson.expiry.push(oId);
+                  objNewJson.catExpiry[cat.id]++;
+                }
+              }
+            });
+          });
+          objNewJson.reward = _.uniq(objNewJson.reward);
+          info.task.obj.stat = objNewJson;
+          info.task.obj.source = t.response.categories;
+          info.task.obj.html = events.taskHtml(objNewJson.new.length, objNewJson.reward.join("、"));
+        }
+      });
+      if (document.querySelectorAll(".app-logo").length) {
+        debug2.log("加载了 enhancer！！！");
+        info.isEnhancer = true;
+        events.enhanceStyleChange();
+      } else {
+        debug2.log("没加载 enhancer");
+        info.isEnhancer = false;
+      }
+      await events.reloadPlayers();
+      if (repositories.Academy.isCacheExpired()) {
+        let academyDTO = new UTAcademySlotSearchCriteriaDTO();
+        academyDTO.count = 40;
+        const simpleAcademyTypes = [AcademyStatEnum.RARITY, AcademyStatEnum.COSMETIC_UPGRADE];
+        const nowTime = Math.floor(Date.now() / 1e3);
+        services2.Academy.requestAcademyHub(academyDTO).observe(getAppMain().getRootViewController(), function(e2, t) {
+          e2.unobserve(getAppMain().getRootViewController());
+          GM_setValue2("academy", JSON.stringify({}));
+          if (t.success && t.data && !JSUtils.isString(t.data)) {
+            _.map(t.data.categories, (c) => {
+              let DTO = new UTAcademySlotSearchCriteriaDTO();
+              DTO.categoryId = c.id;
+              DTO.count = 40;
+              services2.Academy.requestSlotsByCategory(DTO).observe(getAppMain().getRootViewController(), function(ee, tt) {
+                ee.unobserve(getAppMain().getRootViewController());
+                if (tt.success && tt.data && !JSUtils.isString(tt.data)) {
+                  info.evolutions.newCount += _.filter(tt.data.slots, (i2) => info.evolutions.new.includes(i2.id)).length;
+                  info.evolutions.html = events.taskHtml(info.evolutions.newCount, "");
+                  let academyCache = JSON.parse(GM_getValue2("academy", "{}"));
+                  _.map(tt.data.slots, (s2) => {
+                    academyCache[s2.id] = {
+                      "name": s2.slotName,
+                      "status": s2.status == AcademySlotState.NOT_STARTED ? 1 : 0,
+                      "category": repositories.Academy.categories.get(s2.categoryId).description,
+                      "time": s2.endTimePurchaseVisibility
+                    };
+                    const rewardCondition = s2.academyTopRewards.length > 1 || s2.academyTopRewards.length === 1 && !simpleAcademyTypes.includes(s2.academyTopRewards[0].type);
+                    const startedOffset = s2.status === AcademySlotState.NOT_STARTED ? 0 : 1;
+                    const remainingQuantity = s2.numberOfRepetitions - Math.max(s2.repetitionIndex, 0) + 1 - startedOffset;
+                    if (remainingQuantity > 0) {
+                      let time = -1;
+                      let timeDiff = Infinity;
+                      let timeDiffText = "";
+                      if (_.max(s2.endTime, s2.endTimePurchaseVisibility) !== 0) {
+                        time = _.min(_.filter([s2.endTime, s2.endTimePurchaseVisibility], (v) => v && v !== 0));
+                        timeDiff = time - nowTime;
+                        timeDiffText = services2.Localization.localizeAuctionTimeRemaining(timeDiff);
+                      }
+                      const allRewards = s2.getAllSlotRewards();
+                      let reqRating = s2.eligibilityRequirements.find(
+                        (item) => item.attribute === AcademyEligibilityAttribute.OVR
+                      )?.targets?.[0] ?? 0;
+                      info.academy.push(
+                        {
+                          id: s2.id,
+                          name: s2.slotName,
+                          practical: rewardCondition,
+                          time,
+                          timeDiff,
+                          timeDiffText,
+                          el: _.cloneDeep(s2.eligibilityRequirements),
+                          attr: allRewards,
+                          isGK: s2.isGkExclusive(),
+                          rating: reqRating,
+                          attrText: events.academyAddAttr(allRewards, s2.isGkExclusive()).map
+                        }
+                      );
+                    }
+                  });
+                  info.academy = _.orderBy(info.academy, "timeDiff");
+                  GM_setValue2("academy", JSON.stringify(academyCache));
+                  if (cntlr2.current().className == "UTHomeHubViewController" && info.evolutions.newCount > 0) {
+                    cntlr2.current().getView()._academyTile.getRootElement()?.querySelector(".fsu-task")?.remove();
+                    cntlr2.current().getView()._academyTile.__tileContent.before(
+                      events.createDF(`<div class="fsu-task">${info.evolutions.html}</div>`)
+                    );
+                  }
+                }
+              });
+            });
+          }
+        });
+      }
+      info.squad = _.map(repositories.Squad.squads.get(services2.User.getUser().selectedPersona).get(services2.Squad.activeSquad).getPlayers(), "item.id");
+      debug2.log(info.squad);
+    };
+  }
+
   // src/fsu/core/BootstrapPipeline.js
   function runMidBootstrap({ fsuCtx, ctx, events, fy: fy2 }) {
     installAppInitPatches(fsuCtx.toAppInitPatchesDeps());
@@ -15597,7 +13993,6 @@
     async save(challenge, squad, players, helpers) {
       const {
         setSaving,
-        isSaving,
         saveChallenge,
         loadChallengeData,
         notice,
@@ -15605,7 +14000,6 @@
         loadPlayerInfo,
         isPhone: isPhone2,
         getCurrentController,
-        navigateBackOnPhone,
         getActiveView,
         debug: debug2
       } = helpers;
@@ -15973,9 +14367,6 @@
       }
       if (info.run.bulkbuy) {
         info.run.bulkbuy = false;
-      }
-      if (info.run.openPacks) {
-        info.run.openPacks = false;
       }
       if (typeof events.changeLoadingText === "function") {
         events.changeLoadingText("loadingclose.text");

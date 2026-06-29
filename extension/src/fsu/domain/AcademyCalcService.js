@@ -362,7 +362,7 @@ export class AcademyCalcService {
     const academy = new UTAcademyViewModel(services.Academy);
     academy.setSlots(repositories.Academy.getSlots());
     academy.setSelectedSlot(id);
-    services.PlayerMetaData.updateItemPlayerMeta([player]).observe(controller, function (q, w) {
+    services.PlayerMetaData.updateItemPlayerMeta([player]).observe(controller, function (q, _w) {
       q.unobserve(controller);
       player.setMetaData(repositories.PlayerMeta.get(player.definitionId));
       academy.getSlotPreview(id, player.id).observe(controller, function (e, t) {

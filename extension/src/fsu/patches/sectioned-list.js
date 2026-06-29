@@ -1,5 +1,5 @@
 export function installSectionedListPatches(deps) {
-  const { call, events, info, fy, cntlr, services, debug } = deps;
+  const { call, events, info, fy, cntlr, services } = deps;
   //分个形式(拍卖行待售、待分配)球员列表 读取球员列表查询价格
 UTSectionedItemListView.prototype.addItems = function(t, e, i, r) {
     call.plist.sectioned.call(this,t, e, i, r);

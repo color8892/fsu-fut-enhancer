@@ -205,8 +205,7 @@ function assertUserscriptBundle() {
   assert.ok(userscript.includes("FSU_BASE_STYLE"));
   assert.ok(userscript.includes("ModuleRegistry"));
   assert.ok(userscript.includes("MarketActionService"));
-  assert.ok(userscript.includes("PackService"));
-  assert.ok(userscript.includes("AutoBuyService"));
+  assert.ok(userscript.includes("showPlayerListPopup"));
   assert.ok(userscript.includes("AcademyCalcService"));
   assert.ok(userscript.includes("FgRatingService"));
   assert.ok(userscript.includes("FsuJsonStore"));

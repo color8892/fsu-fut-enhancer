@@ -109,7 +109,7 @@ UTSBCSquadOverviewViewController.prototype.initWithSBCSet = function (...args) {
                 this._fsu[`reqBtn_${index}`] = events.createButton(
                     new UTImageButtonControl(),
                     "",
-                    (e) => {
+                    (_e) => {
                         events.squadPositionSelection(
                             thisController,
                             criteria,
@@ -138,7 +138,7 @@ UTSBCSquadOverviewViewController.prototype.initWithSBCSet = function (...args) {
         this._fsu.bulkBuyBtn = events.createButton(
             new UTStandardButtonControl(),
             fy("bibconcept.btntext"),
-            (e) => {
+            (_e) => {
                 let conceptPlayers = _.map(_.filter(thisController._squad.getPlayers(), slot => {
                     return slot.item.concept;
                 }),"item");
@@ -274,7 +274,7 @@ UTSBCSquadOverviewViewController.prototype.initWithSBCSet = function (...args) {
                 this._fsu.fastSbcStatsBtn = events.createButton(
                     new UTStandardButtonControl(),
                     fy(`fastsbc.${fastSbcStats}`),
-                    (q) => {
+                    (_q) => {
                         if(fastSbcStats == "add"){
                             info.base.fastsbc[fastSbcName] = fastSbcNeedInfo;
                         }else{
@@ -378,7 +378,7 @@ UTSBCSquadOverviewViewController.prototype.initWithSBCSet = function (...args) {
             this._fsu.squadCmplBtn = events.createButton(
                 new UTStandardButtonControl(),
                 fy("squadcmpl.btntext"),
-                (e) => {
+                (_e) => {
                     debug.log(thisController._challenge)
                     let va = thisController._squad.getNumOfRequiredPlayers() - thisController._squad.getFieldPlayers().filter(i => i.isValid()).length,
                     fillRating = events.needRatingsCount(hasRating, thisController._squad),
@@ -435,7 +435,7 @@ UTSBCSquadOverviewViewController.prototype.initWithSBCSet = function (...args) {
 }
 
 export function installSbcSquadDetailPanelPatches(deps) {
-  const { events, info, cntlr } = deps;
+  const { info } = deps;
   //26.04 信息界面按钮载入
 const UTSBCSquadDetailPanelViewController_initWithSBCSet = UTSBCSquadDetailPanelViewController.prototype.initWithSBCSet;
 UTSBCSquadDetailPanelViewController.prototype.initWithSBCSet = function(...args) {

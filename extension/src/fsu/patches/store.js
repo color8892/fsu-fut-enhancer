@@ -2,8 +2,91 @@ let inPacksController;
 let specialPlayersController;
 
 export function installStorePatches(deps) {
-    const { call, events, info, cntlr, isPhone, fy, debug, repositories, services, GM_setValue, AssetLocationUtils, unsafeWindow } = deps;
+    const { call, events, info, cntlr, isPhone, fy, repositories, services, GM_setValue, AssetLocationUtils, unsafeWindow } = deps;
     const GM_openInTab = unsafeWindow.GM_openInTab;
+
+    events.showPlayerListPopup = (title, text, players, desc) => {
+        const popupController = new EADialogViewController({
+            dialogOptions: [{ labelEnum: enums.UIDialogOptions.OK }],
+            message: "",
+            title,
+            type: EADialogView.Type.MESSAGE
+        });
+        popupController.init();
+        popupController.onExit.observe(popupController, (e, _z) => {
+            e.unobserve(popupController);
+            popupController.dealloc();
+            const current = cntlr.current();
+            if (current instanceof UTStorePackViewController) {
+                current.getStorePacks(true);
+            }
+        });
+        popupController._fsu = {};
+        const popupView = popupController.getView();
+        popupView.__msg.remove();
+        popupView.__btnContainer.querySelector("button").classList.remove("text");
+        popupView.__btnContainer.querySelector("button").classList.add("primary", "mini");
+        const popupBox = document.createElement("div");
+        if (players.length) {
+            popupController._fsu.listBox = events.createElementWithConfig("div", {
+                classList: "ut-store-reveal-modal-list-view",
+                style: { borderRadius: "0", padding: "0" }
+            });
+            popupController._fsu.list = events.createElementWithConfig("ul", {
+                classList: ["itemList", "fsu-popupItemList"]
+            });
+            popupController._fsu.listBox.appendChild(popupController._fsu.list);
+            players.forEach((i) => {
+                const row = new UTItemTableCellView();
+                row.setData(i, void 0, ListItemPriority.DEFAULT);
+                row.render();
+                if (!desc && i._playStyles.length) {
+                    const popupItemOther = events.createElementWithConfig("div", {
+                        classList: "fsu-popupItemOther"
+                    });
+                    const traitBox = events.createElementWithConfig("div", {
+                        classList: "fsu-popupItemTrait"
+                    });
+                    popupItemOther.appendChild(traitBox);
+                    _.map(
+                        _.orderBy(i._playStyles, [(item) => (item.isIcon ? 0 : 1), "category"], ["asc", "asc"]),
+                        (t) => {
+                            const classList = ["fut_icon", "fsu-traitIcon"];
+                            if (t.isIcon) {
+                                classList.push(`icon_icontrait${t.traitId}`, "icon");
+                            } else {
+                                classList.push(`icon_basetrait${t.traitId}`);
+                            }
+                            traitBox.appendChild(events.createElementWithConfig("i", { classList }));
+                        }
+                    );
+                    const popupItemOtherBtn = events.createButton(
+                        new UTButtonControl(),
+                        fy("sbc.watchplayer"),
+                        (e) => events.openFutbinPlayerUrl(e, i),
+                        "btn-standard mini"
+                    );
+                    popupItemOther.appendChild(popupItemOtherBtn.getRootElement());
+                    row.__rowContent.appendChild(popupItemOther);
+                }
+                popupController._fsu.list.appendChild(row.getRootElement());
+            });
+            popupBox.appendChild(popupController._fsu.listBox);
+        }
+        popupBox.appendChild(events.createElementWithConfig("div", {
+            textContent: text,
+            style: { paddingTop: ".5rem", fontSize: "1rem" }
+        }));
+        if (desc) {
+            popupBox.appendChild(events.createElementWithConfig("div", {
+                textContent: desc,
+                style: { paddingTop: ".5rem", fontSize: "1rem", opacity: ".5" }
+            }));
+        }
+        events.loadPlayerInfo(players, popupView);
+        popupView.getRootElement().querySelector(".ea-dialog-view--body").prepend(popupBox);
+        gPopupClickShield.setActivePopup(popupController);
+    };
 
     //球员预览包打开 读取球员列表查询价格
     UTStoreRevealModalListView.prototype.addItems = function(e, t, i, o) {
@@ -160,56 +243,6 @@ export function installStorePatches(deps) {
                         item._pack.getRootElement().appendChild(packInfoBox);
                     }
                 }
-                if(packCoin && !itemElement.querySelector(".fsu-trypack")){itemElement
-                    item._fsuTryPack = events.createButton(
-                        new UTCurrencyButtonControl(),
-                        fy("trypack.button.subtext"),
-                        (e) => {
-                            e.setInteractionState(0);
-                            events.showLoader();
-                            events.tryPack(repositories.Store.getArticle(item.articleId));
-                            setTimeout(() => {
-                                e.setInteractionState(1);
-                            }, 2000);
-                        },
-                        "fsu-trypack"
-                    )
-                    item._fsuTryPackBox = document.createElement("div");
-                    item._fsuTryPackBox.classList.add("fsu-trypack-box");
-                    item._fsuTryPackBox.append(item._fsuTryPack.getRootElement());
-                    let parentElement = item.getRootElement().querySelector(".ut-store-pack-details-view--pack-counts");
-                    parentElement.style.position = "relative";
-                    parentElement.append(item._fsuTryPackBox)
-                }
-                if(packCoin && !itemElement.querySelector(".fsu-raelprod")){
-                    let rp = events.createButton(
-                        new UTStandardButtonControl(),
-                        fy("realprob.btn"),
-                        (e) => {
-                            e.setInteractionState(0);
-                            events.showLoader();
-                            events.raelProbability(packData);
-                            setTimeout(() => {
-                                e.setInteractionState(1);
-                            }, 2000);
-                        },
-                        "fsu-raelprod mini"
-                    )
-                    Object.assign(rp.getRootElement().style, {
-                        height: "2rem",
-                        lineHeight: "2rem",
-                        padding: "0",
-                        width: "6rem",
-                        flexBasis: "auto",
-                        ...(isPhone() && {
-                            width: "100%",
-                            marginBottom: "1rem",
-                        })
-                    });
-
-                    item._fsuRealProd = rp;
-                    item._fsuExtraInfo.appendChild(item._fsuRealProd.getRootElement())
-                }
                 if(HideAndShow){
                     const packInfo = this._fsuPacks[`${item.articleId}-${!item.__root.classList.contains('is-untradeable')}`];
                     if(packInfo){
@@ -232,23 +265,7 @@ export function installStorePatches(deps) {
                             });
                             itemElement.appendChild(packCount)
                         }
-                        if (packInfo.isPlayers && !itemElement.querySelector(".fsu-bulkopen")) {
-                            //25.21 批量开包按钮
-                            let bulkOpenBtn = events.createButton(
-                                new UTCurrencyButtonControl(),
-                                fy("openpack.storebtn.text") + ` (${packInfo.count})`,
-                                (e) => {
-                                    //带弹窗的数量选择，此处移除
-                                    //events.openPacksConfirmPopup(item.articleId, packInfo.fullName, packInfo.count)
-                                    events.showLoader();
-                                    events.openPacks(item.articleId, packInfo.fullName, packInfo.count);
-                                },
-                                "fsu-bulkopen call-to-action"
-                            )
-                            bulkOpenBtn.__currencyLabel.textContent = fy("openpack.storebtn.subtext")
-                            item.__articleActionContainer.prepend(bulkOpenBtn.getRootElement())
-                            item.__articleActionContainer.style.gap = "1rem";
-                        }
+
                     }
                 }
             })
@@ -371,7 +388,7 @@ export function installStorePatches(deps) {
                     let packTile = events.createTile(
                         fy("douagain.packtile.title"),
                         fy("douagain.packtile.text"),
-                        (e) => {
+                        (_e) => {
                             let current = cntlr.current();
                             let pack = current.viewmodel.getPacks('mypacks').filter(i => i.id == info.douagain.pack).pop();
                             current.eOpenPack(
@@ -394,7 +411,7 @@ export function installStorePatches(deps) {
                     let sbcTile = events.createTile(
                         fy("douagain.sbctile.title"),
                         fy("douagain.sbctile.text"),
-                        (e) => {
+                        (_e) => {
                             if(info.douagain.sbc){
                                 events.goToSBC(services.SBC.repository.getSetById(info.douagain.sbc));
                             }else{
@@ -428,7 +445,7 @@ export function installStorePatches(deps) {
                 this._fsuUnassignedTile = uTile;
                 this._fsuUnassignedTile.addTarget(
                     this._fsuUnassignedTile,
-                    (e) => {
+                    (_e) => {
                         TelemetryManager.trackEvent(TelemetryManager.Sections.STORE, TelemetryManager.Categories.BUTTON_PRESS, "Store - Unassigned Tile"),
                         cntlr.current().gotoUnassigned()
                     },
@@ -541,7 +558,7 @@ export function installStorePatches(deps) {
             inPacksTile.fsuCount.setLabel(services.Localization.localize("tile.label.itemCount", [info.inpacks.defIds.length.toString()]));
             inPacksTile.__tileContent.appendChild(inPacksTile.fsuCount.getRootElement())
             view._fsuInPacksTile = inPacksTile;
-            view._fsuInPacksTile.addTarget(view,(e) => {
+            view._fsuInPacksTile.addTarget(view,(_e) => {
                 events.goToInPacks(this.getNavigationController())
             },EventType.TAP);
             view._fsuInPacksTile.setInteractionState(true);
@@ -573,7 +590,7 @@ export function installStorePatches(deps) {
             specialTile.fsuCount.setLabel(services.Localization.localize("tile.label.itemCount", [_.size(info.specialPlayers.dynamic) + _.size(info.specialPlayers.extraChem)]));
             specialTile.__tileContent.appendChild(specialTile.fsuCount.getRootElement())
             view._fsuSpecialTile = specialTile;
-            view._fsuSpecialTile.addTarget(view,(e) => {
+            view._fsuSpecialTile.addTarget(view,(_e) => {
                 this.getNavigationController().pushViewController(new specialPlayersController());
             },EventType.TAP);
             view._fsuSpecialTile.setInteractionState(true);
@@ -640,7 +657,7 @@ export function installStorePatches(deps) {
     }
 
     //26.04 包内球员界面创建
-    const inPacksControllerView = function (t) {
+    const inPacksControllerView = function (_t) {
         EAView.call(this);
     };
     JSUtils.inherits(inPacksControllerView, EAView);
@@ -691,7 +708,7 @@ export function installStorePatches(deps) {
                 let itemViewBtn = events.createButton(
                     new UTStandardButtonControl(),
                     fy("quicklist.gotofutbin"),
-                    (e) => {events.openFutbinPlayerUrl(e, player);},
+                    (_e) => {events.openFutbinPlayerUrl(_e, player);},
                     "call-to-action mini fsu-showPlayersBtn"
                 )
                 this._fsu[`itemViewBtn_${player.id}`] = itemViewBtn;
@@ -719,7 +736,7 @@ export function installStorePatches(deps) {
         events.fsuDispose(this, "_fsu")
         this.__root = null;
     }
-    inPacksController = function (t) {
+    inPacksController = function (_t) {
         EAViewController.call(this);
     };
     JSUtils.inherits(inPacksController, EAViewController);
@@ -734,7 +751,7 @@ export function installStorePatches(deps) {
     };
 
     //26.04 特殊品质界面创建
-    const specialPlayersControllerView = function (t) {
+    const specialPlayersControllerView = function (_t) {
         EAView.call(this);
     };
     JSUtils.inherits(specialPlayersControllerView, EAView);
@@ -818,12 +835,12 @@ export function installStorePatches(deps) {
                     let clubBtn = events.createButton(
                         new UTStandardButtonControl(),
                         btnText,
-                        (e) => {
+                        (_e) => {
                             let players = _.cloneDeep(events.getItemBy(2, { _rareflag: d.id, BTWrating:[99, 45], loans: -1}, repositories.Item.getTransferItems()));
                             _.forEach(players , p => {
                                 p.storeLoc = true
                             })
-                            events.openPacksResultPopup(SL.localize(`item.raretype${d.id}`), fy("special.dynamic.popupm"), players);
+                            events.showPlayerListPopup(SL.localize(`item.raretype${d.id}`), fy("special.dynamic.popupm"), players);
                         },
                         "call-to-action mini"
                     )
@@ -836,7 +853,7 @@ export function installStorePatches(deps) {
                     let futbinBtn = events.createButton(
                         new UTStandardButtonControl(),
                         fy("quicklist.gotofutbin"),
-                        (e) => {
+                        (_e) => {
                             GM_openInTab(`https://www.futbin.com/${d.url}`, { active: true, insert: true, setParent :true });
                         },
                         "call-to-action mini"
@@ -914,12 +931,12 @@ export function installStorePatches(deps) {
                     let clubBtn = events.createButton(
                         new UTStandardButtonControl(),
                         btnText,
-                        (e) => {
+                        (_e) => {
                             let players = _.cloneDeep(events.getItemBy(2, { rareflag: ec.id, BTWrating:[99, 45], loans: -1 }, repositories.Item.getTransferItems()));
                             _.forEach(players , p => {
                                 p.storeLoc = true
                             })
-                            events.openPacksResultPopup(SL.localize(`item.raretype${ec.id}`), fy("special.extrachem.popupm"), players);
+                            events.showPlayerListPopup(SL.localize(`item.raretype${ec.id}`), fy("special.extrachem.popupm"), players);
                         },
                         "call-to-action mini"
                     )
@@ -932,7 +949,7 @@ export function installStorePatches(deps) {
                     let futbinBtn = events.createButton(
                         new UTStandardButtonControl(),
                         fy("quicklist.gotofutbin"),
-                        (e) => {
+                        (_e) => {
                             GM_openInTab(`https://www.futbin.com/${ec.url}`, { active: true, insert: true, setParent :true });
                         },
                         "call-to-action mini"
@@ -951,7 +968,7 @@ export function installStorePatches(deps) {
             this._generated = !0;
         }
     }
-    specialPlayersController = function (t) {
+    specialPlayersController = function (_t) {
         EAViewController.call(this);
     };
     

@@ -2,7 +2,6 @@ export class SbcSquadSaveService {
   async save(challenge, squad, players, helpers) {
     const {
       setSaving,
-      isSaving,
       saveChallenge,
       loadChallengeData,
       notice,
@@ -10,7 +9,6 @@ export class SbcSquadSaveService {
       loadPlayerInfo,
       isPhone,
       getCurrentController,
-      navigateBackOnPhone,
       getActiveView,
       debug
     } = helpers;

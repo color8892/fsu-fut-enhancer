@@ -3,7 +3,7 @@ export function createGameInfo() {
   return {
     "task":{"obj":{"stat":{},"html":"","source":[]},"sbc":{"stat":{},"html":""}},
     "evolutions":{"new":[], "newCount":0, "html":""},
-    "base":{"state":false,"platform":"pc","price":{},"sId":"","localization":"",autoLoad:true,"ratings":{},"input":true,"promo":0,"savesquad":false,"packcoin":{},"packreturns":{},"oddo":{},"fastsbc":{},"fastsbctips":false,"imgDB":null,"imgCache":{}},
+    "base":{"state":false,"platform":"pc","price":{},"sId":"","localization":"",autoLoad:true,"ratings":{},"input":true,"promo":0,"savesquad":false,"packcoin":{},"packreturns":{},"oddo":{},"fastsbc":{},"fastsbctips":false},
     "squad":{},
     "meta":{
         "bodyType": {},
@@ -27,7 +27,6 @@ export function createGameInfo() {
     "setfield":{"card":["pos","price","other","club","low","meta"],"player":["auction","futbin","getprice","loas","uatoclub","transfertoclub","pickbest"],"sbc":["top","right","quick","duplicate","records","input","icount","template","templatemode","market","sback","cback","dupfill","autofill","squadcmpl","conceptbuy","meetsreq","headentrance"],"info":["obj","sbc","sbcf","sbcs","pack","squad","skipanimation","sbcagain","packagain"]},
     "set":{},
     "lock":[],
-    "autobuy":{"controller":null,"infoViews":{},"logView":{},"log":[]},
     "douagain":{"sbc":0,"pack":0,"SBCList":[]},
     "formation":{
         "343": [0,5,5,5,12,14,14,16,23,25,27],

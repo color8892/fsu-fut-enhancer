@@ -2,8 +2,6 @@ import { PlayerSearchService } from "../domain/PlayerSearchService.js";
 import { PlayerValueService } from "../domain/PlayerValueService.js";
 import { SbcRequirementsService } from "../domain/SbcRequirementsService.js";
 import { MarketActionService } from "../domain/MarketActionService.js";
-import { PackService } from "../domain/PackService.js";
-import { AutoBuyService } from "../domain/AutoBuyService.js";
 import { AcademyCalcService } from "../domain/AcademyCalcService.js";
 import { FgRatingService } from "../domain/FgRatingService.js";
 import { registerSbcRatingEvents } from "../domain/SbcRatingService.js";
@@ -15,7 +13,7 @@ import { renderPlayerDetailsButtons } from "../patches/player-details.js";
 import { renderSbcSubstitutionPanel } from "../patches/sbc-substitution.js";
 
 export function registerEarlyModules(ctx) {
-  const { events, info, debug, fy, SBCEligibilityKey, repositories } = ctx;
+  const { events, info, fy, SBCEligibilityKey } = ctx;
   const helpers = createDomainHelpers(ctx);
 
   registerUiEvents({ events, info, fy });
@@ -67,23 +65,6 @@ export function registerLateModules(ctx) {
     marketActionService.playerToAuction(d, p, time, marketHelpers());
   events.losAuctionSell = (e, t) => marketActionService.losAuctionSell(e, t, marketHelpers());
   events.losAuctionCount = (e, t) => marketActionService.losAuctionCount(e, t, marketHelpers());
-
-  const packService = new PackService();
-  const packHelpers = helpers.pack;
-
-  events.raelProbability = (pack) => packService.raelProbability(pack, packHelpers());
-  events.tryPack = (pack) => packService.tryPack(pack, packHelpers());
-  events.tryPackPopup = (pack, items) => packService.tryPackPopup(pack, items, packHelpers());
-  events.getTryPackData = (pack) => packService.getTryPackData(pack, packHelpers());
-  events.getRealProbability = (pack) => packService.getRealProbability(pack, packHelpers());
-  events.openPacks = (packId, packName, packNum) =>
-    packService.openPacks(packId, packName, packNum, packHelpers());
-  events.openPacksConfirmPopup = (packId, packName, packCount) =>
-    packService.openPacksConfirmPopup(packId, packName, packCount, packHelpers());
-  events.openPacksResultPopup = (title, text, players, desc) =>
-    packService.openPacksResultPopup(title, text, players, desc, packHelpers());
-
-  Object.assign(events, new AutoBuyService().createFacade(helpers.autoBuy));
 
   Object.assign(events, new AcademyCalcService().createFacade(helpers.academy));
   Object.assign(events, new FgRatingService().createFacade(helpers.fg));

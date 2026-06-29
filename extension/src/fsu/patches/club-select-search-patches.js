@@ -1,5 +1,5 @@
 export function installClubSelectSearchPatches(deps) {
-  const { call, events, info, fy, cntlr, repositories, services } = deps;
+  const { call, events, info, fy, repositories, services } = deps;
 UTClubSearchResultsViewController.prototype._requestItems = function(r) {
     if("_fsuLock" in this && this._fsuLock){
         var s = this;
@@ -54,41 +54,11 @@ UTClubSearchResultsViewController.prototype._requestItems = function(r) {
             services.Notification.queue([services.Localization.localize("notification.club.failedToLoad"), UINotificationType.NEGATIVE]),
             null === (i = s.getNavigationController()) || void 0 === i || i.popViewController(!0)
         })
-    }else if("_fsuAutoBuy" in this && this._fsuAutoBuy){
-        //25.20 球员自动购买 写入球员
-        this.clubViewModel.resetCollection([]);
-        this.clubViewModel.addArray(this._fsuAutoBuyPlayers);
-        this.clubViewModel.isFull = true;
-        this.clubViewModel.getIndex()
-        this.updateItemList(this.clubViewModel.getPageItems(), 1)
-
-        if(this._fsuAutoBuyPlayers.length == 0){
-            this.getView()._list.noResultsView.setHeading(fy("autobuy.noresult.title"))
-            this.getView()._list.noResultsView.setDescription(fy("autobuy.noresult.text"))
-            this.getView()._list.noResultsView._button.hide()
-            this.getView().getRootElement().classList.add("fsu-aotobuy")
-        }else{
-            this.getView().header.getButton().hide()
-
-            //写入队内是否拥有标识
-            _.forEach(this.getView()._list.listRows,(rows) => {
-                const clubPlayers = events.getItemBy(1,{"definitionId":rows.data.definitionId});
-                if(clubPlayers.length > 0){
-                    let tag = new UTListActiveTagView;
-                    tag.setIconClass("club");
-                    rows.setActiveTagComponent(tag);
-                    rows.addClass("is-active");
-                    rows.__rowContent.appendChild(tag.getRootElement());
-                }
-            })
-
-
-        }
     }else if("_fsuInPacks" in this && this._fsuInPacks){
         events.showLoader()
         const index = this.clubViewModel.getIndex()
         if(info.inpacks.defIds.length === 0){
-            
+            void 0;
         }
         this.clubViewModel.resetCollection([]);
         this.clubViewModel.addArray(info.inpacks);
@@ -124,7 +94,7 @@ UTClubSearchResultsViewController.prototype.setupHeader = function(...args) {
             let setClubButton = events.createButton(
                 new UTStandardButtonControl(),
                 fy(`storage.setclub.button`),
-                (e) => {
+                (_e) => {
                     events.transferToClub(controller,sendClubPlayers)
                     setClubHeader.hide()
                 },
@@ -135,44 +105,6 @@ UTClubSearchResultsViewController.prototype.setupHeader = function(...args) {
 
             this.getView().getRootElement().prepend(setClubHeader.getRootElement())
         }
-    }
-
-    //25.20 球员自动购买 设置标题
-    if("_fsuAutoBuy" in this && this._fsuAutoBuy && !_.has(this,"_playerNameInput")){
-        this.getNavigationController().setNavigationTitle(fy("autobuy.nav.tilte"));
-
-
-        let searchBox = document.createElement("div");
-        searchBox.classList.add("fsu-sbcfilter-box");
-        let searchOption = document.createElement("div");
-        searchOption.classList.add("fsu-sbcfilter-option");
-        searchOption.style.maxWidth = "400px";
-
-        this._playerNameInput = new UTPlayerSearchControl();
-        this._playerNameInput.init();
-        this._playerNameInput.getRootElement().style.flex = 1;
-        searchOption.appendChild(this._playerNameInput.getRootElement());
-
-        this._searchButton = events.createButton(
-            new UTStandardButtonControl(),
-            services.Localization.localize("button.search"),
-            (e) => {
-                if(this._playerNameInput.getSelected()){
-                    events.showLoader()
-                    events.autoBuySearchPlayer(this._playerNameInput.getSelected(),this)
-                }else{
-                    events.notice("autobuy.noselected.notice",2)
-                }
-            },
-            "call-to-action"
-        )
-        this._searchButton.getRootElement().style.marginLeft = "1rem";
-        this._searchButton.getRootElement().style.width = "6rem";
-        searchOption.appendChild(this._searchButton.getRootElement());
-
-        searchBox.appendChild(searchOption);
-
-        this.getView().header.getRootElement().after(searchBox);
     }
 }
 
