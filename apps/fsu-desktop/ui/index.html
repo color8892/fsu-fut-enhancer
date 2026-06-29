@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FSU Desktop</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: system-ui, sans-serif;
+        background: #0f1419;
+        color: #e8eaed;
+      }
+      body {
+        margin: 0;
+        padding: 2rem;
+        max-width: 56rem;
+      }
+      h1 {
+        font-size: 1.25rem;
+        margin: 0 0 0.5rem;
+      }
+      h2 {
+        font-size: 0.95rem;
+        margin: 1.5rem 0 0.75rem;
+        color: #bdc1c6;
+      }
+      h3 {
+        font-size: 0.85rem;
+        margin: 0 0 0.5rem;
+        color: #bdc1c6;
+        font-weight: 600;
+      }
+      p {
+        color: #9aa0a6;
+        margin: 0 0 1rem;
+      }
+      .row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 0.75rem;
+      }
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        min-width: 10rem;
+      }
+      .field label {
+        color: #9aa0a6;
+        font-size: 0.8rem;
+      }
+      button,
+      input,
+      select {
+        font: inherit;
+      }
+      button {
+        background: #1a73e8;
+        border: none;
+        border-radius: 6px;
+        color: #fff;
+        cursor: pointer;
+        font-size: 0.9rem;
+        padding: 0.6rem 1rem;
+      }
+      button:hover {
+        background: #1557b0;
+      }
+      button.secondary {
+        background: #30363d;
+      }
+      button.secondary:hover {
+        background: #484f58;
+      }
+      input,
+      select {
+        background: #1c2128;
+        border: 1px solid #30363d;
+        border-radius: 6px;
+        color: #e8eaed;
+        min-width: 12rem;
+        padding: 0.55rem 0.75rem;
+      }
+      pre {
+        background: #1c2128;
+        border-radius: 8px;
+        font-size: 0.85rem;
+        margin-top: 1rem;
+        overflow: auto;
+        padding: 1rem;
+        white-space: pre-wrap;
+      }
+      .panel {
+        background: #161b22;
+        border: 1px solid #30363d;
+        border-radius: 10px;
+        margin-top: 0.5rem;
+        padding: 1rem;
+      }
+      .results {
+        background: #1c2128;
+        border-radius: 8px;
+        margin-top: 1rem;
+        padding: 1rem;
+      }
+      .results-summary {
+        color: #e8eaed;
+        font-size: 0.9rem;
+        margin: 0 0 1rem;
+      }
+      .results-section + .results-section {
+        margin-top: 1rem;
+      }
+      table {
+        border-collapse: collapse;
+        font-size: 0.85rem;
+        width: 100%;
+      }
+      th,
+      td {
+        border-bottom: 1px solid #30363d;
+        padding: 0.45rem 0.6rem;
+        text-align: left;
+      }
+      th {
+        color: #9aa0a6;
+        font-weight: 600;
+      }
+      td.num,
+      th.num {
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+      }
+      .muted {
+        color: #9aa0a6;
+      }
+      .hidden {
+        display: none;
+      }
+      .pill {
+        background: #30363d;
+        border-radius: 999px;
+        display: inline-block;
+        font-size: 0.75rem;
+        margin: 0.1rem;
+        padding: 0.15rem 0.5rem;
+      }
+      .results-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 0.75rem;
+      }
+      .table-scroll {
+        border: 1px solid #30363d;
+        border-radius: 8px;
+        max-height: 16rem;
+        overflow: auto;
+      }
+      .table-scroll table {
+        margin: 0;
+      }
+      .table-scroll thead th {
+        background: #161b22;
+        position: sticky;
+        top: 0;
+        z-index: 1;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>FSU Desktop</h1>
+    <p>Rust + Tauri — shared <code>fsu-core</code> logic for offline SBC planning.</p>
+
+    <h2>SBC planner</h2>
+    <div class="panel">
+      <div class="row">
+        <div class="field" style="flex: 1; min-width: 14rem">
+          <label for="ea-token-planner">X-UT-SID (optional, for club inventory)</label>
+          <input id="ea-token-planner" type="password" placeholder="Paste from FUT web DevTools" />
+        </div>
+        <div class="field">
+          <label for="ea-platform-planner">Platform</label>
+          <select id="ea-platform-planner">
+            <option value="ps">PlayStation</option>
+            <option value="pc">PC</option>
+            <option value="xbox">Xbox</option>
+          </select>
+        </div>
+      </div>
+      <div class="row">
+        <div class="field">
+          <label for="target-rating">Target squad rating</label>
+          <input id="target-rating" type="number" min="0" max="99" value="84" />
+        </div>
+        <div class="field" style="flex: 1; min-width: 16rem">
+          <label for="existing-ratings">Existing squad ratings (comma-separated)</label>
+          <input
+            id="existing-ratings"
+            type="text"
+            placeholder="e.g. 90,90,88,87,86"
+            value=""
+          />
+        </div>
+      </div>
+      <div class="row">
+        <button id="plan-rating">Plan (offline)</button>
+        <button id="plan-with-club">Plan with club</button>
+        <button id="fetch-club" class="secondary">Fetch club inventory</button>
+        <button id="open-fut-planner" class="secondary">Open FUT Web App</button>
+      </div>
+      <p style="margin: 0.5rem 0 0; font-size: 0.85rem">
+        <strong>Plan (offline)</strong> assumes any rating is obtainable.
+        <strong>Plan with club</strong> uses your real club counts via UTAS.
+      </p>
+      <p style="margin: 0.35rem 0 0; font-size: 0.8rem" class="muted">
+        To get <code>X-UT-SID</code>: open FUT Web App → DevTools (F12) → Network → any
+        <code>utas.mob...</code> request → copy the <code>X-UT-SID</code> request header.
+      </p>
+    </div>
+
+    <h2>SBC tools (samples)</h2>
+    <div class="row">
+      <button id="calc">Chemistry (sample)</button>
+      <button id="rating">Team rating</button>
+      <button id="needs" class="secondary">Quick needs (84)</button>
+      <button id="diff">Price diff</button>
+      <button id="candidates">Chemistry candidates</button>
+    </div>
+
+    <h2>EA session probe</h2>
+    <p>Quick connectivity check (first club page only).</p>
+    <div class="row">
+      <input id="ea-token" type="password" placeholder="X-UT-SID" />
+      <input id="ea-persona" type="text" placeholder="Persona ID (optional)" />
+      <select id="ea-platform">
+        <option value="ps">PlayStation</option>
+        <option value="pc">PC</option>
+        <option value="xbox">Xbox</option>
+      </select>
+      <button id="ea-probe">Probe session</button>
+      <button id="open-fut-probe" class="secondary">Open FUT Web App</button>
+    </div>
+
+    <h2>Player prices</h2>
+    <div class="row">
+      <input
+        id="price-ids"
+        type="text"
+        placeholder="Definition IDs (comma-separated)"
+        value="231747,192119"
+      />
+      <select id="platform">
+        <option value="pc">PC</option>
+        <option value="ps">PlayStation / Xbox</option>
+      </select>
+      <button id="prices">Fetch via FUT.GG</button>
+    </div>
+
+    <div id="results" class="results hidden">
+      <div class="results-toolbar">
+        <button id="copy-needs" class="secondary hidden">Copy needs list</button>
+        <button id="export-csv" class="secondary hidden">Export CSV</button>
+        <button id="export-txt" class="secondary hidden">Export TXT</button>
+      </div>
+      <p id="results-summary" class="results-summary"></p>
+      <div id="inventory-section" class="results-section hidden">
+        <h3 id="inventory-title">Club inventory by rating</h3>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>Rating</th>
+                <th class="num">In club</th>
+              </tr>
+            </thead>
+            <tbody id="inventory-body"></tbody>
+          </table>
+        </div>
+      </div>
+      <div id="options-section" class="results-section hidden">
+        <h3>Rating fill options</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Option</th>
+              <th class="num">Squad Σ</th>
+              <th class="num">From club</th>
+              <th class="num">Still need</th>
+              <th>Fill ratings</th>
+              <th>Missing</th>
+            </tr>
+          </thead>
+          <tbody id="options-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <pre id="out">Use the controls above to invoke the Rust backend.</pre>
+
+    <script>
+      const FUT_WEB_APP_URL =
+        "https://www.ea.com/ea-sports-fc/ultimate-team/web-app/";
+
+      const sample = [
+        { nation_id: 1, league_id: 10, team_id: 100 },
+        { nation_id: 1, league_id: 10, team_id: 101 },
+        { nation_id: 2, league_id: 11, team_id: 200 },
+      ];
+
+      let lastExportPayload = null;
+
+      async function openFutWebApp() {
+        const shellOpen = window.__TAURI__?.shell?.open;
+        if (typeof shellOpen !== "function") {
+          showRawOutput(
+            "Shell open unavailable. Open this URL manually:\n" + FUT_WEB_APP_URL
+          );
+          return;
+        }
+
+        try {
+          await shellOpen(FUT_WEB_APP_URL);
+        } catch (error) {
+          showRawOutput(String(error));
+        }
+      }
+
+      function formatCoins(value) {
+        return Number(value || 0).toLocaleString();
+      }
+
+      function ratingCountRows(counts) {
+        return Object.entries(counts || {})
+          .map(([rating, count]) => [Number(rating), Number(count)])
+          .filter(([rating, count]) => Number.isFinite(rating) && Number.isFinite(count))
+          .sort((left, right) => right[0] - left[0]);
+      }
+
+      function summarizeMissing(lackRatings) {
+        const summary = (lackRatings || []).reduce((acc, rating) => {
+          acc[rating] = (acc[rating] || 0) + 1;
+          return acc;
+        }, {});
+
+        return Object.entries(summary)
+          .sort((left, right) => Number(right[0]) - Number(left[0]))
+          .map(([rating, count]) => `<span class="pill">${rating}×${count}</span>`)
+          .join("");
+      }
+
+      function renderFillRatings(ratings) {
+        return (ratings || [])
+          .map((rating) => `<span class="pill">${rating}</span>`)
+          .join("");
+      }
+
+      function missingSummary(lackRatings) {
+        return (lackRatings || []).reduce((acc, rating) => {
+          acc[rating] = (acc[rating] || 0) + 1;
+          return acc;
+        }, {});
+      }
+
+      function missingText(lackRatings) {
+        return Object.entries(missingSummary(lackRatings))
+          .sort((left, right) => Number(right[0]) - Number(left[0]))
+          .map(([rating, count]) => `${rating}x${count}`)
+          .join(", ");
+      }
+
+      function needsListLines(lackRatings) {
+        return Object.entries(missingSummary(lackRatings))
+          .sort((left, right) => Number(right[0]) - Number(left[0]))
+          .map(([rating, count]) => `${rating} : ${count}`);
+      }
+
+      function exportFilename(payload, extension) {
+        const date = new Date().toISOString().slice(0, 10);
+        const target =
+          payload.target != null && Number.isFinite(payload.target)
+            ? `-rating${payload.target}`
+            : "";
+        const kind = payload.kind ? `-${payload.kind}` : "";
+        return `fsu-planner${target}${kind}-${date}.${extension}`;
+      }
+
+      function setExportPayload(payload) {
+        lastExportPayload = payload;
+        const show = Boolean(payload);
+        const hasNeeds = Boolean(payload?.options?.[0]?.lack_ratings?.length);
+        document.getElementById("copy-needs").classList.toggle("hidden", !hasNeeds);
+        document.getElementById("export-csv").classList.toggle("hidden", !show);
+        document.getElementById("export-txt").classList.toggle("hidden", !show);
+      }
+
+      function downloadText(filename, content, mimeType) {
+        const blob = new Blob([content], { type: mimeType });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = filename;
+        link.click();
+        URL.revokeObjectURL(link.href);
+      }
+
+      function buildCsvExport(payload) {
+        const lines = [`summary,${JSON.stringify(payload.summary)}`];
+
+        if (payload.inventory?.length) {
+          lines.push("rating,in_club");
+          for (const [rating, count] of payload.inventory) {
+            lines.push(`${rating},${count}`);
+          }
+        }
+
+        if (payload.options?.length) {
+          lines.push("option,squad_sum,from_club,still_need,fill_ratings,missing");
+          payload.options.forEach((option, index) => {
+            lines.push(
+              [
+                index + 1,
+                option.sum,
+                option.exist_value,
+                option.lack_value,
+                `"${(option.ratings || []).join(";")}"`,
+                `"${missingText(option.lack_ratings)}"`,
+              ].join(",")
+            );
+          });
+        }
+
+        return lines.join("\n");
+      }
+
+      function buildTxtExport(payload) {
+        const lines = [payload.summary, ""];
+
+        if (payload.inventory?.length) {
+          lines.push("Club inventory");
+          for (const [rating, count] of payload.inventory) {
+            lines.push(`${rating} : ${count}`);
+          }
+          lines.push("");
+        }
+
+        if (payload.options?.length) {
+          const primaryNeeds = needsListLines(payload.options[0].lack_ratings);
+          if (primaryNeeds.length) {
+            lines.push("Need Ratings List");
+            lines.push(...primaryNeeds);
+            lines.push("");
+          }
+
+          lines.push("Rating options");
+          payload.options.forEach((option, index) => {
+            lines.push(`Option ${index + 1}`);
+            lines.push(`  Squad sum: ${option.sum}`);
+            lines.push(`  From club: ${formatCoins(option.exist_value)}`);
+            lines.push(`  Still need: ${formatCoins(option.lack_value)}`);
+            lines.push(`  Fill: ${(option.ratings || []).join(", ")}`);
+            lines.push(`  Missing: ${missingText(option.lack_ratings) || "none"}`);
+            lines.push("");
+          });
+        }
+
+        return lines.join("\n");
+      }
+
+      function hideResults() {
+        document.getElementById("results").classList.add("hidden");
+        document.getElementById("inventory-section").classList.add("hidden");
+        document.getElementById("options-section").classList.add("hidden");
+        setExportPayload(null);
+      }
+
+      function showRawOutput(text) {
+        hideResults();
+        const out = document.getElementById("out");
+        out.classList.remove("hidden");
+        out.textContent = text;
+      }
+
+      function renderInventoryTable(rows) {
+        document.getElementById("inventory-body").innerHTML = rows
+          .map(
+            ([rating, count]) =>
+              `<tr><td>${rating}</td><td class="num">${count}</td></tr>`
+          )
+          .join("");
+      }
+
+      function renderInventory(summary, counts) {
+        const rows = ratingCountRows(counts);
+        renderInventoryTable(rows);
+        document.getElementById("inventory-title").textContent =
+          `Club inventory by rating (${rows.length} tiers)`;
+
+        document.getElementById("results-summary").textContent = summary;
+        document.getElementById("inventory-section").classList.remove("hidden");
+        document.getElementById("options-section").classList.add("hidden");
+        document.getElementById("results").classList.remove("hidden");
+        document.getElementById("out").classList.add("hidden");
+        setExportPayload({
+          summary,
+          inventory: rows,
+          options: [],
+          target: null,
+          kind: "inventory",
+        });
+      }
+
+      function renderOptions(summary, options, inventoryCounts, exportMeta = {}) {
+        const optionsBody = document.getElementById("options-body");
+        if (!Array.isArray(options) || options.length === 0) {
+          showRawOutput(summary + "\n\nNo rating combinations found for this target.");
+          return;
+        }
+
+        optionsBody.innerHTML = options
+          .map((option, index) => {
+            const missing = summarizeMissing(option.lack_ratings);
+            return `<tr>
+              <td>${index + 1}</td>
+              <td class="num">${option.sum}</td>
+              <td class="num">${formatCoins(option.exist_value)}</td>
+              <td class="num">${formatCoins(option.lack_value)}</td>
+              <td>${renderFillRatings(option.ratings)}</td>
+              <td>${missing || '<span class="muted">none</span>'}</td>
+            </tr>`;
+          })
+          .join("");
+
+        document.getElementById("results-summary").textContent = summary;
+        document.getElementById("options-section").classList.remove("hidden");
+
+        let inventoryRows = [];
+        if (inventoryCounts) {
+          inventoryRows = ratingCountRows(inventoryCounts);
+          renderInventoryTable(inventoryRows);
+          document.getElementById("inventory-title").textContent =
+            `Club inventory by rating (${inventoryRows.length} tiers)`;
+          document.getElementById("inventory-section").classList.remove("hidden");
+        } else {
+          document.getElementById("inventory-section").classList.add("hidden");
+        }
+
+        document.getElementById("results").classList.remove("hidden");
+        document.getElementById("out").classList.add("hidden");
+        setExportPayload({
+          summary,
+          inventory: inventoryRows,
+          options,
+          target: exportMeta.target ?? null,
+          kind: exportMeta.kind ?? "plan",
+        });
+      }
+
+      function renderCommandOutput(command, result, exportMeta = {}) {
+        if (command === "fetch_club_inventory") {
+          renderInventory(
+            `Club inventory — ${result.total_players} players`,
+            result.rating_counts
+          );
+          return;
+        }
+
+        if (command === "plan_rating_with_club") {
+          renderOptions(
+            `Target plan using ${result.inventory.total_players} club players`,
+            result.options,
+            result.inventory.rating_counts,
+            { target: exportMeta.target, kind: "club" }
+          );
+          return;
+        }
+
+        if (command === "simulate_rating_needs") {
+          renderOptions(
+            "Offline rating plan (any rating assumed available)",
+            result,
+            null,
+            { target: exportMeta.target, kind: "offline" }
+          );
+          return;
+        }
+
+        showRawOutput(JSON.stringify(result, null, 2));
+      }
+
+      async function invokeRust(command, args, exportMeta = {}) {
+        const invoke = window.__TAURI__?.core?.invoke;
+        if (!invoke) {
+          showRawOutput("Tauri API not available (open via cargo tauri dev).");
+          return;
+        }
+        try {
+          const result = await invoke(command, args);
+          renderCommandOutput(command, result, exportMeta);
+        } catch (error) {
+          showRawOutput(String(error));
+        }
+      }
+
+      function parseIds(raw) {
+        return raw
+          .split(/[,\s]+/)
+          .map((part) => Number.parseInt(part.trim(), 10))
+          .filter((value) => Number.isFinite(value));
+      }
+
+      function plannerArgs() {
+        const target = Number.parseInt(document.getElementById("target-rating").value, 10);
+        const existingRatings = parseIds(document.getElementById("existing-ratings").value);
+        const accessToken = document.getElementById("ea-token-planner").value;
+        const platform = document.getElementById("ea-platform-planner").value;
+        return {
+          target: Number.isFinite(target) ? target : 84,
+          existingRatings,
+          accessToken,
+          platform,
+        };
+      }
+
+      function syncSidInputs(source, target) {
+        source.addEventListener("input", () => {
+          if (target.value !== source.value) {
+            target.value = source.value;
+          }
+        });
+      }
+
+      syncSidInputs(document.getElementById("ea-token-planner"), document.getElementById("ea-token"));
+      syncSidInputs(document.getElementById("ea-token"), document.getElementById("ea-token-planner"));
+
+      document.getElementById("copy-needs").addEventListener("click", async () => {
+        const needs = needsListLines(lastExportPayload?.options?.[0]?.lack_ratings);
+        if (!needs.length) return;
+
+        const text = needs.join("\n");
+        try {
+          await navigator.clipboard.writeText(text);
+          document.getElementById("results-summary").textContent =
+            `${lastExportPayload.summary} — needs list copied`;
+        } catch (_error) {
+          showRawOutput(text);
+        }
+      });
+
+      document.getElementById("export-csv").addEventListener("click", () => {
+        if (!lastExportPayload) return;
+        downloadText(
+          exportFilename(lastExportPayload, "csv"),
+          buildCsvExport(lastExportPayload),
+          "text/csv"
+        );
+      });
+
+      document.getElementById("export-txt").addEventListener("click", () => {
+        if (!lastExportPayload) return;
+        downloadText(
+          exportFilename(lastExportPayload, "txt"),
+          buildTxtExport(lastExportPayload),
+          "text/plain"
+        );
+      });
+
+      document.getElementById("plan-rating").addEventListener("click", () => {
+        const { target, existingRatings, platform } = plannerArgs();
+        invokeRust("simulate_rating_needs", { target, existingRatings, platform }, { target });
+      });
+
+      document.getElementById("plan-with-club").addEventListener("click", () => {
+        const { target, existingRatings, accessToken, platform } = plannerArgs();
+        if (!accessToken.trim()) {
+          showRawOutput("Paste X-UT-SID to plan with club inventory.");
+          return;
+        }
+        invokeRust(
+          "plan_rating_with_club",
+          { accessToken, platform, target, existingRatings },
+          { target }
+        );
+      });
+
+      document.getElementById("fetch-club").addEventListener("click", () => {
+        const { accessToken, platform } = plannerArgs();
+        if (!accessToken.trim()) {
+          showRawOutput("Paste X-UT-SID to fetch club inventory.");
+          return;
+        }
+        invokeRust("fetch_club_inventory", { accessToken, platform });
+      });
+
+      document.getElementById("calc").addEventListener("click", () =>
+        invokeRust("calculate_sbc_chemistry", { players: sample, includeMeta: true })
+      );
+
+      document.getElementById("rating").addEventListener("click", () =>
+        invokeRust("calculate_team_rating", {
+          ratings: [90, 90, 90, 90, 90, 90, 90, 90, 90, 90, 50],
+        })
+      );
+
+      document.getElementById("needs").addEventListener("click", () =>
+        invokeRust("simulate_rating_needs", { target: 84, existingRatings: [], platform: "pc" })
+      );
+
+      document.getElementById("diff").addEventListener("click", () =>
+        invokeRust("format_price_diff", { purchasePrice: 100, lastPrice: 100 })
+      );
+
+      document.getElementById("candidates").addEventListener("click", () =>
+        invokeRust("generate_candidate_options", {
+          players: sample,
+          skipIndex: 0,
+          targetChemistry: 1,
+          meta: { nations: [1, 2], leagues: [10, 11], clubs: [100, 101, 200] },
+          clubLeagues: { 100: 10, 101: 10, 200: 11 },
+        })
+      );
+
+      document.getElementById("open-fut-planner").addEventListener("click", openFutWebApp);
+      document.getElementById("open-fut-probe").addEventListener("click", openFutWebApp);
+
+      document.getElementById("ea-probe").addEventListener("click", () => {
+        const accessToken = document.getElementById("ea-token").value;
+        const personaId = document.getElementById("ea-persona").value;
+        const platform = document.getElementById("ea-platform").value;
+        invokeRust("probe_ea_session", { accessToken, personaId, platform });
+      });
+
+      document.getElementById("prices").addEventListener("click", () => {
+        const ids = parseIds(document.getElementById("price-ids").value);
+        const platform = document.getElementById("platform").value;
+        invokeRust("fetch_player_prices", { definitionIds: ids, platform });
+      });
+    </script>
+  </body>
+</html>

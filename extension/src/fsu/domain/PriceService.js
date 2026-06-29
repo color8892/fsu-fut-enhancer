@@ -1,4 +1,5 @@
 import { PriceRequestQueue } from "../core/PriceRequestQueue.js";
+import { wasmPriceLastDiff } from "../infra/WasmCore.js";
 
 const PRICE_BATCH_SIZE = 23;
 
@@ -57,7 +58,7 @@ export class PriceService {
     return undefined;
   }
 
-  priceLastDiff(purchasePrice, lastPrice) {
+  priceLastDiffJs(purchasePrice, lastPrice) {
     let percent = ((Number(purchasePrice) * 0.95) / Number(lastPrice) - 1) * 100;
     percent = Number(percent.toFixed(0));
 
@@ -69,6 +70,14 @@ export class PriceService {
     return value.indexOf("+") !== -1
       ? `<span class="plus">${value}</span>`
       : `<span class="minus">${value}</span>`;
+  }
+
+  priceLastDiff(purchasePrice, lastPrice) {
+    return wasmPriceLastDiff(
+      Number(purchasePrice),
+      Number(lastPrice),
+      (purchase, last) => this.priceLastDiffJs(purchase, last)
+    );
   }
 
   async getFutbinUrl(url) {

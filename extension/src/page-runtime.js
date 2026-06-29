@@ -427,6 +427,9 @@
 
       if (message.type === "FSU_INIT_STORAGE" && this.valueStore) {
         this.valueStore.mergeInitialValues(message.storage);
+        if (message.assets) {
+          this.windowRef.__FSU_ASSETS__ = message.assets;
+        }
         return;
       }
 

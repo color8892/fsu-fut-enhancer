@@ -9,11 +9,12 @@ import { runSbcServiceTests } from "./sbc-services.test.mjs";
 import { runPlayerSearchTests } from "./player-search.test.mjs";
 import { runFsuContextTests } from "./fsu-context.test.mjs";
 import { runLocalizationTests } from "./localization.test.mjs";
+import { runRatingPricesTests } from "./rating-prices.test.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
 const root = path.resolve(__dirname, "..");
-const background = require(path.join(root, "src", "background.js"));
+const background = require(path.join(root, "src", "background.cjs"));
 
 function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, "utf8"));
@@ -23,7 +24,7 @@ function assertManifest() {
   const manifest = readJson(path.join(root, "manifest.json"));
 
   assert.strictEqual(manifest.manifest_version, 3);
-  assert.strictEqual(manifest.background.service_worker, "src/background.js");
+  assert.strictEqual(manifest.background.service_worker, "src/background.cjs");
   assert.deepStrictEqual(manifest.permissions, ["storage"]);
   assert.ok(manifest.host_permissions.includes("https://www.ea.com/*"));
   assert.ok(manifest.host_permissions.includes("https://api.fut.to/*"));
@@ -260,5 +261,6 @@ runSbcServiceTests();
 runPlayerSearchTests();
 runFsuContextTests();
 runLocalizationTests();
+runRatingPricesTests();
 await assertTabService();
 console.log("All extension tests passed.");

@@ -18,7 +18,7 @@
     "https://fut.to/*"
   ],
   "background": {
-    "service_worker": "src/background.js"
+    "service_worker": "src/background.cjs"
   },
   "content_scripts": [
     {
@@ -38,6 +38,8 @@
     {
       "resources": [
         "vendor/lodash.min.js",
+        "vendor/fsu-wasm/fsu_core.js",
+        "vendor/fsu-wasm/fsu_core_bg.wasm",
         "src/page-runtime.js",
         "src/userscript.js"
       ],

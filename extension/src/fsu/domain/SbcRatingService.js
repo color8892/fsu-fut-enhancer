@@ -1,5 +1,8 @@
+import { buildPriceByRating } from "../infra/RatingPrices.js";
+import { wasmNeedRatingsCount, wasmTeamRatingCount } from "../infra/WasmCore.js";
+
 export class SbcRatingService {
-  teamRatingCount(ratings) {
+  teamRatingCountJs(ratings) {
     let results = 0;
     let sum = _.sum(ratings);
     const avg = sum / 11;
@@ -15,39 +18,83 @@ export class SbcRatingService {
     return results;
   }
 
-  needRatingsCount(target, squad, helpers) {
+  teamRatingCount(ratings) {
+    return wasmTeamRatingCount(ratings, (items) => this.teamRatingCountJs(items));
+  }
+
+  buildRatingNeedOptions(target, squad, helpers) {
     const { getItemBy, ignorePlayerToCriteria, getInfo } = helpers;
     const info = getInfo();
 
-    let ratings = [];
-    let brick = 0;
+    let existingRatings = [];
+    let brickCount = 0;
     let ratingId = [];
 
     if (squad) {
-      ratings = _.map(
+      existingRatings = _.map(
         _.filter(squad.getFieldPlayers(), (i) => i.item.isValid()),
         "item.rating"
       );
-      brick = squad.getAllBrickIndices().length;
+      brickCount = squad.getAllBrickIndices().length;
       ratingId = _.map(
         _.filter(squad.getFieldPlayers(), (i) => i.item.isValid()),
         "item.databaseId"
       );
     }
 
-    let criteria = { NEdatabaseId: ratingId, lock: false };
-    const lackNumber = 11 - brick - ratings.length;
-    let basisRating = 0;
-    let fillNumber = 5;
+    const lackNumber = 11 - brickCount - existingRatings.length;
+    if (lackNumber <= 0) {
+      return null;
+    }
 
+    let criteria = { NEdatabaseId: ratingId, lock: false };
     criteria = ignorePlayerToCriteria(criteria);
     const haveRatingsOriginal = _.map(getItemBy(2, criteria), "rating");
-    const haveRatingsCount = _.countBy(haveRatingsOriginal);
-    let haveRatings = _.uniq(haveRatingsOriginal).sort((a, b) => b - a);
+    const squadAbsent = squad === false;
+    const availableCounts = squadAbsent ? {} : _.countBy(haveRatingsOriginal);
+    const availableRatings = squadAbsent
+      ? _.range(99, 44, -1)
+      : _.uniq(haveRatingsOriginal).sort((a, b) => b - a);
 
-    if (squad == false) {
-      haveRatings = _.range(99, 44, -1);
+    const ratingsForPrice = squadAbsent ? _.range(99, 44, -1) : availableRatings;
+    const priceByRating = buildPriceByRating(info, ratingsForPrice);
+
+    const availableCountsNumeric = {};
+    if (!squadAbsent) {
+      _.forEach(availableCounts, (value, key) => {
+        availableCountsNumeric[parseInt(key, 10)] = value;
+      });
     }
+
+    return {
+      target,
+      existing_ratings: existingRatings,
+      brick_count: brickCount,
+      available_ratings: availableRatings,
+      available_counts: availableCountsNumeric,
+      price_by_rating: priceByRating,
+      squad_absent: squadAbsent
+    };
+  }
+
+  needRatingsCountFromOptionsJs(options) {
+    const {
+      target,
+      existing_ratings: ratings,
+      brick_count: brick,
+      available_ratings: haveRatings,
+      available_counts: haveRatingsCount,
+      price_by_rating: priceByRating,
+      squad_absent: squadAbsent
+    } = options;
+
+    const lackNumber = 11 - brick - ratings.length;
+    if (lackNumber <= 0) {
+      return [];
+    }
+
+    let basisRating = 0;
+    let fillNumber = 5;
 
     const lackSimulation = Array.from({ length: haveRatings.length }, (_e, i) =>
       Array.from({ length: lackNumber }, () => haveRatings[i])
@@ -88,8 +135,8 @@ export class SbcRatingService {
 
         _.flatMap(_.countBy(i), (value, key) => {
           const rating = parseInt(key);
-          const ratingPrice = parseInt(info.base.price[rating]);
-          const haveCount = squad == false ? value : haveRatingsCount[rating] || 0;
+          const ratingPrice = priceByRating[rating] || 0;
+          const haveCount = squadAbsent ? value : haveRatingsCount[rating] || 0;
 
           existRatings = _.concat(existRatings, _.times(haveCount, _.constant(rating)));
 
@@ -113,6 +160,15 @@ export class SbcRatingService {
     });
 
     return _.take(_.orderBy(simulatedJson, ["lackValue", "existValue", "sum"], ["asc", "asc", "asc"]), 3);
+  }
+
+  needRatingsCount(target, squad, helpers) {
+    const options = this.buildRatingNeedOptions(target, squad, helpers);
+    if (!options) {
+      return [];
+    }
+
+    return wasmNeedRatingsCount(options, (payload) => this.needRatingsCountFromOptionsJs(payload));
   }
 
   sbcListNeedCount(needRatings, sbcTitle, helpers) {

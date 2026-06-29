@@ -1,0 +1,20 @@
+[package]
+name = "ea-client"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "EA UTAS HTTP client skeleton for FSU standalone app"
+
+[features]
+default = ["async"]
+async = ["dep:reqwest", "dep:tokio"]
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "1"
+reqwest = { version = "0.12", optional = true, default-features = false, features = ["rustls-tls", "json"] }
+tokio = { version = "1", optional = true, features = ["macros", "rt-multi-thread"] }
+
+[dev-dependencies]
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }

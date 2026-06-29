@@ -1,3 +1,5 @@
+import { applyLowpriceToInfo } from "../infra/RatingPrices.js";
+
 export function registerAppInitEvents(deps) {
   const { events, info, fy, cntlr, isPhone, services, repositories, debug, SBCCount, set, build, lock, GM_getValue, GM_setValue, GM_xmlhttpRequest, GM_info } = deps;
   //26.02 添加进化新增显示
@@ -340,8 +342,7 @@ events.init =  async function(){
                                 "Cache-Control": "max-age=31536000"
                             },
                             onload:function(res){
-                                let data = JSON.parse(res.response);
-                                info.base.price = data[info.base.platform == "pc" ? "pc" : "ps"];
+                                applyLowpriceToInfo(info, JSON.parse(res.response));
                                 debug.log(`lowprice加载完毕！`)
                             },
                         })

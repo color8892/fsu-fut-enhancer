@@ -1,3 +1,5 @@
+import { wasmCalculateChemistry, wasmGenerateCandidateOptions } from "../infra/WasmCore.js";
+
 export class SbcChemistryService {
   constructor({ getTeamLink, getTeam }) {
     this.getTeamLink = getTeamLink;
@@ -11,7 +13,7 @@ export class SbcChemistryService {
     return 0;
   }
 
-  calculateChemistry(basePlayers, index, candidate, includeMeta = false) {
+  calculateChemistryJs(basePlayers, index, candidate, includeMeta = false) {
     if (typeof index === "boolean") {
       includeMeta = index;
       index = undefined;
@@ -132,7 +134,47 @@ export class SbcChemistryService {
     return result;
   }
 
-  generateCandidateOptions(players, index, targetChemistry, meta) {
+  calculateChemistry(basePlayers, index, candidate, includeMeta = false) {
+    return wasmCalculateChemistry(basePlayers, index, candidate, includeMeta, (...args) =>
+      this.calculateChemistryJs(...args)
+    );
+  }
+
+  toWasmPlayerDto(player) {
+    if (!player) {
+      return null;
+    }
+
+    return {
+      nation_id: player.nationId ?? -1,
+      league_id: player.leagueId ?? -1,
+      team_id: player.teamId ?? -1
+    };
+  }
+
+  buildCandidateOptionsPayload(players, index, targetChemistry, meta) {
+    const clubLeagues = {};
+    for (const clubId of meta.clubs) {
+      const team = this.getTeam(clubId);
+      if (team) {
+        clubLeagues[clubId] = team.league;
+      }
+    }
+
+    return {
+      players: players.map((player) => this.toWasmPlayerDto(player)),
+      skip_index: index,
+      target_chemistry: targetChemistry,
+      meta: {
+        nations: meta.nations,
+        leagues: meta.leagues,
+        clubs: meta.clubs
+      },
+      club_leagues: clubLeagues
+    };
+  }
+
+  generateCandidateOptionsJs(players, index, targetChemistry, meta) {
     const { nations, leagues, clubs } = meta;
     const result = [];
     const resultKeySet = new Set();
@@ -141,7 +183,7 @@ export class SbcChemistryService {
       const key = `${candidate.nationId}_${candidate.leagueId}_${candidate.teamId}`;
       if (resultKeySet.has(key)) return true;
 
-      const chemistry = this.calculateChemistry(players, index, candidate);
+      const chemistry = this.calculateChemistryJs(players, index, candidate);
       if (chemistry.totalChemistry >= targetChemistry) {
         result.push(candidate);
         resultKeySet.add(key);
@@ -213,6 +255,13 @@ export class SbcChemistryService {
       if (teamId !== -1) cleaned.teamId = teamId;
       return cleaned;
     });
+  }
+
+  generateCandidateOptions(players, index, targetChemistry, meta) {
+    const payload = this.buildCandidateOptionsPayload(players, index, targetChemistry, meta);
+    return wasmGenerateCandidateOptions(payload, () =>
+      this.generateCandidateOptionsJs(players, index, targetChemistry, meta)
+    );
   }
 
   getChemistryPlayers(controller, targetChemistry) {
