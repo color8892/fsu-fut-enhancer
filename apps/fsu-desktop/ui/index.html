@@ -1066,7 +1066,16 @@
           });
         });
 
-        document.getElementById("results-summary").textContent = summary;
+        const best = options[0];
+        const targetRating = exportMeta.target;
+        const bestDetail = best
+          ? `Best option: OVR ${best.squad_rating ?? "?"}, buy ${formatCoins(best.lack_value)}${
+              targetRating != null ? ` (target ${targetRating})` : ""
+            }`
+          : "";
+        document.getElementById("results-summary").textContent = bestDetail
+          ? `${summary} — ${bestDetail}`
+          : summary;
         document.getElementById("options-section").classList.remove("hidden");
 
         let inventoryRows = [];
