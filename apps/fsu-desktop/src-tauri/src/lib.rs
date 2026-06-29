@@ -92,6 +92,21 @@ struct CandidateDto {
 }
 
 #[derive(Debug, Serialize)]
+struct ChemistryPlanDto {
+    total_chemistry: i32,
+    nations: Vec<i32>,
+    leagues: Vec<i32>,
+    clubs: Vec<i32>,
+    candidates: Vec<CandidateDto>,
+}
+
+#[derive(Debug, Serialize)]
+struct ClubLeagueMapDto {
+    club_leagues: HashMap<i32, i32>,
+    player_count: usize,
+}
+
+#[derive(Debug, Serialize)]
 struct EaSessionProbeDto {
     ready: bool,
     message: String,
@@ -128,6 +143,44 @@ struct ClubPlayersListDto {
 struct PlanRatingWithClubDto {
     inventory: ClubInventoryDto,
     options: Vec<RatingNeedDto>,
+}
+
+const SQUAD_SIZE: usize = 11;
+
+fn player_dto_to_identity(dto: &PlayerDto) -> Option<PlayerIdentity> {
+    if dto.nation_id == UNSET_ID && dto.league_id == UNSET_ID && dto.team_id == UNSET_ID {
+        None
+    } else {
+        Some(PlayerIdentity::new(dto.nation_id, dto.league_id, dto.team_id))
+    }
+}
+
+fn squad_from_dtos(players: Vec<PlayerDto>) -> Vec<Option<PlayerIdentity>> {
+    let mut squad = vec![None; SQUAD_SIZE];
+    for (index, dto) in players.into_iter().take(SQUAD_SIZE).enumerate() {
+        squad[index] = player_dto_to_identity(&dto);
+    }
+    squad
+}
+
+fn chemistry_service(club_leagues: Option<HashMap<i32, i32>>) -> SbcChemistryService<MapTeamLookup> {
+    SbcChemistryService::new(MapTeamLookup::new(club_leagues.unwrap_or_default()))
+}
+
+fn map_candidate(candidate: PlayerIdentity) -> CandidateDto {
+    CandidateDto {
+        nation_id: (candidate.nation_id != UNSET_ID).then_some(candidate.nation_id),
+        league_id: (candidate.league_id != UNSET_ID).then_some(candidate.league_id),
+        team_id: (candidate.team_id != UNSET_ID).then_some(candidate.team_id),
+    }
+}
+
+fn build_club_league_map(players: &[ClubPlayer]) -> HashMap<i32, i32> {
+    players
+        .iter()
+        .filter(|player| player.team_id > 0 && player.league_id > 0)
+        .map(|player| (player.team_id, player.league_id))
+        .collect()
 }
 
 fn build_ea_session(
@@ -220,17 +273,7 @@ async fn load_rating_prices(http: &ReqwestHttp, platform: &str) -> HashMap<i32, 
 #[tauri::command]
 fn calculate_sbc_chemistry(players: Vec<PlayerDto>, include_meta: bool) -> ChemistryDto {
     let service = SbcChemistryService::new(IdentityTeamLookup);
-    let squad: Vec<Option<PlayerIdentity>> = players
-        .into_iter()
-        .map(|p| {
-            Some(PlayerIdentity::new(
-                p.nation_id,
-                p.league_id,
-                p.team_id,
-            ))
-        })
-        .collect();
-
+    let squad = squad_from_dtos(players);
     let result = service.calculate_chemistry(&squad, None, None, include_meta);
 
     ChemistryDto {
@@ -239,6 +282,39 @@ fn calculate_sbc_chemistry(players: Vec<PlayerDto>, include_meta: bool) -> Chemi
         nations: result.meta.as_ref().map(|m| m.nations.clone()),
         leagues: result.meta.as_ref().map(|m| m.leagues.clone()),
         clubs: result.meta.as_ref().map(|m| m.clubs.clone()),
+    }
+}
+
+#[tauri::command]
+fn plan_sbc_chemistry(
+    players: Vec<PlayerDto>,
+    skip_index: usize,
+    target_chemistry: i32,
+    club_leagues: Option<HashMap<i32, i32>>,
+) -> ChemistryPlanDto {
+    let service = chemistry_service(club_leagues);
+    let squad = squad_from_dtos(players);
+    let skip_index = skip_index.min(SQUAD_SIZE.saturating_sub(1));
+    let result = service.calculate_chemistry(&squad, None, None, true);
+
+    let meta = result.meta.unwrap_or(ChemistryMeta {
+        nations: Vec::new(),
+        leagues: Vec::new(),
+        clubs: Vec::new(),
+    });
+
+    let candidates = service
+        .generate_candidate_options(&squad, skip_index, target_chemistry, &meta)
+        .into_iter()
+        .map(map_candidate)
+        .collect();
+
+    ChemistryPlanDto {
+        total_chemistry: result.total_chemistry,
+        nations: meta.nations,
+        leagues: meta.leagues,
+        clubs: meta.clubs,
+        candidates,
     }
 }
 
@@ -284,18 +360,8 @@ fn generate_candidate_options(
     meta: ChemistryMetaDto,
     club_leagues: HashMap<i32, i32>,
 ) -> Vec<CandidateDto> {
-    let service = SbcChemistryService::new(MapTeamLookup::new(club_leagues));
-    let squad: Vec<Option<PlayerIdentity>> = players
-        .into_iter()
-        .map(|player| {
-            Some(PlayerIdentity::new(
-                player.nation_id,
-                player.league_id,
-                player.team_id,
-            ))
-        })
-        .collect();
-
+    let service = chemistry_service(Some(club_leagues));
+    let squad = squad_from_dtos(players);
     let chemistry_meta = ChemistryMeta {
         nations: meta.nations,
         leagues: meta.leagues,
@@ -305,12 +371,26 @@ fn generate_candidate_options(
     service
         .generate_candidate_options(&squad, skip_index, target_chemistry, &chemistry_meta)
         .into_iter()
-        .map(|candidate| CandidateDto {
-            nation_id: (candidate.nation_id != UNSET_ID).then_some(candidate.nation_id),
-            league_id: (candidate.league_id != UNSET_ID).then_some(candidate.league_id),
-            team_id: (candidate.team_id != UNSET_ID).then_some(candidate.team_id),
-        })
+        .map(map_candidate)
         .collect()
+}
+
+#[tauri::command]
+async fn fetch_club_league_map(
+    access_token: String,
+    platform: String,
+    persona_id: Option<String>,
+) -> Result<ClubLeagueMapDto, String> {
+    let session = build_ea_session(access_token, &platform, persona_id);
+    let list = UtasClient::new()
+        .fetch_club_players_list(&session)
+        .await
+        .map_err(|error| error.to_string())?;
+
+    Ok(ClubLeagueMapDto {
+        club_leagues: build_club_league_map(&list.players),
+        player_count: list.total_players,
+    })
 }
 
 #[tauri::command]
@@ -440,6 +520,68 @@ async fn fetch_player_prices(
         .collect())
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn squad_from_dtos_pads_to_eleven_slots() {
+        let squad = squad_from_dtos(vec![PlayerDto {
+            nation_id: 1,
+            league_id: 10,
+            team_id: 100,
+        }]);
+
+        assert_eq!(squad.len(), SQUAD_SIZE);
+        assert_eq!(
+            squad[0],
+            Some(PlayerIdentity::new(1, 10, 100))
+        );
+        assert_eq!(squad[1], None);
+    }
+
+    #[test]
+    fn empty_player_dto_maps_to_none_slot() {
+        let squad = squad_from_dtos(vec![PlayerDto {
+            nation_id: UNSET_ID,
+            league_id: UNSET_ID,
+            team_id: UNSET_ID,
+        }]);
+
+        assert_eq!(squad[0], None);
+    }
+
+    #[test]
+    fn build_club_league_map_uses_team_to_league_pairs() {
+        let players = vec![
+            ClubPlayer {
+                id: 1,
+                resource_id: 1,
+                rating: 84,
+                nation_id: 14,
+                league_id: 13,
+                team_id: 5,
+                untradeable: false,
+                preferred_position: None,
+            },
+            ClubPlayer {
+                id: 2,
+                resource_id: 2,
+                rating: 80,
+                nation_id: 14,
+                league_id: 16,
+                team_id: 9,
+                untradeable: false,
+                preferred_position: None,
+            },
+        ];
+
+        let map = build_club_league_map(&players);
+        assert_eq!(map.get(&5), Some(&13));
+        assert_eq!(map.get(&9), Some(&16));
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -454,6 +596,8 @@ pub fn run() {
             simulate_rating_needs,
             format_price_diff,
             generate_candidate_options,
+            plan_sbc_chemistry,
+            fetch_club_league_map,
             fetch_club_players,
             fetch_club_inventory,
             plan_rating_with_club,

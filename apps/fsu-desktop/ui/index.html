@@ -226,13 +226,53 @@
       </p>
     </div>
 
-    <h2>SBC tools (samples)</h2>
+    <h2>Chemistry planner</h2>
+    <div class="panel">
+      <p style="margin: 0 0 0.75rem; font-size: 0.85rem" class="muted">
+        One line per squad slot (11 max). Format:
+        <code>nation,league,club</code> — leave blank for empty slots.
+      </p>
+      <textarea
+        id="squad-chemistry"
+        rows="6"
+        style="
+          background: #1c2128;
+          border: 1px solid #30363d;
+          border-radius: 6px;
+          color: #e8eaed;
+          font: inherit;
+          margin-bottom: 0.75rem;
+          padding: 0.6rem 0.75rem;
+          resize: vertical;
+          width: 100%;
+        "
+      >14,13,1
+14,13,2
+2,11,200</textarea>
+      <div class="row">
+        <div class="field">
+          <label for="target-chemistry">Target chemistry</label>
+          <input id="target-chemistry" type="number" min="0" max="33" value="10" />
+        </div>
+        <div class="field">
+          <label for="skip-slot">Suggest for slot (0–10)</label>
+          <input id="skip-slot" type="number" min="0" max="10" value="3" />
+        </div>
+      </div>
+      <div class="row">
+        <button id="plan-chemistry">Plan chemistry</button>
+        <button id="load-club-map" class="secondary">Load club league map</button>
+      </div>
+      <p id="club-map-status" style="margin: 0.5rem 0 0; font-size: 0.8rem" class="muted">
+        Club league map not loaded — candidate suggestions use squad links only.
+      </p>
+    </div>
+
+    <h2>Dev samples</h2>
     <div class="row">
-      <button id="calc">Chemistry (sample)</button>
       <button id="rating">Team rating</button>
       <button id="needs" class="secondary">Quick needs (84)</button>
       <button id="diff">Price diff</button>
-      <button id="candidates">Chemistry candidates</button>
     </div>
 
     <h2>EA session probe</h2>
@@ -304,6 +344,23 @@
           </table>
         </div>
       </div>
+      <div id="chemistry-section" class="results-section hidden">
+        <h3>Chemistry plan</h3>
+        <p id="chemistry-summary" class="results-summary" style="margin-bottom: 0.75rem"></p>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th class="num">Nation</th>
+                <th class="num">League</th>
+                <th class="num">Club</th>
+              </tr>
+            </thead>
+            <tbody id="chemistry-body"></tbody>
+          </table>
+        </div>
+      </div>
       <div id="options-section" class="results-section hidden">
         <h3>Rating fill options</h3>
         <table>
@@ -335,18 +392,53 @@
         "target-rating",
         "brick-count",
         "existing-ratings",
+        "squad-chemistry",
+        "target-chemistry",
+        "skip-slot",
         "ea-token",
         "ea-persona",
         "ea-platform",
       ];
 
-      const sample = [
-        { nation_id: 1, league_id: 10, team_id: 100 },
-        { nation_id: 1, league_id: 10, team_id: 101 },
-        { nation_id: 2, league_id: 11, team_id: 200 },
-      ];
-
+      let clubLeagueMap = null;
       let lastExportPayload = null;
+
+      function parseSquadLines(text) {
+        const lines = text.split("\n").slice(0, 11);
+        while (lines.length < 11) lines.push("");
+
+        return lines.map((line) => {
+          const trimmed = line.trim();
+          if (!trimmed || trimmed === "-") {
+            return { nation_id: -1, league_id: -1, team_id: -1 };
+          }
+
+          const parts = trimmed.split(/[,\/\s]+/).map((part) => Number.parseInt(part.trim(), 10));
+          return {
+            nation_id: Number.isFinite(parts[0]) ? parts[0] : -1,
+            league_id: Number.isFinite(parts[1]) ? parts[1] : -1,
+            team_id: Number.isFinite(parts[2]) ? parts[2] : -1,
+          };
+        });
+      }
+
+      function updateClubMapStatus() {
+        const status = document.getElementById("club-map-status");
+        if (!clubLeagueMap || Object.keys(clubLeagueMap).length === 0) {
+          status.textContent =
+            "Club league map not loaded — candidate suggestions use squad links only.";
+          return;
+        }
+        status.textContent = `Club league map loaded — ${Object.keys(clubLeagueMap).length} clubs mapped.`;
+      }
+
+      function formatCandidateLabel(candidate) {
+        const parts = [];
+        if (candidate.nation_id != null) parts.push(`N${candidate.nation_id}`);
+        if (candidate.league_id != null) parts.push(`L${candidate.league_id}`);
+        if (candidate.team_id != null) parts.push(`C${candidate.team_id}`);
+        return parts.join(" / ") || "—";
+      }
 
       function loadPersistedSession() {
         try {
@@ -496,6 +588,22 @@
           }
         }
 
+        if (payload.chemistry) {
+          lines.push("total_chemistry,candidate_count");
+          lines.push(`${payload.chemistry.total_chemistry},${payload.chemistry.candidates.length}`);
+          lines.push("candidate,nation,league,club");
+          payload.chemistry.candidates.forEach((candidate, index) => {
+            lines.push(
+              [
+                index + 1,
+                candidate.nation_id ?? "",
+                candidate.league_id ?? "",
+                candidate.team_id ?? "",
+              ].join(",")
+            );
+          });
+        }
+
         if (payload.options?.length) {
           lines.push("option,squad_sum,from_club,still_need,fill_ratings,missing");
           payload.options.forEach((option, index) => {
@@ -536,6 +644,15 @@
           lines.push("");
         }
 
+        if (payload.chemistry) {
+          lines.push(`Squad chemistry: ${payload.chemistry.total_chemistry}`);
+          lines.push("Candidates");
+          payload.chemistry.candidates.forEach((candidate, index) => {
+            lines.push(`  ${index + 1}. ${formatCandidateLabel(candidate)}`);
+          });
+          lines.push("");
+        }
+
         if (payload.options?.length) {
           const primaryNeeds = needsListLines(payload.options[0].lack_ratings);
           if (primaryNeeds.length) {
@@ -563,6 +680,7 @@
         document.getElementById("results").classList.add("hidden");
         document.getElementById("inventory-section").classList.add("hidden");
         document.getElementById("players-section").classList.add("hidden");
+        document.getElementById("chemistry-section").classList.add("hidden");
         document.getElementById("options-section").classList.add("hidden");
         setExportPayload(null);
       }
@@ -686,7 +804,45 @@
         });
       }
 
+      function renderChemistryPlan(result, exportMeta = {}) {
+        const summary = `Squad chemistry ${result.total_chemistry} — ${result.candidates.length} candidate(s) for slot ${exportMeta.skipSlot ?? "?"}`;
+        document.getElementById("chemistry-summary").textContent = summary;
+        document.getElementById("chemistry-body").innerHTML = (result.candidates || [])
+          .map(
+            (candidate, index) => `<tr>
+              <td>${index + 1}</td>
+              <td class="num">${candidate.nation_id ?? '<span class="muted">—</span>'}</td>
+              <td class="num">${candidate.league_id ?? '<span class="muted">—</span>'}</td>
+              <td class="num">${candidate.team_id ?? '<span class="muted">—</span>'}</td>
+            </tr>`
+          )
+          .join("");
+
+        document.getElementById("results-summary").textContent = summary;
+        document.getElementById("chemistry-section").classList.remove("hidden");
+        document.getElementById("inventory-section").classList.add("hidden");
+        document.getElementById("players-section").classList.add("hidden");
+        document.getElementById("options-section").classList.add("hidden");
+        document.getElementById("results").classList.remove("hidden");
+        document.getElementById("out").classList.add("hidden");
+        document.getElementById("copy-needs").classList.add("hidden");
+        document.getElementById("export-csv").classList.remove("hidden");
+        document.getElementById("export-txt").classList.remove("hidden");
+        setExportPayload({
+          summary,
+          chemistry: result,
+          options: [],
+          target: exportMeta.targetChemistry ?? null,
+          kind: "chemistry",
+        });
+      }
+
       function renderCommandOutput(command, result, exportMeta = {}) {
+        if (command === "plan_sbc_chemistry") {
+          renderChemistryPlan(result, exportMeta);
+          return;
+        }
+
         if (command === "fetch_club_inventory") {
           renderInventory(
             `Club inventory — ${result.total_players} players`,
@@ -854,9 +1010,48 @@
         invokeRust("fetch_club_players", { accessToken, platform });
       });
 
-      document.getElementById("calc").addEventListener("click", () =>
-        invokeRust("calculate_sbc_chemistry", { players: sample, includeMeta: true })
-      );
+      document.getElementById("plan-chemistry").addEventListener("click", () => {
+        const players = parseSquadLines(document.getElementById("squad-chemistry").value);
+        const targetChemistry = Number.parseInt(
+          document.getElementById("target-chemistry").value,
+          10
+        );
+        const skipSlot = Number.parseInt(document.getElementById("skip-slot").value, 10);
+        invokeRust(
+          "plan_sbc_chemistry",
+          {
+            players,
+            skipIndex: Number.isFinite(skipSlot) ? skipSlot : 0,
+            targetChemistry: Number.isFinite(targetChemistry) ? targetChemistry : 10,
+            clubLeagues: clubLeagueMap,
+          },
+          { targetChemistry, skipSlot }
+        );
+      });
+
+      document.getElementById("load-club-map").addEventListener("click", async () => {
+        const { accessToken, platform } = plannerArgs();
+        if (!accessToken.trim()) {
+          showRawOutput("Paste X-UT-SID to load club league map.");
+          return;
+        }
+
+        const invoke = window.__TAURI__?.core?.invoke;
+        if (!invoke) {
+          showRawOutput("Tauri API not available (open via cargo tauri dev).");
+          return;
+        }
+
+        try {
+          const result = await invoke("fetch_club_league_map", { accessToken, platform });
+          clubLeagueMap = result.club_leagues;
+          updateClubMapStatus();
+          document.getElementById("club-map-status").textContent =
+            `Club league map loaded — ${result.player_count} players, ${Object.keys(clubLeagueMap).length} clubs.`;
+        } catch (error) {
+          showRawOutput(String(error));
+        }
+      });
 
       document.getElementById("rating").addEventListener("click", () =>
         invokeRust("calculate_team_rating", {
@@ -872,17 +1067,8 @@
         invokeRust("format_price_diff", { purchasePrice: 100, lastPrice: 100 })
       );
 
-      document.getElementById("candidates").addEventListener("click", () =>
-        invokeRust("generate_candidate_options", {
-          players: sample,
-          skipIndex: 0,
-          targetChemistry: 1,
-          meta: { nations: [1, 2], leagues: [10, 11], clubs: [100, 101, 200] },
-          clubLeagues: { 100: 10, 101: 10, 200: 11 },
-        })
-      );
-
       document.getElementById("open-fut-planner").addEventListener("click", openFutWebApp);
+      updateClubMapStatus();
       document.getElementById("open-fut-probe").addEventListener("click", openFutWebApp);
 
       document.getElementById("ea-probe").addEventListener("click", () => {
