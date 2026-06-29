@@ -161,6 +161,26 @@
       .hidden {
         display: none;
       }
+      details.advanced-panel {
+        background: #161b22;
+        border: 1px solid #30363d;
+        border-radius: 10px;
+        margin-top: 1.5rem;
+        padding: 0.75rem 1rem;
+      }
+      details.advanced-panel summary {
+        color: #bdc1c6;
+        cursor: pointer;
+        font-size: 0.95rem;
+        font-weight: 600;
+        list-style: none;
+      }
+      details.advanced-panel summary::-webkit-details-marker {
+        display: none;
+      }
+      details.advanced-panel[open] summary {
+        margin-bottom: 1rem;
+      }
       .pill {
         background: #30363d;
         border-radius: 999px;
@@ -334,45 +354,49 @@
       </p>
       <p style="margin: 0.25rem 0 0; font-size: 0.75rem" class="muted">
         Tips: click a chemistry candidate to apply it to the skip slot and filter the player picker.
-        Use Min OVR or Reset to adjust the list.
+        Ctrl+Enter in the squad box runs Plan chemistry.
       </p>
     </div>
 
-    <h2>Dev samples</h2>
-    <div class="row">
-      <button id="rating">Team rating</button>
-      <button id="needs" class="secondary">Quick needs (84)</button>
-      <button id="diff">Price diff</button>
-    </div>
+    <details class="advanced-panel">
+      <summary>Advanced tools</summary>
 
-    <h2>EA session probe</h2>
-    <p>Quick connectivity check (first club page only).</p>
-    <div class="row">
-      <input id="ea-token" type="password" placeholder="X-UT-SID" />
-      <input id="ea-persona" type="text" placeholder="Persona ID (optional)" />
-      <select id="ea-platform">
-        <option value="ps">PlayStation</option>
-        <option value="pc">PC</option>
-        <option value="xbox">Xbox</option>
-      </select>
-      <button id="ea-probe">Probe session</button>
-      <button id="open-fut-probe" class="secondary">Open FUT Web App</button>
-    </div>
+      <h2>Dev samples</h2>
+      <div class="row">
+        <button id="rating">Team rating</button>
+        <button id="needs" class="secondary">Quick needs (84)</button>
+        <button id="diff">Price diff</button>
+      </div>
 
-    <h2>Player prices</h2>
-    <div class="row">
-      <input
-        id="price-ids"
-        type="text"
-        placeholder="Definition IDs (comma-separated)"
-        value="231747,192119"
-      />
-      <select id="platform">
-        <option value="pc">PC</option>
-        <option value="ps">PlayStation / Xbox</option>
-      </select>
-      <button id="prices">Fetch via FUT.GG</button>
-    </div>
+      <h2>EA session probe</h2>
+      <p>Quick connectivity check (first club page only).</p>
+      <div class="row">
+        <input id="ea-token" type="password" placeholder="X-UT-SID" />
+        <input id="ea-persona" type="text" placeholder="Persona ID (optional)" />
+        <select id="ea-platform">
+          <option value="ps">PlayStation</option>
+          <option value="pc">PC</option>
+          <option value="xbox">Xbox</option>
+        </select>
+        <button id="ea-probe">Probe session</button>
+        <button id="open-fut-probe" class="secondary">Open FUT Web App</button>
+      </div>
+
+      <h2>Player prices</h2>
+      <div class="row">
+        <input
+          id="price-ids"
+          type="text"
+          placeholder="Definition IDs (comma-separated)"
+          value="231747,192119"
+        />
+        <select id="platform">
+          <option value="pc">PC</option>
+          <option value="ps">PlayStation / Xbox</option>
+        </select>
+        <button id="prices">Fetch via FUT.GG</button>
+      </div>
+    </details>
 
     <div id="results" class="results hidden">
       <div class="results-toolbar">
@@ -1625,6 +1649,19 @@
           const clubs = result.clubs?.length ? ` — clubs ${result.clubs.join(",")}` : "";
           document.getElementById("club-map-status").textContent =
             `Current squad chemistry: ${result.total_chemistry}${nations}${leagues}${clubs}`;
+          return;
+        }
+
+        if (command === "format_price_diff") {
+          showRawOutput(String(result));
+          return;
+        }
+
+        if (command === "fetch_player_prices") {
+          const lines = (result || []).map(
+            (entry) => `${entry.definition_id}: ${entry.amount} (${entry.price_type})`
+          );
+          showRawOutput(lines.length ? ["Player prices", ...lines].join("\n") : "No prices returned.");
           return;
         }
 
