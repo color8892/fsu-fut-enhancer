@@ -6,9 +6,8 @@
   "description": "Unpacked Chrome extension wrapper for the FSU EAFC FUT Web userscript.",
   "scripts": {
     "prepare:legacy": "node scripts/prepare-legacy.cjs",
-    "build:wasm": "node scripts/build-wasm.cjs",
-    "build": "node scripts/build-wasm.cjs && node scripts/build-userscript.cjs",
-    "build:watch": "node scripts/build-wasm.cjs && node scripts/build-userscript.cjs --watch",
+    "build": "node scripts/build-userscript.cjs",
+    "build:watch": "node scripts/build-userscript.cjs --watch",
     "build:userscript": "node scripts/build-userscript.cjs",
     "build:all": "npm run prepare:legacy && npm run build",
     "test": "node tests/run-tests.mjs",

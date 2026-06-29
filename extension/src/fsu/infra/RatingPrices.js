@@ -1,5 +1,5 @@
 /**
- * Rating-tier low prices from api.fut.to (shared with fsu-core rating_prices.rs).
+ * Rating-tier low prices from api.fut.to.
  */
 
 export const LOWPRICE_URL = "https://api.fut.to/26/lowprice.json";

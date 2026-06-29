@@ -88,41 +88,15 @@
       });
     }
 
-    async resourceExists(path) {
-      try {
-        const response = await fetch(this.runtimeApi.getURL(path), { method: "HEAD" });
-        return response.ok;
-      } catch (_error) {
-        return false;
-      }
-    }
-
     async injectAll(paths, storage, windowRef) {
       const runtimeIndex = paths.indexOf("src/page-runtime.js");
       if (runtimeIndex === -1) {
         throw new Error("src/page-runtime.js missing from injection list");
       }
 
-      const wasmGluePath = "vendor/fsu-wasm/fsu_core.js";
-      const wasmModulePath = "vendor/fsu-wasm/fsu_core_bg.wasm";
-      const hasWasm = await this.resourceExists(wasmGluePath);
-
       const beforeRuntime = paths.slice(0, runtimeIndex);
-      let afterRuntime = paths.slice(runtimeIndex + 1);
+      const afterRuntime = paths.slice(runtimeIndex + 1);
       const runtimePath = paths[runtimeIndex];
-
-      if (hasWasm) {
-        const userscriptIndex = afterRuntime.indexOf("src/userscript.js");
-        if (userscriptIndex >= 0) {
-          afterRuntime = [
-            ...afterRuntime.slice(0, userscriptIndex),
-            wasmGluePath,
-            ...afterRuntime.slice(userscriptIndex)
-          ];
-        } else {
-          afterRuntime = [wasmGluePath, ...afterRuntime];
-        }
-      }
 
       for (const path of beforeRuntime) {
         await this.injectFile(path);
@@ -136,13 +110,7 @@
         {
           source: CONTENT_SOURCE,
           type: "FSU_INIT_STORAGE",
-          storage,
-          assets: hasWasm
-            ? {
-                wasmGlue: this.runtimeApi.getURL(wasmGluePath),
-                wasmModule: this.runtimeApi.getURL(wasmModulePath)
-              }
-            : null
+          storage
         },
         "*"
       );

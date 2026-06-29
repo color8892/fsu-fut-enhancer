@@ -11,8 +11,6 @@ import { runFsuContextTests } from "./fsu-context.test.mjs";
 import { runLocalizationTests } from "./localization.test.mjs";
 import { runRatingPricesTests } from "./rating-prices.test.mjs";
 import { runSbcRatingTests } from "./sbc-rating.test.mjs";
-import { runWasmCoreTests } from "./wasm-core.test.mjs";
-
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
 const root = path.resolve(__dirname, "..");
@@ -265,6 +263,5 @@ runFsuContextTests();
 runLocalizationTests();
 runRatingPricesTests();
 runSbcRatingTests();
-runWasmCoreTests();
 await assertTabService();
 console.log("All extension tests passed.");

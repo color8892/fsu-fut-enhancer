@@ -293,208 +293,6 @@
     }
   };
 
-  // src/fsu/infra/WasmCore.js
-  var initPromise = null;
-  var active = false;
-  function getGlobalScope() {
-    return typeof unsafeWindow !== "undefined" ? unsafeWindow : globalThis;
-  }
-  function readExport(globalScope, name) {
-    const value = globalScope[name];
-    return typeof value === "function" ? value : null;
-  }
-  function isWasmCoreReady() {
-    return active;
-  }
-  function getWasmCoreVersion() {
-    const wasm = getGlobalScope().__fsuWasm?.version;
-    if (!wasm) {
-      return null;
-    }
-    try {
-      return wasm();
-    } catch (_error) {
-      return null;
-    }
-  }
-  function loadScript(url) {
-    return new Promise((resolve, reject) => {
-      const script = document.createElement("script");
-      script.src = url;
-      script.async = false;
-      script.onload = () => {
-        script.remove();
-        resolve();
-      };
-      script.onerror = () => {
-        script.remove();
-        reject(new Error(`Failed to load ${url}`));
-      };
-      (document.head || document.documentElement).appendChild(script);
-    });
-  }
-  function initWasmCore() {
-    if (initPromise) {
-      return initPromise;
-    }
-    initPromise = (async () => {
-      const globalScope = getGlobalScope();
-      const assets = globalScope.__FSU_ASSETS__;
-      if (!assets?.wasmModule) {
-        return false;
-      }
-      let init = readExport(globalScope, "wasm_bindgen");
-      if (!init && assets.wasmGlue) {
-        await loadScript(assets.wasmGlue);
-        init = readExport(globalScope, "wasm_bindgen");
-      }
-      if (!init) {
-        return false;
-      }
-      await init(assets.wasmModule);
-      const bridge = {
-        version: readExport(globalScope, "fsuWasmVersion"),
-        teamRatingCount: readExport(globalScope, "fsuTeamRatingCount"),
-        priceLastDiff: readExport(globalScope, "fsuPriceLastDiff"),
-        calculateChemistry: readExport(globalScope, "fsuCalculateChemistry"),
-        needRatingsCount: readExport(globalScope, "fsuNeedRatingsCount"),
-        generateCandidateOptions: readExport(globalScope, "fsuGenerateCandidateOptions")
-      };
-      if (!bridge.teamRatingCount) {
-        return false;
-      }
-      globalScope.__fsuWasm = bridge;
-      active = true;
-      return true;
-    })().catch(() => {
-      active = false;
-      return false;
-    });
-    return initPromise;
-  }
-  function wasmTeamRatingCount(ratings, jsFallback) {
-    const wasm = getGlobalScope().__fsuWasm?.teamRatingCount;
-    if (!wasm) {
-      return jsFallback(ratings);
-    }
-    try {
-      return wasm(Int32Array.from(ratings));
-    } catch (_error) {
-      return jsFallback(ratings);
-    }
-  }
-  function wasmPriceLastDiff(purchasePrice, lastPrice, jsFallback) {
-    const wasm = getGlobalScope().__fsuWasm?.priceLastDiff;
-    if (!wasm) {
-      return jsFallback(purchasePrice, lastPrice);
-    }
-    try {
-      return wasm(purchasePrice, lastPrice);
-    } catch (_error) {
-      return jsFallback(purchasePrice, lastPrice);
-    }
-  }
-  function normalizeChemistryArgs(basePlayers, index, candidate, includeMeta = false) {
-    if (typeof index === "boolean") {
-      includeMeta = index;
-      index = void 0;
-      candidate = void 0;
-    } else if (typeof candidate === "boolean") {
-      includeMeta = candidate;
-      candidate = void 0;
-    }
-    return { basePlayers, index, candidate, includeMeta };
-  }
-  function playerToWasmDto(player) {
-    if (!player) {
-      return null;
-    }
-    return {
-      nation_id: player.nationId ?? -1,
-      league_id: player.leagueId ?? -1,
-      team_id: player.teamId ?? -1
-    };
-  }
-  function mapWasmChemistryResult(raw, includeMeta) {
-    const result = {
-      totalChemistry: raw.total_chemistry
-    };
-    if (raw.player_chemistry != null) {
-      result.playerChemistry = raw.player_chemistry;
-    }
-    if (includeMeta) {
-      result.meta = {
-        nations: raw.nations ?? [],
-        leagues: raw.leagues ?? [],
-        clubs: raw.clubs ?? []
-      };
-    }
-    return result;
-  }
-  function mapWasmNeedRatingsResults(raw) {
-    return raw.map((entry) => ({
-      ratings: entry.ratings,
-      sum: entry.sum,
-      squadRating: entry.squad_rating,
-      existValue: entry.exist_value,
-      existRatings: entry.exist_ratings,
-      lackValue: entry.lack_value,
-      lackRatings: entry.lack_ratings
-    }));
-  }
-  function mapWasmCandidateResults(raw) {
-    return raw.map((entry) => {
-      const cleaned = {};
-      if (entry.nation_id != null) cleaned.nationId = entry.nation_id;
-      if (entry.league_id != null) cleaned.leagueId = entry.league_id;
-      if (entry.team_id != null) cleaned.teamId = entry.team_id;
-      return cleaned;
-    });
-  }
-  function wasmGenerateCandidateOptions(options, jsFallback) {
-    const wasm = getGlobalScope().__fsuWasm?.generateCandidateOptions;
-    if (!wasm) {
-      return jsFallback();
-    }
-    try {
-      const raw = JSON.parse(wasm(JSON.stringify(options)));
-      return mapWasmCandidateResults(raw);
-    } catch (_error) {
-      return jsFallback();
-    }
-  }
-  function wasmNeedRatingsCount(options, jsFallback) {
-    const wasm = getGlobalScope().__fsuWasm?.needRatingsCount;
-    if (!wasm) {
-      return jsFallback(options);
-    }
-    try {
-      const raw = JSON.parse(wasm(JSON.stringify(options)));
-      return mapWasmNeedRatingsResults(raw);
-    } catch (_error) {
-      return jsFallback(options);
-    }
-  }
-  function wasmCalculateChemistry(basePlayers, index, candidate, includeMeta, jsFallback) {
-    const wasm = getGlobalScope().__fsuWasm?.calculateChemistry;
-    if (!wasm) {
-      return jsFallback(basePlayers, index, candidate, includeMeta);
-    }
-    const normalized = normalizeChemistryArgs(basePlayers, index, candidate, includeMeta);
-    try {
-      const payload = {
-        players: normalized.basePlayers.map(playerToWasmDto),
-        skip_index: normalized.index ?? null,
-        candidate: normalized.candidate ? playerToWasmDto(normalized.candidate) : null,
-        include_meta: normalized.includeMeta
-      };
-      const raw = JSON.parse(wasm(JSON.stringify(payload)));
-      return mapWasmChemistryResult(raw, normalized.includeMeta);
-    } catch (_error) {
-      return jsFallback(basePlayers, index, candidate, includeMeta);
-    }
-  }
-
   // src/fsu/domain/PriceService.js
   var PriceService = class {
     constructor({ httpClient, store, getInfo, debug: debug2 }) {
@@ -550,11 +348,7 @@
       return value.indexOf("+") !== -1 ? `<span class="plus">${value}</span>` : `<span class="minus">${value}</span>`;
     }
     priceLastDiff(purchasePrice, lastPrice) {
-      return wasmPriceLastDiff(
-        Number(purchasePrice),
-        Number(lastPrice),
-        (purchase, last) => this.priceLastDiffJs(purchase, last)
-      );
+      return this.priceLastDiffJs(Number(purchasePrice), Number(lastPrice));
     }
     async getFutbinUrl(url) {
       try {
@@ -823,43 +617,7 @@
       return result;
     }
     calculateChemistry(basePlayers, index, candidate, includeMeta = false) {
-      return wasmCalculateChemistry(
-        basePlayers,
-        index,
-        candidate,
-        includeMeta,
-        (...args) => this.calculateChemistryJs(...args)
-      );
-    }
-    toWasmPlayerDto(player) {
-      if (!player) {
-        return null;
-      }
-      return {
-        nation_id: player.nationId ?? -1,
-        league_id: player.leagueId ?? -1,
-        team_id: player.teamId ?? -1
-      };
-    }
-    buildCandidateOptionsPayload(players, index, targetChemistry, meta) {
-      const clubLeagues = {};
-      for (const clubId of meta.clubs) {
-        const team = this.getTeam(clubId);
-        if (team) {
-          clubLeagues[clubId] = team.league;
-        }
-      }
-      return {
-        players: players.map((player) => this.toWasmPlayerDto(player)),
-        skip_index: index,
-        target_chemistry: targetChemistry,
-        meta: {
-          nations: meta.nations,
-          leagues: meta.leagues,
-          clubs: meta.clubs
-        },
-        club_leagues: clubLeagues
-      };
+      return this.calculateChemistryJs(basePlayers, index, candidate, includeMeta);
     }
     generateCandidateOptionsJs(players, index, targetChemistry, meta) {
       const { nations, leagues, clubs } = meta;
@@ -933,11 +691,7 @@
       });
     }
     generateCandidateOptions(players, index, targetChemistry, meta) {
-      const payload = this.buildCandidateOptionsPayload(players, index, targetChemistry, meta);
-      return wasmGenerateCandidateOptions(
-        payload,
-        () => this.generateCandidateOptionsJs(players, index, targetChemistry, meta)
-      );
+      return this.generateCandidateOptionsJs(players, index, targetChemistry, meta);
     }
     getChemistryPlayers(controller, targetChemistry) {
       const players = _.map(
@@ -14232,7 +13986,7 @@
       return results;
     }
     teamRatingCount(ratings) {
-      return wasmTeamRatingCount(ratings, (items) => this.teamRatingCountJs(items));
+      return this.teamRatingCountJs(ratings);
     }
     buildRatingNeedOptions(target, squad, helpers) {
       const { getItemBy, ignorePlayerToCriteria, getInfo } = helpers;
@@ -14356,7 +14110,7 @@
       if (!options) {
         return [];
       }
-      return wasmNeedRatingsCount(options, (payload) => this.needRatingsCountFromOptionsJs(payload));
+      return this.needRatingsCountFromOptionsJs(options);
     }
     sbcListNeedCount(needRatings, sbcTitle, helpers) {
       const {
@@ -15406,8 +15160,6 @@
     unsafeWindow.events = exposed.events;
     unsafeWindow.fy = exposed.fy;
     unsafeWindow.GM_addStyle = GM_addStyle;
-    unsafeWindow.fsuWasmReady = isWasmCoreReady;
-    unsafeWindow.fsuWasmVersion = getWasmCoreVersion;
   }
 
   // src/fsu/data/html-templates.js
@@ -16328,7 +16080,6 @@
       this.exposeLodash();
       applyFsuLodashMixins(this.lodashRef);
       if (this.isFutWebApp()) {
-        initWasmCore();
         futweb();
       }
     }

@@ -1,6 +1,5 @@
 import { futweb } from "./legacy/futweb.js";
 import { applyFsuLodashMixins } from "./domain/lodashMixins.js";
-import { initWasmCore } from "./infra/WasmCore.js";
 
 class FsuUserscriptApp {
   constructor(windowRef, lodashRef) {
@@ -14,7 +13,6 @@ class FsuUserscriptApp {
     applyFsuLodashMixins(this.lodashRef);
 
     if (this.isFutWebApp()) {
-      initWasmCore();
       futweb();
     }
   }

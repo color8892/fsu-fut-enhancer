@@ -32,8 +32,6 @@
    npm run build
    ```
 
-   建置會編譯 WASM（需安裝 [Rust](https://rustup.rs/) 與 `wasm32-unknown-unknown` target）。
-
 3. 開啟 Chrome → `chrome://extensions`
 4. 開啟「開發人員模式」
 5. 點「載入未封裝項目」，選擇本專案中的 **`extension`** 資料夾
@@ -45,25 +43,16 @@
 ```bash
 cd extension
 npm install
-npm run test:all    # WASM 建置 + userscript + 測試
+npm run test:all    # 建置 userscript + 測試
 npm run build       # 僅建置
-```
-
-```powershell
-# Repo 根目錄 — 僅 WASM 相關 Rust crates（Windows 請用腳本）
-.\scripts\test-rust.ps1
-.\scripts\test-all.ps1   # Rust + extension
 ```
 
 ### 專案結構
 
 ```
-extension/                 # Chrome MV3（主要產品）
-crates/
-  fsu-core/                # SBC 評分、化學、價格邏輯
-  fsu-wasm/                # 編譯成 WASM 供 extension 使用
-  fsu-types/               # 共用型別
-scripts/                   # test-rust.ps1、test-all.ps1
+extension/                 # Chrome MV3
+  src/fsu/                 # 模組化原始碼（可編輯）
+  src/userscript.js        # 建置產物（勿手改）
 ```
 
 Extension 架構採 **Strangler Fig**：保留 `events.*` facade，邏輯在 `domain/` 與 `patches/`，`legacy/futweb.js` 負責接線。細節見 [ARCHITECTURE.md](./ARCHITECTURE.md)、[AGENTS.md](./AGENTS.md)。

@@ -1,5 +1,4 @@
 import { buildPriceByRating } from "../infra/RatingPrices.js";
-import { wasmNeedRatingsCount, wasmTeamRatingCount } from "../infra/WasmCore.js";
 
 export class SbcRatingService {
   teamRatingCountJs(ratings) {
@@ -19,7 +18,7 @@ export class SbcRatingService {
   }
 
   teamRatingCount(ratings) {
-    return wasmTeamRatingCount(ratings, (items) => this.teamRatingCountJs(items));
+    return this.teamRatingCountJs(ratings);
   }
 
   buildRatingNeedOptions(target, squad, helpers) {
@@ -169,7 +168,7 @@ export class SbcRatingService {
       return [];
     }
 
-    return wasmNeedRatingsCount(options, (payload) => this.needRatingsCountFromOptionsJs(payload));
+    return this.needRatingsCountFromOptionsJs(options);
   }
 
   sbcListNeedCount(needRatings, sbcTitle, helpers) {

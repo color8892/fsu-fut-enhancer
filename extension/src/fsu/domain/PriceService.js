@@ -1,5 +1,4 @@
 import { PriceRequestQueue } from "../core/PriceRequestQueue.js";
-import { wasmPriceLastDiff } from "../infra/WasmCore.js";
 
 const PRICE_BATCH_SIZE = 23;
 
@@ -73,11 +72,7 @@ export class PriceService {
   }
 
   priceLastDiff(purchasePrice, lastPrice) {
-    return wasmPriceLastDiff(
-      Number(purchasePrice),
-      Number(lastPrice),
-      (purchase, last) => this.priceLastDiffJs(purchase, last)
-    );
+    return this.priceLastDiffJs(Number(purchasePrice), Number(lastPrice));
   }
 
   async getFutbinUrl(url) {

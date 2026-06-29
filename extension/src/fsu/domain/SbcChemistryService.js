@@ -1,5 +1,3 @@
-import { wasmCalculateChemistry, wasmGenerateCandidateOptions } from "../infra/WasmCore.js";
-
 export class SbcChemistryService {
   constructor({ getTeamLink, getTeam }) {
     this.getTeamLink = getTeamLink;
@@ -135,43 +133,7 @@ export class SbcChemistryService {
   }
 
   calculateChemistry(basePlayers, index, candidate, includeMeta = false) {
-    return wasmCalculateChemistry(basePlayers, index, candidate, includeMeta, (...args) =>
-      this.calculateChemistryJs(...args)
-    );
-  }
-
-  toWasmPlayerDto(player) {
-    if (!player) {
-      return null;
-    }
-
-    return {
-      nation_id: player.nationId ?? -1,
-      league_id: player.leagueId ?? -1,
-      team_id: player.teamId ?? -1
-    };
-  }
-
-  buildCandidateOptionsPayload(players, index, targetChemistry, meta) {
-    const clubLeagues = {};
-    for (const clubId of meta.clubs) {
-      const team = this.getTeam(clubId);
-      if (team) {
-        clubLeagues[clubId] = team.league;
-      }
-    }
-
-    return {
-      players: players.map((player) => this.toWasmPlayerDto(player)),
-      skip_index: index,
-      target_chemistry: targetChemistry,
-      meta: {
-        nations: meta.nations,
-        leagues: meta.leagues,
-        clubs: meta.clubs
-      },
-      club_leagues: clubLeagues
-    };
+    return this.calculateChemistryJs(basePlayers, index, candidate, includeMeta);
   }
 
   generateCandidateOptionsJs(players, index, targetChemistry, meta) {
@@ -258,10 +220,7 @@ export class SbcChemistryService {
   }
 
   generateCandidateOptions(players, index, targetChemistry, meta) {
-    const payload = this.buildCandidateOptionsPayload(players, index, targetChemistry, meta);
-    return wasmGenerateCandidateOptions(payload, () =>
-      this.generateCandidateOptionsJs(players, index, targetChemistry, meta)
-    );
+    return this.generateCandidateOptionsJs(players, index, targetChemistry, meta);
   }
 
   getChemistryPlayers(controller, targetChemistry) {
