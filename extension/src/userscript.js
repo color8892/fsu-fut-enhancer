@@ -1726,6 +1726,21 @@
         document.querySelector(".ut-click-shield").append(info.base.close.__root);
       }
     };
+    events.wait = (min, max) => {
+      const delay = Math.floor(Math.random() * (max * 1e3 - min * 1e3 + 1)) + min * 1e3;
+      return new Promise((resolve) => setTimeout(resolve, delay));
+    };
+    events.changeLoadingText = (t, s2) => {
+      let text = fy2(t);
+      if (s2 && s2 !== "") {
+        text += `<br>${fy2(s2)}`;
+      }
+      events.addLoadingElment();
+      const closeEl = document.querySelector(".fsu-loading-close");
+      if (closeEl) {
+        closeEl.innerHTML = text;
+      }
+    };
     events.enhanceStyleChange = () => {
       GM_addStyle(`
         .has-add-player .filter-btn.fsu-eligibilitysearch{right: 36px}
@@ -4190,20 +4205,7 @@
   }
 
   // src/fsu/patches/player-list.js
-  function registerPlayerListEvents(deps) {
-    const { events, info, cntlr: cntlr2, debug: debug2, futbinId: futbinId2, priceService, GM_setValue: GM_setValue2, fy: fy2 } = deps;
-    events.wait = (min, max) => {
-      let delay = Math.floor(Math.random() * (max * 1e3 - min * 1e3 + 1)) + min * 1e3;
-      return new Promise((resolve) => setTimeout(resolve, delay));
-    };
-    events.changeLoadingText = (t, s2) => {
-      let text = fy2(t);
-      if (s2 && s2 !== "") {
-        text += `<br>${fy2(s2)}`;
-      }
-      events.addLoadingElment();
-      document.querySelector(".fsu-loading-close").innerHTML = text;
-    };
+  function registerPlayerListEvents(_deps) {
   }
   function installPlayerListPatches(deps) {
     const { call, events, info, cntlr: cntlr2, isPhone: isPhone2, debug: debug2, repositories: repositories2, services: services2, fy: fy2 } = deps;
@@ -14676,6 +14678,8 @@
           fy: fy2,
           hideLoader: () => events.hideLoader(),
           showLoader: () => events.showLoader(),
+          changeLoadingText: eventProxy("changeLoadingText"),
+          wait: eventProxy("wait"),
           createElementWithConfig: eventProxy("createElementWithConfig"),
           createButton: eventProxy("createButton"),
           getInfo: () => info,
@@ -15988,7 +15992,9 @@
       if (info.run.openPacks) {
         info.run.openPacks = false;
       }
-      events.changeLoadingText("loadingclose.text");
+      if (typeof events.changeLoadingText === "function") {
+        events.changeLoadingText("loadingclose.text");
+      }
     };
   }
 

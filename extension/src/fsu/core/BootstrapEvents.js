@@ -82,6 +82,8 @@ export function attachBootstrapEvents(events, { info, cntlr, isPhone, fy }) {
     if (info.run.openPacks) {
       info.run.openPacks = false;
     }
-    events.changeLoadingText("loadingclose.text");
+    if (typeof events.changeLoadingText === "function") {
+      events.changeLoadingText("loadingclose.text");
+    }
   };
 }

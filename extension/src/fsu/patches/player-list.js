@@ -1,23 +1,5 @@
-export function registerPlayerListEvents(deps) {
-  const { events, info, cntlr, debug, futbinId, priceService, GM_setValue, fy } = deps;
-  events.wait = (min,max) => {
-    let delay = Math.floor(Math.random() * (max * 1000 - min * 1000 + 1)) + min * 1000;
-    return new Promise(resolve => setTimeout(resolve, delay));
-}
-events.changeLoadingText = (t,s) =>{
-    //24.18 loading文本插入换行符设置
-    let text = fy(t);
-    if(s && s !== ""){
-        text += `<br>${fy(s)}`;
-    }
-    //26.02 增加loading元素添加，避免导致无法重载数据
-    events.addLoadingElment();
-    document.querySelector('.fsu-loading-close').innerHTML = text;
-}
-//批量挂拍卖
-// events.losAuctionSell → ModuleRegistry
-
-// events.losAuctionCount → ModuleRegistry
+export function registerPlayerListEvents(_deps) {
+  // wait / changeLoadingText → registerAppInitEvents (must exist before hideLoader & reloadPlayers)
 }
 
 export function installPlayerListPatches(deps) {

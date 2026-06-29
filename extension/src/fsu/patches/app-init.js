@@ -26,6 +26,23 @@ events.addLoadingElment = () => {
         document.querySelector(".ut-click-shield").append(info.base.close.__root);
     }
 }
+
+events.wait = (min, max) => {
+    const delay = Math.floor(Math.random() * (max * 1000 - min * 1000 + 1)) + min * 1000;
+    return new Promise((resolve) => setTimeout(resolve, delay));
+};
+
+events.changeLoadingText = (t, s) => {
+    let text = fy(t);
+    if (s && s !== "") {
+        text += `<br>${fy(s)}`;
+    }
+    events.addLoadingElment();
+    const closeEl = document.querySelector(".fsu-loading-close");
+    if (closeEl) {
+        closeEl.innerHTML = text;
+    }
+};
 //26.02 添加enhancer兼容部分
 events.enhanceStyleChange = () => {
     GM_addStyle(`

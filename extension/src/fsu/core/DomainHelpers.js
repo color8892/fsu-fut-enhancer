@@ -38,6 +38,8 @@ export function createDomainHelpers(ctx) {
         fy,
         hideLoader: () => events.hideLoader(),
         showLoader: () => events.showLoader(),
+        changeLoadingText: eventProxy("changeLoadingText"),
+        wait: eventProxy("wait"),
         createElementWithConfig: eventProxy("createElementWithConfig"),
         createButton: eventProxy("createButton"),
         getInfo: () => info,
