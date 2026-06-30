@@ -1,14 +1,15 @@
-name: test
+name: release
 
 on:
   push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+    tags:
+      - "v*"
 
 jobs:
-  extension:
+  release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     defaults:
       run:
         working-directory: extension
@@ -22,3 +23,8 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run test:all
+      - run: npm run package
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: extension/dist/fsu-fut-enhancer-*.zip
+          generate_release_notes: true

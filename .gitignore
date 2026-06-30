@@ -1,6 +1,9 @@
 # Dependencies
 node_modules/
 
+# Extension release artifacts
+extension/dist/
+
 # OS / editor
 .DS_Store
 Thumbs.db

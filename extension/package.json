@@ -9,7 +9,9 @@
     "build:watch": "node scripts/build-userscript.cjs --watch",
     "test": "node tests/run-tests.mjs",
     "test:all": "npm run build && npm test",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "package": "node scripts/package-extension.cjs",
+    "package:all": "npm run build && npm run package"
   },
   "devDependencies": {
     "@eslint/js": "^9.28.0",
