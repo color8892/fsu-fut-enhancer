@@ -17,15 +17,16 @@ const args = process.argv.slice(2);
 const updateBaseline = args.includes("--update-baseline");
 const jsonOut = args.includes("--json");
 const bundleArgIndex = args.indexOf("--bundles");
+const defaultBundleDir = path.join(extensionRoot, "data", "ea-bundles");
 const bundleDir = bundleArgIndex >= 0
   ? path.resolve(args[bundleArgIndex + 1])
-  : path.join(repoRoot, "futwebapp", "js");
+  : defaultBundleDir;
 const patchesDir = path.join(extensionRoot, "src", "fsu", "patches");
 const baselinePath = path.join(extensionRoot, "data", "ea-bundle-baseline.json");
 
 if (!fs.existsSync(bundleDir)) {
   console.error(`Bundle directory not found: ${bundleDir}`);
-  console.error("Put EA compiled_*.js under futwebapp/js/, or pass --bundles <path>");
+  console.error("Pass --bundles <path> containing compiled_*.js from FUT Network");
   process.exit(1);
 }
 

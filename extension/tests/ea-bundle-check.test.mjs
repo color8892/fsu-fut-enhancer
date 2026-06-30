@@ -14,7 +14,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const extensionRoot = path.resolve(__dirname, "..");
 const repoRoot = path.resolve(extensionRoot, "..");
 const patchesDir = path.join(extensionRoot, "src", "fsu", "patches");
-const bundleDir = path.join(repoRoot, "futwebapp", "js");
+const bundleDir = path.join(extensionRoot, "data", "ea-bundles");
 const baselinePath = path.join(extensionRoot, "data", "ea-bundle-baseline.json");
 
 export function runEaBundleCheckTests() {
@@ -43,7 +43,7 @@ export function runEaBundleCheckTests() {
   );
 
   if (!fs.existsSync(bundleDir)) {
-    console.log("ea-bundle-check tests skipped: futwebapp/js not present");
+    console.log("ea-bundle-check integration tests skipped: no local EA bundles");
     return;
   }
 

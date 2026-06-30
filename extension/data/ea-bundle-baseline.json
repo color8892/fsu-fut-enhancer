@@ -1,7 +1,7 @@
 {
   "version": 1,
   "generatedAt": "2026-06-30T09:17:49.074Z",
-  "bundleDir": "C:\\Users\\Tian\\Documents\\FUT EXTENSION\\futwebapp\\js",
+  "bundleDir": "extension/data/ea-bundles",
   "bundles": {
     "compiled_1.js": {
       "size": 69441,

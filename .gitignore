@@ -4,8 +4,8 @@ node_modules/
 # Extension release artifacts
 extension/dist/
 
-# Local EA bundle snapshots (not committed; use npm run check:ea-bundle)
-futwebapp/
+# Local EA bundle snapshots (compiled_*.js from FUT Network; not committed)
+extension/data/ea-bundles/
 
 # OS / editor
 .DS_Store
