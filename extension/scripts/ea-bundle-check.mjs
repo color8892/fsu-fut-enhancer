@@ -11,7 +11,6 @@ import {
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const extensionRoot = path.resolve(__dirname, "..");
-const repoRoot = path.resolve(extensionRoot, "..");
 
 const args = process.argv.slice(2);
 const updateBaseline = args.includes("--update-baseline");

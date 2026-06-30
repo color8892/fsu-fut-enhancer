@@ -3,7 +3,6 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import {
-  analyzeHooks,
   buildBaseline,
   extractFsuHooks,
   hasPrototypeMethod,
@@ -12,7 +11,6 @@ import {
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const extensionRoot = path.resolve(__dirname, "..");
-const repoRoot = path.resolve(extensionRoot, "..");
 const patchesDir = path.join(extensionRoot, "src", "fsu", "patches");
 const bundleDir = path.join(extensionRoot, "data", "ea-bundles");
 const baselinePath = path.join(extensionRoot, "data", "ea-bundle-baseline.json");

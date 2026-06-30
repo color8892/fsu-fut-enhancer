@@ -74,7 +74,18 @@ export default [
     }
   },
   {
-    files: ["scripts/build-userscript.cjs"],
+    files: ["scripts/**/*.mjs"],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: "module",
+      globals: nodeGlobals
+    },
+    rules: {
+      "no-unused-vars": ["warn", { argsIgnorePattern: "^_" }]
+    }
+  },
+  {
+    files: ["scripts/**/*.cjs"],
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: "commonjs",
