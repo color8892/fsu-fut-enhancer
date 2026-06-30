@@ -224,7 +224,18 @@ export class PatchInstaller {
         "SBCEligibilityKey"
       )
     );
-    registerFastSbcEvents(c.pick("events", "cntlr", "info", "debug", "repositories", "services"));
+    registerFastSbcEvents(
+      c.pick(
+        "events",
+        "cntlr",
+        "info",
+        "debug",
+        "repositories",
+        "services",
+        "fy",
+        "fastSbcPlannerService"
+      )
+    );
   }
 
   installClubAndUi() {

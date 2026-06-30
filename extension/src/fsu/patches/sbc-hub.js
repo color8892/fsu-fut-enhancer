@@ -175,6 +175,35 @@ export function installSbcHubPatches(deps) {
       events.loadPlayerInfo(playerArray);
     }
 
+    if (_.size(info.base.fastsbc)) {
+      const plan = events.planAllFastSbcs();
+      const existingBox = this.__root.querySelector(".fsu-solve-all-fast-box");
+      if (existingBox) {
+        existingBox.remove();
+      }
+
+      const solveAllBox = events.createElementWithConfig("div", {
+        classList: ["fsu-solve-all-fast-box"]
+      });
+      const solveAllBtn = events.createButton(
+        new UTStandardButtonControl(),
+        fy(["fastsbc.batch.btn", plan.entries.length]),
+        () => events.solveAllFastSbcs(),
+        plan.entries.length ? "call-to-action mini fsu-solve-all-fast-btn" : "mini fsu-solve-all-fast-btn"
+      );
+      if (!plan.entries.length) {
+        solveAllBtn.setInteractionState(0);
+      }
+      solveAllBox.appendChild(solveAllBtn.getRootElement());
+
+      const filterBox = this.__root.querySelector(".fsu-sbcfilter-box");
+      if (filterBox) {
+        filterBox.before(solveAllBox);
+      } else if (this._SBCCategoriesTM?.__root) {
+        this._SBCCategoriesTM.__root.after(solveAllBox);
+      }
+    }
+
     if (Object.keys(info.task.sbc.stat).length && info.set.info_sbcf && t) {
       if (!this.hasOwnProperty("_fsuSbcFilter")) {
         this._fsuSbcFilter = new UTDropDownControl();
@@ -264,14 +293,17 @@ export function registerSbcInfoFillEvent(deps) {
       );
       if (_.size(fastInfo)) {
         if (e.data.challengesCount == 1) {
-          let fastCount = events.fastSBCQuantity(
-            true,
-            _.filter(
-              repositories.Item.getUnassignedItems(),
-              (item) => item.isPlayer() && item.duplicateId !== 0
-            ),
-            _.values(fastInfo)[0]
-          );
+          const safePool = events.getSafeUnassignedPool
+            ? events.getSafeUnassignedPool()
+            : _.filter(
+                repositories.Item.getUnassignedItems(),
+                (item) =>
+                  item.isPlayer() &&
+                  item.duplicateId !== 0 &&
+                  item.untradeableCount > 0 &&
+                  !info.lock.includes(item.id)
+              );
+          let fastCount = events.fastSBCQuantity(false, safePool, _.values(fastInfo)[0]);
           let fastIds = _.map(_.split(_.keys(fastInfo)[0], "#"), (s) => parseInt(s));
           let fastSid = fastIds[1];
           let fastCid = fastIds[0];
