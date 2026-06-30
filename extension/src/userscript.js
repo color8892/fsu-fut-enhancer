@@ -11617,7 +11617,7 @@
           let keyText = key;
           let textSuffix = notShowNumber.includes(key) ? "" : `<span>${value}</span>`;
           if (key.endsWith("*")) {
-            keyText = key.replace("*", "");
+            keyText = key.slice(0, -1);
             hasMain = true;
             textSuffix = "*" + textSuffix;
           }
