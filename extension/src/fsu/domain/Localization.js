@@ -6,7 +6,7 @@ export function createLocalization(getState) {
     const state = getState();
     const dictionary = state.localization || {};
     const language = state.language ?? 2;
-    let text = "";
+    let text;
 
     if (Array.isArray(key)) {
       const parts = _.cloneDeep(key);

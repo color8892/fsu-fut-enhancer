@@ -193,7 +193,7 @@ export class PlayerSearchService {
           tempPlayers = _.reverse(tempPlayers);
         }
         _.forEach(tempPlayers, i => {
-          let tempResult = [], special = [], normal = [];
+          const special = [], normal = [];
           _.forEach(i, si => {
             if (!si.isSpecial() || si.leagueId == 1003 || si.leagueId == 1014) {
               normal.push(si);
@@ -201,7 +201,7 @@ export class PlayerSearchService {
               special.push(si);
             }
           });
-          tempResult = _.concat(normal, special);
+          const tempResult = _.concat(normal, special);
           resultPlayers = _.concat(resultPlayers, tempResult);
         });
         players = resultPlayers;
@@ -221,7 +221,7 @@ export class PlayerSearchService {
           tempPlayers = _.reverse(tempPlayers);
         }
         _.forEach(tempPlayers, i => {
-          let tempResult = [];
+          let tempResult;
           if (i[0].rating >= 75 && i[0].rating <= info.set.goldenrange) {
             tempResult = _.sortBy(i, customSort);
             if (!_.includes(specialOrder, 1)) {

@@ -1,6 +1,6 @@
 export class SbcRequirementsService {
   requirementsToText(requirement, eligibilityKeys, localize) {
-    let text = ``;
+    let text;
     let rKey = requirement.getFirstKey();
     let rIds = requirement.getValue(rKey);
     function combine(t) {

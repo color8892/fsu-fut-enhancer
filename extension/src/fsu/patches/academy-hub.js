@@ -149,9 +149,8 @@ export function installAcademyHubPatches(deps) {
     }
     if (_.size(localSearch)) {
       _.forEach(this.academySlot.eligibilityRequirements, (er) => {
-        let op = "";
         if (er.attribute == AcademyEligibilityAttribute.OVR && er.scope < 3) {
-          op = er.scope == AcademyEligibilityScope.MAX ? "LT" : "GT";
+          const op = er.scope == AcademyEligibilityScope.MAX ? "LT" : "GT";
           localSearch[`${op}rating`] = er.targets;
         }
         if (er.attribute == AcademyEligibilityAttribute.BASE_TRAITS_COUNT) {

@@ -241,8 +241,7 @@ export class MarketActionService {
 
     showLoader();
     let defId = 0,
-      playerName = "",
-      state = true;
+      playerName = "";
     if (Number.isInteger(player)) {
       defId = player;
       playerName = repositories.Item.getStaticDataByDefId(defId).name;
@@ -506,7 +505,7 @@ export class MarketActionService {
               let ix = t.error ? t.error.code : t.status;
               if (NetworkErrorManager.checkCriticalStatus(ix)) NetworkErrorManager.handleStatus(ix);
               else {
-                let o = void 0;
+                let o;
                 switch (ix) {
                   case HttpStatusCode.FORBIDDEN:
                     o = "popup.error.list.forbidden.message";

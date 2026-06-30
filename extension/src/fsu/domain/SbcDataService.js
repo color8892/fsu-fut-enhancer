@@ -173,7 +173,6 @@ export class SbcDataService {
 
     const processRatings = (ratingsList, squadVacancy) => {
       const fillConfig = {};
-      let completeRatingsList = [];
 
       const processRating = (rating) => {
         if (squadVacancy.length) {
@@ -193,11 +192,9 @@ export class SbcDataService {
         }
       };
 
-      if (ratingsList.length === 1) {
-        completeRatingsList = _.fill(Array(squadVacancy.length), ratingsList[0]);
-      } else {
-        completeRatingsList = ratingsList;
-      }
+      const completeRatingsList = ratingsList.length === 1
+        ? _.fill(Array(squadVacancy.length), ratingsList[0])
+        : ratingsList;
 
       _.forEach(completeRatingsList, processRating);
       return fillConfig;

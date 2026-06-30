@@ -37,7 +37,7 @@ export function installAcademyDetailsPatches(deps) {
             return i.__title?.innerText == titleText && !i.__deltaValue.hasAttribute("data-up");
           });
           if (sub) {
-            let subText = "";
+            let subText;
             if (state === AcademySlotLevelState.COMPLETED) {
               subText = "√";
             } else {

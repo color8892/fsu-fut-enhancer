@@ -2,7 +2,6 @@ import { buildPriceByRating } from "../infra/RatingPrices.js";
 
 export class SbcRatingService {
   teamRatingCount(ratings) {
-    let results = 0;
     let sum = _.sum(ratings);
     const avg = sum / 11;
     _.flatMap(ratings, function (value) {
@@ -10,7 +9,7 @@ export class SbcRatingService {
         sum += parseFloat(value - avg);
       }
     });
-    results = Math.floor(Math.round(sum) / 11);
+    let results = Math.floor(Math.round(sum) / 11);
     if (isNaN(results)) {
       results = 0;
     }

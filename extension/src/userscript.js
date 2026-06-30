@@ -715,17 +715,17 @@
       const info = this.getInfo();
       const dayTimestamp = this.getStartOfDayTimestamp();
       const stored = this.store.getObject(STORAGE_KEY3, {});
-      const state = {
+      const state2 = {
         count: 0,
         time: dayTimestamp
       };
       if (stored && typeof stored === "object" && stored.time == dayTimestamp) {
-        state.count = stored.count;
+        state2.count = stored.count;
       } else {
-        this.store.setJson(STORAGE_KEY3, state);
+        this.store.setJson(STORAGE_KEY3, state2);
       }
-      this.debug.log(state);
-      info.SBCCount = state;
+      this.debug.log(state2);
+      info.SBCCount = state2;
     }
     getStartOfDayTimestamp() {
       const now = /* @__PURE__ */ new Date();
@@ -1585,10 +1585,10 @@
     const fy2 = function(key) {
       if (key == null) return "";
       if (typeof key !== "string" && !Array.isArray(key)) return String(key);
-      const state = getState();
-      const dictionary = state.localization || {};
-      const language = state.language ?? 2;
-      let text = "";
+      const state2 = getState();
+      const dictionary = state2.localization || {};
+      const language = state2.language ?? 2;
+      let text;
       if (Array.isArray(key)) {
         const parts = _.cloneDeep(key);
         const dictKey = parts.shift();
@@ -1614,8 +1614,8 @@
     };
     const eafy = function(key) {
       if (key == null) return "";
-      const state = getState();
-      return state.base?.localization?.[key] ?? key;
+      const state2 = getState();
+      return state2.base?.localization?.[key] ?? key;
     };
     return { fy: fy2, eafy };
   }
@@ -4268,9 +4268,8 @@
       }
       if (_.size(localSearch)) {
         _.forEach(this.academySlot.eligibilityRequirements, (er) => {
-          let op = "";
           if (er.attribute == AcademyEligibilityAttribute.OVR && er.scope < 3) {
-            op = er.scope == AcademyEligibilityScope.MAX ? "LT" : "GT";
+            const op = er.scope == AcademyEligibilityScope.MAX ? "LT" : "GT";
             localSearch[`${op}rating`] = er.targets;
           }
           if (er.attribute == AcademyEligibilityAttribute.BASE_TRAITS_COUNT) {
@@ -8299,11 +8298,11 @@
     };
     events.listFilterData = (element, type) => {
       let players = _.cloneDeep(element._fsuInitPlayers);
-      const evaluateState = (state, typeNumber) => {
+      const evaluateState = (state2, typeNumber) => {
         if (type === typeNumber) {
-          return state === 0 ? 1 : 0;
+          return state2 === 0 ? 1 : 0;
         }
-        return state;
+        return state2;
       };
       if (_.has(element._fsulistfilter, 3)) {
         if (evaluateState(element._fsulistfilter[3]._state, 3)) {
@@ -8868,11 +8867,11 @@
     };
     events.listFilterData = (element, type) => {
       let players = _.cloneDeep(element._fsuInitPlayers);
-      const evaluateState = (state, typeNumber) => {
+      const evaluateState = (state2, typeNumber) => {
         if (type === typeNumber) {
-          return state === 0 ? 1 : 0;
+          return state2 === 0 ? 1 : 0;
         }
-        return state;
+        return state2;
       };
       if (_.has(element._fsulistfilter, 3)) {
         if (evaluateState(element._fsulistfilter[3]._state, 3)) {
@@ -9449,14 +9448,14 @@
           if (a.type >= AcademyStatEnum.PACE && a.type <= AcademyStatEnum.GK_SUB_POSITIONING_SUB) {
             const titleText = UTAcademyUtils.mapAttributeIdToLocString(a.type);
             const value = UTAcademyUtils.getPlayerFinalStatValue(player, a);
-            const state = e2.levels[a.level - 1].status;
+            const state2 = e2.levels[a.level - 1].status;
             let addedText = "no";
             const sub = _.find(this.panel.upgradeList, (i) => {
               return i.__title?.innerText == titleText && !i.__deltaValue.hasAttribute("data-up");
             });
             if (sub) {
-              let subText = "";
-              if (state === AcademySlotLevelState.COMPLETED) {
+              let subText;
+              if (state2 === AcademySlotLevelState.COMPLETED) {
                 subText = "√";
               } else {
                 const boostValue = UTAcademyUtils.getPlayerFinalStatValue(boost, a);
@@ -10722,7 +10721,7 @@
             tempPlayers = _.reverse(tempPlayers);
           }
           _.forEach(tempPlayers, (i) => {
-            let tempResult = [], special = [], normal = [];
+            const special = [], normal = [];
             _.forEach(i, (si) => {
               if (!si.isSpecial() || si.leagueId == 1003 || si.leagueId == 1014) {
                 normal.push(si);
@@ -10730,7 +10729,7 @@
                 special.push(si);
               }
             });
-            tempResult = _.concat(normal, special);
+            const tempResult = _.concat(normal, special);
             resultPlayers = _.concat(resultPlayers, tempResult);
           });
           players = resultPlayers;
@@ -10750,7 +10749,7 @@
             tempPlayers = _.reverse(tempPlayers);
           }
           _.forEach(tempPlayers, (i) => {
-            let tempResult = [];
+            let tempResult;
             if (i[0].rating >= 75 && i[0].rating <= info.set.goldenrange) {
               tempResult = _.sortBy(i, customSort);
               if (!_.includes(specialOrder, 1)) {
@@ -10827,7 +10826,7 @@
   // src/fsu/domain/SbcRequirementsService.js
   var SbcRequirementsService = class {
     requirementsToText(requirement, eligibilityKeys, localize) {
-      let text = ``;
+      let text;
       let rKey = requirement.getFirstKey();
       let rIds = requirement.getValue(rKey);
       function combine(t) {
@@ -11107,7 +11106,7 @@
         getCurrentController
       } = helpers;
       showLoader();
-      let defId = 0, playerName = "", state = true;
+      let defId = 0, playerName = "";
       if (Number.isInteger(player)) {
         defId = player;
         playerName = repositories.Item.getStaticDataByDefId(defId).name;
@@ -11339,7 +11338,7 @@
                 let ix = t2.error ? t2.error.code : t2.status;
                 if (NetworkErrorManager.checkCriticalStatus(ix)) NetworkErrorManager.handleStatus(ix);
                 else {
-                  let o = void 0;
+                  let o;
                   switch (ix) {
                     case HttpStatusCode.FORBIDDEN:
                       o = "popup.error.list.forbidden.message";
@@ -12213,7 +12212,6 @@
   // src/fsu/domain/SbcRatingService.js
   var SbcRatingService = class {
     teamRatingCount(ratings) {
-      let results = 0;
       let sum = _.sum(ratings);
       const avg = sum / 11;
       _.flatMap(ratings, function(value) {
@@ -12221,7 +12219,7 @@
           sum += parseFloat(value - avg);
         }
       });
-      results = Math.floor(Math.round(sum) / 11);
+      let results = Math.floor(Math.round(sum) / 11);
       if (isNaN(results)) {
         results = 0;
       }
@@ -12636,7 +12634,6 @@
       };
       const processRatings = (ratingsList2, squadVacancy) => {
         const fillConfig = {};
-        let completeRatingsList = [];
         const processRating = (rating) => {
           if (squadVacancy.length) {
             const headVacancy = _.head(squadVacancy);
@@ -12652,11 +12649,7 @@
             fillConfig[rating].index.push(headVacancy.index);
           }
         };
-        if (ratingsList2.length === 1) {
-          completeRatingsList = _.fill(Array(squadVacancy.length), ratingsList2[0]);
-        } else {
-          completeRatingsList = ratingsList2;
-        }
+        const completeRatingsList = ratingsList2.length === 1 ? _.fill(Array(squadVacancy.length), ratingsList2[0]) : ratingsList2;
         _.forEach(completeRatingsList, processRating);
         return fillConfig;
       };
