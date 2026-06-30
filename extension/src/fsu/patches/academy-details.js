@@ -37,19 +37,17 @@ export function installAcademyDetailsPatches(deps) {
             return i.__title?.innerText == titleText && !i.__deltaValue.hasAttribute("data-up");
           });
           if (sub) {
-            let subText;
-            if (state === AcademySlotLevelState.COMPLETED) {
-              subText = "√";
-            } else {
-              const boostValue = UTAcademyUtils.getPlayerFinalStatValue(boost, a);
-              const plusValue = value - boostValue;
-              if (plusValue > 0) {
-                subText = `${boostValue}+<span>${plusValue}</span>`;
-              } else {
-                subText = "+0";
-              }
-              plusValue > 0 && (addedText = "added") && a.type <= AcademyStatEnum.PHYSICALITY && (addedText += "Main");
-            }
+            const subText = state === AcademySlotLevelState.COMPLETED
+              ? "√"
+              : (() => {
+                const boostValue = UTAcademyUtils.getPlayerFinalStatValue(boost, a);
+                const plusValue = value - boostValue;
+                if (plusValue > 0) {
+                  plusValue > 0 && (addedText = "added") && a.type <= AcademyStatEnum.PHYSICALITY && (addedText += "Main");
+                  return `${boostValue}+<span>${plusValue}</span>`;
+                }
+                return "+0";
+              })();
             let addValue = events.createElementWithConfig("div", {
               classList: "fsu-academyAttribute"
             });

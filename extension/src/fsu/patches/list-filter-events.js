@@ -154,7 +154,6 @@ events.listFilterData = (element,type) => {
     const getChem = (p) => {
         return element._fsuAllChem[p.id];
     }
-    let orderKey = [];
     let orders = [];
 
     if(_.has(element._fsulistfilter,1)){
@@ -165,11 +164,10 @@ events.listFilterData = (element,type) => {
         orders.push(evaluateState(element._fsulistfilter[4]._state,4) ? "desc" : "asc")
     }
 
-    if(type == 4 || (element._fsulistfilter[4].getRootElement().textContent.includes('√') && type !== 1)){
-        orderKey = [getChem,"rating"]
+    const reverseOrder = type == 4 || (element._fsulistfilter[4].getRootElement().textContent.includes('√') && type !== 1);
+    const orderKey = reverseOrder ? [getChem,"rating"] : ["rating",getChem];
+    if(reverseOrder){
         orders = _.reverse(orders);
-    }else{
-        orderKey = ["rating",getChem]
     }
 
     players = _.orderBy(players, orderKey, orders);

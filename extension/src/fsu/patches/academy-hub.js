@@ -150,8 +150,8 @@ export function installAcademyHubPatches(deps) {
     if (_.size(localSearch)) {
       _.forEach(this.academySlot.eligibilityRequirements, (er) => {
         if (er.attribute == AcademyEligibilityAttribute.OVR && er.scope < 3) {
-          const op = er.scope == AcademyEligibilityScope.MAX ? "LT" : "GT";
-          localSearch[`${op}rating`] = er.targets;
+          const ratingOp = er.scope == AcademyEligibilityScope.MAX ? "LT" : "GT";
+          localSearch[`${ratingOp}rating`] = er.targets;
         }
         if (er.attribute == AcademyEligibilityAttribute.BASE_TRAITS_COUNT) {
           localSearch[`maxNumBasicPlayStyles`] = er.targets;

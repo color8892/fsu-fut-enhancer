@@ -252,7 +252,7 @@ export function installPlayerItemPatch(deps) {
 
               let pOtherPos = otherPos.length ? `<div class="fsu-other-pos">${otherPos.join(" / ")}</div>` : `<span class="fsu-other-pos"></span>`;
 
-              let pd = "";
+              let pd;
 
               let pe = -1,sp = events.getItemBy(2,{"definitionId":p.definitionId});
               if(sp.length == 1){

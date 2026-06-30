@@ -113,7 +113,7 @@ export function installStorePatches(deps) {
         
         //** 25.21 包排重加载 */
         const HideAndShow = this.getStoreCategory() == 'mypacks';
-        let showList = [];
+        let showList;
         if(HideAndShow){
             const packList = [];
             this._fsuPacks = {};

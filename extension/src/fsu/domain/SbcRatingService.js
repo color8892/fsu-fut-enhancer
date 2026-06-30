@@ -9,11 +9,8 @@ export class SbcRatingService {
         sum += parseFloat(value - avg);
       }
     });
-    let results = Math.floor(Math.round(sum) / 11);
-    if (isNaN(results)) {
-      results = 0;
-    }
-    return results;
+    const results = Math.floor(Math.round(sum) / 11);
+    return isNaN(results) ? 0 : results;
   }
 
   buildRatingNeedOptions(target, squad, helpers) {

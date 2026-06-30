@@ -505,28 +505,24 @@ export class MarketActionService {
               let ix = t.error ? t.error.code : t.status;
               if (NetworkErrorManager.checkCriticalStatus(ix)) NetworkErrorManager.handleStatus(ix);
               else {
-                let o;
-                switch (ix) {
-                  case HttpStatusCode.FORBIDDEN:
-                    o = "popup.error.list.forbidden.message";
-                    break;
-                  case UtasErrorCode.PERMISSION_DENIED:
-                    o = "popup.error.list.PermissionDenied";
-                    break;
-                  case UtasErrorCode.STATE_INVALID:
-                    o = "popup.error.list.InvalidState";
-                    break;
-                  case UtasErrorCode.DESTINATION_FULL:
-                    o = "popup.error.tradetoken.SellItemTradePileFull";
-                    break;
-                  case UtasErrorCode.CARD_IN_TRADE:
-                    o = "popup.error.tradetoken.ItemInTradeOffer";
-                    break;
-                  default:
-                    o = "popup.error.list.InvalidState";
-                }
+                const listErrorKey = (() => {
+                  switch (ix) {
+                    case HttpStatusCode.FORBIDDEN:
+                      return "popup.error.list.forbidden.message";
+                    case UtasErrorCode.PERMISSION_DENIED:
+                      return "popup.error.list.PermissionDenied";
+                    case UtasErrorCode.STATE_INVALID:
+                      return "popup.error.list.InvalidState";
+                    case UtasErrorCode.DESTINATION_FULL:
+                      return "popup.error.tradetoken.SellItemTradePileFull";
+                    case UtasErrorCode.CARD_IN_TRADE:
+                      return "popup.error.tradetoken.ItemInTradeOffer";
+                    default:
+                      return "popup.error.list.InvalidState";
+                  }
+                })();
                 services.Notification.queue([
-                  services.Localization.localize(o),
+                  services.Localization.localize(listErrorKey),
                   UINotificationType.NEGATIVE
                 ]);
               }

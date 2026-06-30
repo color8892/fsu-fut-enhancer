@@ -6,20 +6,22 @@ export function createLocalization(getState) {
     const state = getState();
     const dictionary = state.localization || {};
     const language = state.language ?? 2;
-    let text;
 
     if (Array.isArray(key)) {
       const parts = _.cloneDeep(key);
       const dictKey = parts.shift();
       if (!dictKey || !dictionary[dictKey]) return String(dictKey ?? "");
-      text = dictionary[dictKey][language] ?? "";
+      let text = dictionary[dictKey][language] ?? "";
       const substitutions = parts.slice();
 
       for (const index in substitutions) {
         text = text.replace(`%${Number(index) + 1}`, `${substitutions[index]}`);
       }
-    } else if (key.indexOf("{") !== -1) {
-      text = key;
+      return text;
+    }
+
+    if (key.indexOf("{") !== -1) {
+      let text = key;
       const placeholders = key.match(/{(.*?)}/g);
 
       for (const placeholder of placeholders) {
@@ -28,11 +30,10 @@ export function createLocalization(getState) {
           text = text.replace(placeholder, dictionary[field][language]);
         }
       }
-    } else {
-      text = dictionary.hasOwnProperty(key) ? dictionary[key][language] : key;
+      return text;
     }
 
-    return text;
+    return dictionary.hasOwnProperty(key) ? dictionary[key][language] : key;
   };
 
   const eafy = function (key) {

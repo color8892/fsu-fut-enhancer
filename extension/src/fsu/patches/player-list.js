@@ -76,7 +76,7 @@ UTPaginatedItemListView.prototype.renderItems = function(t) {
     }
     if(csbc){
         if(c.getNavigationTitle() == services.Localization.localize("navbar.label.clubsearch")){
-            let s = [];
+            let s;
             if(_.has(c,"_fsuFillArray") && c._fsuFillArray.length && c.currentController.searchCriteria.defId.length && this.listRows.length){
                 s = this.listRows.map(i => {
                     if(c.currentController.searchCriteria.defId.includes(i.data.definitionId)){

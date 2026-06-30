@@ -9,7 +9,7 @@ export function installSearchPatches(deps) {
 
         let controller = isPhone() ? cntlr.current() : cntlr.current().className == "UTMyClubSearchFiltersViewController" ? cntlr.current() : cntlr.right();
 
-        let basePlayers = [],fsuCriteria = {"unlimited":true},readFillMode = false;
+        let basePlayers,fsuCriteria = {"unlimited":true},readFillMode = false;
 
 
         //判断所处的界面来识别对应的获取基础数据的方式

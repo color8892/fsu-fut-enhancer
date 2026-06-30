@@ -221,15 +221,11 @@ export class PlayerSearchService {
           tempPlayers = _.reverse(tempPlayers);
         }
         _.forEach(tempPlayers, i => {
-          let tempResult;
-          if (i[0].rating >= 75 && i[0].rating <= info.set.goldenrange) {
-            tempResult = _.sortBy(i, customSort);
-            if (!_.includes(specialOrder, 1)) {
-              tempResult = _.orderBy(tempResult, "untradeableCount", "desc");
-            }
-          } else {
-            tempResult = i;
-          }
+          const inGoldenRange = i[0].rating >= 75 && i[0].rating <= info.set.goldenrange;
+          const sortedGroup = inGoldenRange ? _.sortBy(i, customSort) : i;
+          const tempResult = inGoldenRange && !_.includes(specialOrder, 1)
+            ? _.orderBy(sortedGroup, "untradeableCount", "desc")
+            : sortedGroup;
           resultPlayers = _.concat(resultPlayers, tempResult);
         });
         players = resultPlayers;

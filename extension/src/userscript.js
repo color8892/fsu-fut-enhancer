@@ -1588,18 +1588,19 @@
       const state2 = getState();
       const dictionary = state2.localization || {};
       const language = state2.language ?? 2;
-      let text;
       if (Array.isArray(key)) {
         const parts = _.cloneDeep(key);
         const dictKey = parts.shift();
         if (!dictKey || !dictionary[dictKey]) return String(dictKey ?? "");
-        text = dictionary[dictKey][language] ?? "";
+        let text = dictionary[dictKey][language] ?? "";
         const substitutions = parts.slice();
         for (const index in substitutions) {
           text = text.replace(`%${Number(index) + 1}`, `${substitutions[index]}`);
         }
-      } else if (key.indexOf("{") !== -1) {
-        text = key;
+        return text;
+      }
+      if (key.indexOf("{") !== -1) {
+        let text = key;
         const placeholders = key.match(/{(.*?)}/g);
         for (const placeholder of placeholders) {
           const field = placeholder.match(/{(.*?)}/)[1];
@@ -1607,10 +1608,9 @@
             text = text.replace(placeholder, dictionary[field][language]);
           }
         }
-      } else {
-        text = dictionary.hasOwnProperty(key) ? dictionary[key][language] : key;
+        return text;
       }
-      return text;
+      return dictionary.hasOwnProperty(key) ? dictionary[key][language] : key;
     };
     const eafy = function(key) {
       if (key == null) return "";
@@ -1888,7 +1888,7 @@
               const set = services.SBC.repository.getSetById(i2.sId);
               const challenge = set ? set.getChallenge(i2.cId) : null;
               if (set && !set.isComplete() && (challenge == null || !challenge.isCompleted())) {
-                let btnTitle = "";
+                let btnTitle;
                 if (!_.has(info.base.fastsbc[i2.n], "n")) {
                   if (set.challengesCount === 1) {
                     info.base.fastsbc[i2.n]["n"] = set.name;
@@ -2407,7 +2407,7 @@
           }
           let plow = info.base.price.hasOwnProperty(p.rating) && p.rating > info.base.price.low && p.rating < info.base.price.high ? `<div class="fsu-other-low currency-coins">${p.rating} Min: ${Number(info.base.price[p.rating]).toLocaleString()}</div>` : `<span class="fsu-other-low"></span>`;
           let pOtherPos = otherPos.length ? `<div class="fsu-other-pos">${otherPos.join(" / ")}</div>` : `<span class="fsu-other-pos"></span>`;
-          let pd = "";
+          let pd;
           let pe = -1, sp = events.getItemBy(2, { "definitionId": p.definitionId });
           if (sp.length == 1) {
             pe = sp[0].untradeableCount ? 0 : 1;
@@ -3651,7 +3651,7 @@
       }
       if (csbc) {
         if (c.getNavigationTitle() == services2.Localization.localize("navbar.label.clubsearch")) {
-          let s2 = [];
+          let s2;
           if (_.has(c, "_fsuFillArray") && c._fsuFillArray.length && c.currentController.searchCriteria.defId.length && this.listRows.length) {
             s2 = this.listRows.map((i) => {
               if (c.currentController.searchCriteria.defId.includes(i.data.definitionId)) {
@@ -4269,8 +4269,8 @@
       if (_.size(localSearch)) {
         _.forEach(this.academySlot.eligibilityRequirements, (er) => {
           if (er.attribute == AcademyEligibilityAttribute.OVR && er.scope < 3) {
-            const op = er.scope == AcademyEligibilityScope.MAX ? "LT" : "GT";
-            localSearch[`${op}rating`] = er.targets;
+            const ratingOp = er.scope == AcademyEligibilityScope.MAX ? "LT" : "GT";
+            localSearch[`${ratingOp}rating`] = er.targets;
           }
           if (er.attribute == AcademyEligibilityAttribute.BASE_TRAITS_COUNT) {
             localSearch[`maxNumBasicPlayStyles`] = er.targets;
@@ -5505,13 +5505,10 @@
                   let keys = Object.keys(current);
                   if (!(keys.length - e3.criteria.length)) {
                     keys.forEach(function(value, index) {
-                      let condition = false;
-                      if (Array.isArray(current[value])) {
-                        condition = current[value].length !== e3.criteria[index].length;
-                      } else {
-                        condition = current[value] !== e3.criteria[index];
-                      }
-                      if (condition) {
+                      const currentValue = current[value];
+                      const nextValue = e3.criteria[index];
+                      const mismatch = Array.isArray(currentValue) ? currentValue.length !== nextValue.length : currentValue !== nextValue;
+                      if (mismatch) {
                         debug2.log(
                           `${value}，目前的元素 ${current[value]}，存储值为 ${e3.criteria[index]}`
                         );
@@ -5532,20 +5529,15 @@
               let elable = document.createElement("div");
               elable.style.textAlign = "center";
               elable.style.color = "#9E9E9E";
-              let bid = [];
-              if (item[criteriaKeys.indexOf("minBid")] + item[criteriaKeys.indexOf("maxBid")] > 0) {
-                bid = [
-                  item[criteriaKeys.indexOf("minBid")],
-                  item[criteriaKeys.indexOf("maxBid")],
-                  "auctioninfo.bidprice"
-                ];
-              } else {
-                bid = [
-                  item[criteriaKeys.indexOf("minBuy")],
-                  item[criteriaKeys.indexOf("maxBuy")],
-                  "auctioninfo.buynowprice"
-                ];
-              }
+              const bid = item[criteriaKeys.indexOf("minBid")] + item[criteriaKeys.indexOf("maxBid")] > 0 ? [
+                item[criteriaKeys.indexOf("minBid")],
+                item[criteriaKeys.indexOf("maxBid")],
+                "auctioninfo.bidprice"
+              ] : [
+                item[criteriaKeys.indexOf("minBuy")],
+                item[criteriaKeys.indexOf("maxBuy")],
+                "auctioninfo.buynowprice"
+              ];
               let defaultText = services2.Localization.localize("search.comboBoxDefaultValue");
               elable.textContent = `${services2.Localization.localize(bid[2])}${bid[0] ? bid[0] : defaultText} - ${bid[1] ? bid[1] : defaultText}`;
               eblock.appendChild(elable);
@@ -5667,7 +5659,7 @@
     };
     UTStoreView.prototype.setPacks = function(e2, t, i, o) {
       const HideAndShow = this.getStoreCategory() == "mypacks";
-      let showList = [];
+      let showList;
       if (HideAndShow) {
         const packList = [];
         this._fsuPacks = {};
@@ -6477,7 +6469,7 @@
       if (_.has(e2, "_fsuFiltersCount")) {
         let filterToPlayer = { "nation": "nationId", "league": "leagueId", "club": "teamId", "rarity": "rareflag", "playStyle": "playStyle" }, criteriaDefault = { "nation": -1, "league": -1, "club": -1, "rarity": [], "position": "any", "level": "any", "playStyle": -1 }, excludeCriteria = _.cloneDeep(e2.criteria.searchCriteria);
         let controller = isPhone2() ? cntlr2.current() : cntlr2.current().className == "UTMyClubSearchFiltersViewController" ? cntlr2.current() : cntlr2.right();
-        let basePlayers = [], fsuCriteria = { "unlimited": true }, readFillMode = false;
+        let basePlayers, fsuCriteria = { "unlimited": true }, readFillMode = false;
         if ("squad" in controller && controller.squad.isSBC()) {
           if (controller.getParentViewController() && "_fsuFillArray" in controller.getParentViewController() && controller.getParentViewController()._fsuFillArray.length) {
             readFillMode = true;
@@ -8322,7 +8314,6 @@
       const getChem = (p) => {
         return element._fsuAllChem[p.id];
       };
-      let orderKey = [];
       let orders = [];
       if (_.has(element._fsulistfilter, 1)) {
         orders.push(evaluateState(element._fsulistfilter[1]._state, 1) ? "desc" : "asc");
@@ -8330,11 +8321,10 @@
       if (_.has(element._fsulistfilter, 4)) {
         orders.push(evaluateState(element._fsulistfilter[4]._state, 4) ? "desc" : "asc");
       }
-      if (type == 4 || element._fsulistfilter[4].getRootElement().textContent.includes("√") && type !== 1) {
-        orderKey = [getChem, "rating"];
+      const reverseOrder = type == 4 || element._fsulistfilter[4].getRootElement().textContent.includes("√") && type !== 1;
+      const orderKey = reverseOrder ? [getChem, "rating"] : ["rating", getChem];
+      if (reverseOrder) {
         orders = _.reverse(orders);
-      } else {
-        orderKey = ["rating", getChem];
       }
       players = _.orderBy(players, orderKey, orders);
       element.clubViewModel.resetCollection(players);
@@ -8891,7 +8881,6 @@
       const getChem = (p) => {
         return element._fsuAllChem[p.id];
       };
-      let orderKey = [];
       let orders = [];
       if (_.has(element._fsulistfilter, 1)) {
         orders.push(evaluateState(element._fsulistfilter[1]._state, 1) ? "desc" : "asc");
@@ -8899,11 +8888,10 @@
       if (_.has(element._fsulistfilter, 4)) {
         orders.push(evaluateState(element._fsulistfilter[4]._state, 4) ? "desc" : "asc");
       }
-      if (type == 4 || element._fsulistfilter[4].getRootElement().textContent.includes("√") && type !== 1) {
-        orderKey = [getChem, "rating"];
+      const reverseOrder = type == 4 || element._fsulistfilter[4].getRootElement().textContent.includes("√") && type !== 1;
+      const orderKey = reverseOrder ? [getChem, "rating"] : ["rating", getChem];
+      if (reverseOrder) {
         orders = _.reverse(orders);
-      } else {
-        orderKey = ["rating", getChem];
       }
       players = _.orderBy(players, orderKey, orders);
       element.clubViewModel.resetCollection(players);
@@ -9104,18 +9092,13 @@
       }
     };
     events.getPlayerMetaPopupText = (meta, pos) => {
-      let v = "";
       let sl = services2.Localization;
       let desc = meta.id == -1 ? meta.name : sl.localize(`tactics.roles.role${meta.id}.description`);
-      if (pos) {
-        let vs = UTPlayerRoleVO.getVariationsForRoleAndPositionId(pos, meta.id);
-        let vsa = _.map(vs, (vt) => {
-          return sl.localize("tactics.roles.variation" + vt);
-        });
-        v = fy2(["plyers.relo.popupm.v1", vsa.join("、")]);
-      } else {
-        v = fy2("plyers.relo.popupm.v2");
-      }
+      const v = pos ? (() => {
+        const vs = UTPlayerRoleVO.getVariationsForRoleAndPositionId(pos, meta.id);
+        const vsa = _.map(vs, (vt) => sl.localize("tactics.roles.variation" + vt));
+        return fy2(["plyers.relo.popupm.v1", vsa.join("、")]);
+      })() : fy2("plyers.relo.popupm.v2");
       return fy2([
         "plyers.relo.popupm",
         meta.name,
@@ -9454,19 +9437,15 @@
               return i.__title?.innerText == titleText && !i.__deltaValue.hasAttribute("data-up");
             });
             if (sub) {
-              let subText;
-              if (state2 === AcademySlotLevelState.COMPLETED) {
-                subText = "√";
-              } else {
+              const subText = state2 === AcademySlotLevelState.COMPLETED ? "√" : (() => {
                 const boostValue = UTAcademyUtils.getPlayerFinalStatValue(boost, a);
                 const plusValue = value - boostValue;
                 if (plusValue > 0) {
-                  subText = `${boostValue}+<span>${plusValue}</span>`;
-                } else {
-                  subText = "+0";
+                  plusValue > 0 && (addedText = "added") && a.type <= AcademyStatEnum.PHYSICALITY && (addedText += "Main");
+                  return `${boostValue}+<span>${plusValue}</span>`;
                 }
-                plusValue > 0 && (addedText = "added") && a.type <= AcademyStatEnum.PHYSICALITY && (addedText += "Main");
-              }
+                return "+0";
+              })();
               let addValue = events.createElementWithConfig("div", {
                 classList: "fsu-academyAttribute"
               });
@@ -10749,15 +10728,9 @@
             tempPlayers = _.reverse(tempPlayers);
           }
           _.forEach(tempPlayers, (i) => {
-            let tempResult;
-            if (i[0].rating >= 75 && i[0].rating <= info.set.goldenrange) {
-              tempResult = _.sortBy(i, customSort);
-              if (!_.includes(specialOrder, 1)) {
-                tempResult = _.orderBy(tempResult, "untradeableCount", "desc");
-              }
-            } else {
-              tempResult = i;
-            }
+            const inGoldenRange = i[0].rating >= 75 && i[0].rating <= info.set.goldenrange;
+            const sortedGroup = inGoldenRange ? _.sortBy(i, customSort) : i;
+            const tempResult = inGoldenRange && !_.includes(specialOrder, 1) ? _.orderBy(sortedGroup, "untradeableCount", "desc") : sortedGroup;
             resultPlayers = _.concat(resultPlayers, tempResult);
           });
           players = resultPlayers;
@@ -10826,7 +10799,6 @@
   // src/fsu/domain/SbcRequirementsService.js
   var SbcRequirementsService = class {
     requirementsToText(requirement, eligibilityKeys, localize) {
-      let text;
       let rKey = requirement.getFirstKey();
       let rIds = requirement.getValue(rKey);
       function combine(t) {
@@ -10836,44 +10808,36 @@
       }
       switch (rKey) {
         case eligibilityKeys.CLUB_ID:
-          text = combine(_.uniq(_.map(rIds, (value) => {
+          return combine(_.uniq(_.map(rIds, (value) => {
             return UTLocalizationUtil.teamIdToAbbr15(value, services.Localization);
           })));
-          break;
         case eligibilityKeys.LEAGUE_ID:
-          text = combine(_.map(rIds, (value) => {
+          return combine(_.map(rIds, (value) => {
             return UTLocalizationUtil.leagueIdToName(value, services.Localization);
           }));
-          break;
         case eligibilityKeys.NATION_ID:
-          text = combine(_.map(rIds, (value) => {
+          return combine(_.map(rIds, (value) => {
             return UTLocalizationUtil.nationIdToName(value, services.Localization);
           }));
-          break;
         case eligibilityKeys.PLAYER_RARITY:
-          text = combine(_.map(rIds, (value) => {
+          return combine(_.map(rIds, (value) => {
             return localize(`item.raretype${value}`);
           }));
-          break;
         case eligibilityKeys.PLAYER_MIN_OVR:
-          text = combine(_.map(rIds, (value) => {
+          return combine(_.map(rIds, (value) => {
             return localize("sbc.requirements.rating.min.val", [value]);
           }));
-          break;
         case eligibilityKeys.PLAYER_RARITY_GROUP:
-          text = combine(_.map(rIds, (value) => {
+          return combine(_.map(rIds, (value) => {
             return localize(`Player_Group_${value}`);
           }));
-          break;
         case eligibilityKeys.PLAYER_EXACT_OVR:
-          text = combine(_.map(rIds, (value) => {
+          return combine(_.map(rIds, (value) => {
             return localize("sbc.requirements.rating.exact.val", [value]);
           }));
-          break;
         default:
-          text = requirement.getValue(requirement.getFirstKey()).join();
+          return requirement.getValue(requirement.getFirstKey()).join();
       }
-      return text;
     }
   };
 
@@ -11338,28 +11302,24 @@
                 let ix = t2.error ? t2.error.code : t2.status;
                 if (NetworkErrorManager.checkCriticalStatus(ix)) NetworkErrorManager.handleStatus(ix);
                 else {
-                  let o;
-                  switch (ix) {
-                    case HttpStatusCode.FORBIDDEN:
-                      o = "popup.error.list.forbidden.message";
-                      break;
-                    case UtasErrorCode.PERMISSION_DENIED:
-                      o = "popup.error.list.PermissionDenied";
-                      break;
-                    case UtasErrorCode.STATE_INVALID:
-                      o = "popup.error.list.InvalidState";
-                      break;
-                    case UtasErrorCode.DESTINATION_FULL:
-                      o = "popup.error.tradetoken.SellItemTradePileFull";
-                      break;
-                    case UtasErrorCode.CARD_IN_TRADE:
-                      o = "popup.error.tradetoken.ItemInTradeOffer";
-                      break;
-                    default:
-                      o = "popup.error.list.InvalidState";
-                  }
+                  const listErrorKey = (() => {
+                    switch (ix) {
+                      case HttpStatusCode.FORBIDDEN:
+                        return "popup.error.list.forbidden.message";
+                      case UtasErrorCode.PERMISSION_DENIED:
+                        return "popup.error.list.PermissionDenied";
+                      case UtasErrorCode.STATE_INVALID:
+                        return "popup.error.list.InvalidState";
+                      case UtasErrorCode.DESTINATION_FULL:
+                        return "popup.error.tradetoken.SellItemTradePileFull";
+                      case UtasErrorCode.CARD_IN_TRADE:
+                        return "popup.error.tradetoken.ItemInTradeOffer";
+                      default:
+                        return "popup.error.list.InvalidState";
+                    }
+                  })();
                   services.Notification.queue([
-                    services.Localization.localize(o),
+                    services.Localization.localize(listErrorKey),
                     UINotificationType.NEGATIVE
                   ]);
                 }
@@ -12219,11 +12179,8 @@
           sum += parseFloat(value - avg);
         }
       });
-      let results = Math.floor(Math.round(sum) / 11);
-      if (isNaN(results)) {
-        results = 0;
-      }
-      return results;
+      const results = Math.floor(Math.round(sum) / 11);
+      return isNaN(results) ? 0 : results;
     }
     buildRatingNeedOptions(target, squad, helpers) {
       const { getItemBy, ignorePlayerToCriteria, getInfo } = helpers;

@@ -54,7 +54,8 @@ export default [
       "no-redeclare": "off",
       "no-unreachable": "off",
       "no-constant-condition": "off",
-      "no-useless-escape": "off"
+      "no-useless-escape": "off",
+      "no-useless-assignment": "error"
     }
   },
   {

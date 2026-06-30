@@ -254,7 +254,7 @@ export function installUnassignedPatches(deps) {
                       const set = services.SBC.repository.getSetById(i.sId);
                       const challenge = set ? set.getChallenge(i.cId) : null;
                       if(set && !set.isComplete() && (challenge == null || !challenge.isCompleted())){
-                          let btnTitle = "";
+                          let btnTitle;
                           if (!_.has(info.base.fastsbc[i.n], "n")) {
                               if (set.challengesCount === 1) {
                                   info.base.fastsbc[i.n]["n"] = set.name;

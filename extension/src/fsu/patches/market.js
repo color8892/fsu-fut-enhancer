@@ -213,13 +213,12 @@ export function installMarketPatches(deps) {
                 let keys = Object.keys(current);
                 if (!(keys.length - e.criteria.length)) {
                   keys.forEach(function (value, index) {
-                    let condition = false;
-                    if (Array.isArray(current[value])) {
-                      condition = current[value].length !== e.criteria[index].length;
-                    } else {
-                      condition = current[value] !== e.criteria[index];
-                    }
-                    if (condition) {
+                    const currentValue = current[value];
+                    const nextValue = e.criteria[index];
+                    const mismatch = Array.isArray(currentValue)
+                      ? currentValue.length !== nextValue.length
+                      : currentValue !== nextValue;
+                    if (mismatch) {
                       debug.log(
                         `${value}，目前的元素 ${current[value]}，存储值为 ${e.criteria[index]}`
                       );
@@ -240,20 +239,17 @@ export function installMarketPatches(deps) {
             let elable = document.createElement("div");
             elable.style.textAlign = "center";
             elable.style.color = "#9E9E9E";
-            let bid = [];
-            if (item[criteriaKeys.indexOf("minBid")] + item[criteriaKeys.indexOf("maxBid")] > 0) {
-              bid = [
+            const bid = item[criteriaKeys.indexOf("minBid")] + item[criteriaKeys.indexOf("maxBid")] > 0
+              ? [
                 item[criteriaKeys.indexOf("minBid")],
                 item[criteriaKeys.indexOf("maxBid")],
                 "auctioninfo.bidprice"
-              ];
-            } else {
-              bid = [
+              ]
+              : [
                 item[criteriaKeys.indexOf("minBuy")],
                 item[criteriaKeys.indexOf("maxBuy")],
                 "auctioninfo.buynowprice"
               ];
-            }
             let defaultText = services.Localization.localize("search.comboBoxDefaultValue");
             elable.textContent = `${services.Localization.localize(bid[2])}${bid[0] ? bid[0] : defaultText} - ${bid[1] ? bid[1] : defaultText}`;
             eblock.appendChild(elable);

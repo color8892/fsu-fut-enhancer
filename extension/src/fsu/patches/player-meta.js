@@ -101,18 +101,15 @@ events.getPlayerMetaToText = (p) => {
 
 //25.01 新增meta popup文本显示方法
 events.getPlayerMetaPopupText = (meta,pos) => {
-    let v = "";
     let sl = services.Localization;
     let desc = meta.id == -1 ? meta.name : sl.localize(`tactics.roles.role${meta.id}.description`);
-    if(pos){
-        let vs = UTPlayerRoleVO.getVariationsForRoleAndPositionId(pos,meta.id);
-        let vsa = _.map(vs,vt => {
-            return sl.localize("tactics.roles.variation" + vt);
-        })
-        v = fy(["plyers.relo.popupm.v1",vsa.join("、")])
-    }else{
-        v = fy("plyers.relo.popupm.v2")
-    }
+    const v = pos
+        ? (() => {
+            const vs = UTPlayerRoleVO.getVariationsForRoleAndPositionId(pos,meta.id);
+            const vsa = _.map(vs,vt => sl.localize("tactics.roles.variation" + vt));
+            return fy(["plyers.relo.popupm.v1",vsa.join("、")]);
+        })()
+        : fy("plyers.relo.popupm.v2");
     return fy([
         "plyers.relo.popupm",
         meta.name,
