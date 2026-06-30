@@ -1,6 +1,7 @@
 # FSU · EA FC FUT Web Enhancer
 
 [![Version](https://img.shields.io/badge/version-26.9.0-blue)](extension/manifest.json)
+[![Release](https://img.shields.io/github/v/release/color8892/fsu-fut-enhancer?label=release)](https://github.com/color8892/fsu-fut-enhancer/releases/latest)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 **FSU** 是 EA Sports FC Ultimate Team Web App 的瀏覽器增強工具，提供 SBC 輔助、市場價格、球員搜尋、進化提示、開包模擬等功能。
@@ -18,25 +19,26 @@
 
 ## 安裝（Chrome 擴充功能）
 
-1. 克隆本倉庫：
+### 方式一：GitHub Release（推薦）
 
-   ```bash
-   git clone https://github.com/color8892/fsu-fut-enhancer.git
-   cd fsu-fut-enhancer/extension
-   ```
-
-2. 安裝依賴並建置：
-
-   ```bash
-   npm install
-   npm run build
-   ```
-
+1. 打開 [Releases](https://github.com/color8892/fsu-fut-enhancer/releases/latest)，下載 `fsu-fut-enhancer-版本.zip`
+2. 解壓到任意資料夾（例如 `FSU-FUT-Enhancer`）
 3. 開啟 Chrome → `chrome://extensions`
-4. 開啟「開發人員模式」
-5. 點「載入未封裝項目」，選擇本專案中的 **`extension`** 資料夾
+4. 開啟右上角「開發人員模式」
+5. 點「載入未封裝項目」，選擇解壓後的資料夾（內含 `manifest.json`）
 
-建置完成後會產生 `extension/src/userscript.js`，擴充功能執行時會載入此檔案。
+更新時：下載新版 zip → 解壓覆蓋（或換新資料夾）→ `chrome://extensions` 點 FSU 的重新載入 → FUT 分頁 **F5**。
+
+### 方式二：從原始碼建置（開發者）
+
+```bash
+git clone https://github.com/color8892/fsu-fut-enhancer.git
+cd fsu-fut-enhancer/extension
+npm install
+npm run build
+```
+
+然後在 `chrome://extensions` 載入 **`extension`** 資料夾（含 `manifest.json` 的那一層）。
 
 ## 開發
 

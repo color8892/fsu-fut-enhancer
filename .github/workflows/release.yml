@@ -28,3 +28,12 @@ jobs:
         with:
           files: extension/dist/fsu-fut-enhancer-*.zip
           generate_release_notes: true
+          body: |
+            ## 安裝
+
+            1. 下載下方 **Assets** 中的 `fsu-fut-enhancer-*.zip` 並解壓
+            2. Chrome 打開 `chrome://extensions`，開啟「開發人員模式」
+            3. 「載入未封裝項目」→ 選解壓後的資料夾（內含 `manifest.json`）
+            4. 打開 FUT Web App，若曾重載過擴充功能請 **F5** 刷新分頁
+
+            > 非 Chrome Web Store 發行，首次安裝需手動載入未封裝項目。
