@@ -45,7 +45,10 @@ cd extension
 npm install
 npm run test:all    # 建置 userscript + 測試
 npm run build       # 僅建置
+npm run check:ea-bundle   # EA 更新後：對照本機 futwebapp/js 檢查 patch 相容性
 ```
+
+EA 更新偵測：將 `compiled_*.js` 放到 repo 根目錄的 `futwebapp/js/`（不提交），執行 `check:ea-bundle`。細節見 [AGENTS.md](./AGENTS.md)。
 
 ### 專案結構
 

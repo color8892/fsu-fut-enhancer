@@ -10,6 +10,7 @@
     "test": "node tests/run-tests.mjs",
     "test:all": "npm run build && npm test",
     "lint": "eslint .",
+    "check:ea-bundle": "node scripts/ea-bundle-check.mjs",
     "package": "node scripts/package-extension.cjs",
     "package:all": "npm run build && npm run package"
   },

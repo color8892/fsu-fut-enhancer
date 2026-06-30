@@ -73,7 +73,10 @@ npm run build        # 編譯 userscript.js
 npm test             # 單元 + manifest 測試
 npm run test:all     # build + test（改碼後必跑）
 npm run lint
+npm run check:ea-bundle   # 對照 futwebapp/js 檢查 EA bundle 是否仍相容
 ```
+
+**EA 更新後**：從 FUT 頁 Network 重新存 `compiled_*.js` 到本機 `futwebapp/js/`（此目錄不進 git），再跑 `npm run check:ea-bundle`。報告中 `✗` = 類別/方法被 EA 改掉需修 patch；確認無誤後 `npm run check:ea-bundle -- --update-baseline` 更新 `extension/data/ea-bundle-baseline.json`。
 
 **本機驗證三步**（缺一不可）：
 

@@ -1,0 +1,1069 @@
+{
+  "version": 1,
+  "generatedAt": "2026-06-30T09:17:49.074Z",
+  "bundleDir": "C:\\Users\\Tian\\Documents\\FUT EXTENSION\\futwebapp\\js",
+  "bundles": {
+    "compiled_1.js": {
+      "size": 69441,
+      "sha256": "163ae131b32e81199531dc7cc037e6587669b1e2bcd829bdf6d248817bc76af0"
+    },
+    "compiled_2.js": {
+      "size": 1569253,
+      "sha256": "ea997986e9c21cdf93c52156ca757f57136dc45047be60e70e86163058c912ee"
+    },
+    "compiled_3.js": {
+      "size": 1726054,
+      "sha256": "6b6ad4431672a770bfe85547b9996be99037c0d6700cbe2ab192bc9617ac1022"
+    },
+    "compiled_4.js": {
+      "size": 876080,
+      "sha256": "384389f4f041a49ee6024c746665f91fcb0a3680436902d3f7bc9c0d5dc3d334"
+    },
+    "ocompiled.js": {
+      "size": 896814,
+      "sha256": "3032d81c88184aa69ad9cd0a7d814a09f23bcdaa875c6c565bdc1faef7027575"
+    }
+  },
+  "hooks": [
+    {
+      "patchFile": "academy-details.js",
+      "className": "UTAcademySlotItemDetailsViewController",
+      "methodName": "renderPopulatedSlot",
+      "kind": "prototype",
+      "requiresEaMethod": true,
+      "bundle": "compiled_4.js",
+      "status": "ok",
+      "snippet": "UTAcademySlotItemDetailsViewController.prototype.renderPopulatedSlot=function(e){var t,i,o=this,n=services.Localization,"
+    },
+    {
+      "patchFile": "academy-details.js",
+      "className": "UTItemAcademyStatEntity",
+      "methodName": "getAttributeOverride",
+      "kind": "prototype",
+      "requiresEaMethod": true,
+      "bundle": "compiled_2.js",
+      "status": "ok",
+      "snippet": "UTItemAcademyStatEntity.prototype.getAttributeOverride=function(e){return this.attributes.find(function(t){return t.type"
+    },
+    {
+      "patchFile": "academy-details.js",
+      "className": "UTItemAcademyStatEntity",
+      "methodName": "getSubAttributeOverride",
+      "kind": "prototype",
+      "requiresEaMethod": true,
+      "bundle": "compiled_2.js",
+      "status": "ok",
+      "snippet": "UTItemAcademyStatEntity.prototype.getSubAttributeOverride=function(e){return this.subattributes.find(function(t){return "
+    },
+    {
+      "patchFile": "academy-hub.js",
+      "className": "UTAcademyClubSearchView",
+      "methodName": "init",
+      "kind": "prototype",
+      "requiresEaMethod": true,
+      "bundle": "compiled_4.js",
+      "status": "ok",
+      "snippet": "UTAcademyClubSearchView.prototype.init=function(){i.prototype.init.call(this);var e,t=services.Localization;this.setInte"
+    },
+    {
+      "patchFile": "academy-hub.js",
+      "className": "UTAcademyHubView",
+      "methodName": "generateSlot",
+      "kind": "prototype",
+      "requiresEaMethod": true,
+      "bundle": "compiled_4.js",
+      "status": "ok",
+      "snippet": "UTAcademyHubView.prototype.generateSlot=function(e){var t=this,i=new UTAcademySlotTileView,o=(i.init(),i.title=e.slotNam"
+    },
+    {
+      "patchFile": "academy-hub.js",
+      "className": "UTAcademyHubView",
+      "methodName": "setupTabs",
+      "kind": "prototype",
+      "requiresEaMethod": true,
+      "bundle": "compiled_4.js",
+      "status": "ok",
+      "snippet": "UTAcademyHubView.prototype.setupTabs=function(e){var t=this;this._navigation.clearTabs(),this._navigation.addTab(Academy"
+    },
+    {
+      "patchFile": "academy-hub.js",
+      "className": "UTAcademyHubViewController",
+      "methodName": "onRequestHubDataComplete",
+      "kind": "prototype",
+      "requiresEaMethod": true,
+      "bundle": "compiled_4.js",
+      "status": "ok",
+      "snippet": "UTAcademyHubViewController.prototype.onRequestHubDataComplete=function(e,t){var i,o,n=services.Localization,r=services.N"
+    },
+    {
+      "patchFile": "academy-hub.js",
+      "className": "UTAcademyPlayerFromClubViewController",
+      "methodName": "requestItems",
+      "kind": "prototype",
+      "requiresEaMethod": true,
+      "bundle": "compiled_4.js",
+      "status": "ok",
+      "snippet": "UTAcademyPlayerFromClubViewController.prototype.requestItems=function(){var n,r=this;this.clubViewModel.canShowPage()&&!"
+    },
+    {
+      "patchFile": "app-init.js",
+      "className": "UTHomeHubView",
+      "methodName": "getAcademyTile",
+      "kind": "fsu-defined",
+      "requiresEaMethod": false,
+      "bundle": "compiled_4.js",
+      "status": "fsu-defined",
+      "snippet": null
+    },
+    {
+      "patchFile": "app-init.js, home-hub.js, home-hub.js, sbc-fill-patches.js",
+      "className": "UTHomeHubViewController",
+      "methodName": null,
+      "kind": "className",
+      "requiresEaMethod": false,
+      "bundle": "compiled_4.js",
+      "status": "ok",
+      "snippet": null
+    },
+    {
+      "patchFile": "app-init.js, navigation.js",
+      "className": "UTCurrencyNavigationBarView",
+      "methodName": null,
+      "kind": "instanceof",
+      "requiresEaMethod": false,
+      "bundle": "compiled_4.js",
+      "status": "ok",
+      "snippet": null
+    },
+    {
+      "patchFile": "club-hub.js",
+      "className": "UTClubHubView",
+      "methodName": "clearTileContent",
+      "kind": "fsu-defined",
+      "requiresEaMethod": false,
+      "bundle": "compiled_3.js",
+      "status": "fsu-defined",
+      "snippet": null
+    },
+    {
+      "patchFile": "club-select-events.js, ui-utils.js, ui-utils.js",
+      "className": "UTItemEntity",
+      "methodName": "getPlusPlayStyles",
+      "kind": "prototype",
+      "requiresEaMethod": true,
+      "bundle": "compiled_2.js",
+      "status": "ok",
+      "snippet": "UTItemEntity.prototype.getPlusPlayStyles=function(){var t,i=null!=(t=null==(t=this.upgrades)?void 0:t.plusPlayStyles)?t:"
+    },
+    {
+      "patchFile": "club-select-search-patches.js",
+      "className": "UTClubSearchResultsViewController",
+      "methodName": "_requestItems",
+      "kind": "fsu-defined",
+      "requiresEaMethod": false,
+      "bundle": "compiled_3.js",
+      "status": "fsu-defined",
+      "snippet": null
+    },
+    {
+      "patchFile": "club-select-search-patches.js",
+      "className": "UTClubSearchResultsViewController",
+      "methodName": "setupHeader",
+      "kind": "fsu-defined",
+      "requiresEaMethod": false,
+      "bundle": "compiled_3.js",
+      "status": "fsu-defined",
+      "snippet": null
+    },
+    {
+      "patchFile": "club-select-search-patches.js",
+      "className": "UTItemDetailsNavigationController",
+      "methodName": "setSquadContext",
+      "kind": "fsu-defined",
+      "requiresEaMethod": false,
+      "bundle": "compiled_3.js",
+      "status": "fsu-defined",
+      "snippet": null
+    },
+    {
+      "patchFile": "club-select-search-patches.js",
+      "className": "UTItemDetailsViewController",
+      "methodName": null,
+      "kind": "instanceof",
+      "requiresEaMethod": false,
+      "bundle": "compiled_3.js",
+      "status": "ok",
+      "snippet": null
+    },
+    {
+      "patchFile": "club-select.js",
+      "className": "UTSelectItemFromClubViewController",
+      "methodName": "handleItemRetrieval",
+      "kind": "fsu-defined",
+      "requiresEaMethod": false,
+      "bundle": "compiled_2.js",
+      "status": "fsu-defined",
+      "snippet": null
+    },
+    {
+      "patchFile": "club-select.js",
+      "className": "UTSelectItemFromClubViewController",
+      "methodName": "requestItems",
+      "kind": "fsu-defined",
+      "requiresEaMethod": false,
+      "bundle": "compiled_2.js",
+      "status": "fsu-defined",
+      "snippet": null
+    },
+    {
+      "patchFile": "home-hub.js",
+      "className": "UTHomeHubView",
+      "methodName": "_generate",
+      "kind": "fsu-defined",
+      "requiresEaMethod": false,
+      "bundle": "compiled_4.js",
+      "status": "fsu-defined",
+      "snippet": null
+    },
+    {
+      "patchFile": "home-hub.js",
+      "className": "UTHomeHubView",
+      "methodName": "getObjectivesTile",
+      "kind": "fsu-defined",
+      "requiresEaMethod": false,
+      "bundle": "compiled_4.js",
+      "status": "fsu-defined",
+      "snippet": null
+    },
+    {
+      "patchFile": "home-hub.js",
+      "className": "UTHomeHubView",
+      "methodName": "getSBCTile",
+      "kind": "fsu-defined",
+      "requiresEaMethod": false,
+      "bundle": "compiled_4.js",
+      "status": "fsu-defined",
+      "snippet": null
+    },
+    {
+      "patchFile": "lifecycle-patches.js",
+      "className": "UTPlayerItemView",
+      "methodName": "dealloc",
+      "kind": "prototype",
+      "requiresEaMethod": true,
+      "bundle": "compiled_2.js",
+      "status": "ok",
+      "snippet": "UTPlayerItemView.prototype.dealloc=function(){var t;null!=(t=this.chemDisplay)&&t.dealloc(),this.chemDisplay=null,this.r"
+    },
+    {
+      "patchFile": "lifecycle-patches.js",
+      "className": "UTSlotDetailsViewController",
+      "methodName": null,
+      "kind": "instanceof",
+      "requiresEaMethod": false,
+      "bundle": "compiled_4.js",
+      "status": "ok",
+      "snippet": null
+    },
+    {
+      "patchFile": "login.js",
+      "className": "UTLoginView",
+      "methodName": "_generate",
+      "kind": "fsu-defined",
+      "requiresEaMethod": false,
+      "bundle": "compiled_2.js",
+      "status": "fsu-defined",
+      "snippet": null
+    },
+    {
+      "patchFile": "market.js",
+      "className": "UTClubSearchFiltersViewController",
+      "methodName": "onSearchModeChanged",
+      "kind": "fsu-defined",
+      "requiresEaMethod": false,
+      "bundle": "compiled_2.js",
+      "status": "fsu-defined",
+      "snippet": null
+    },
+    {
+      "patchFile": "market.js",
+      "className": "UTClubSearchFiltersViewController",
+      "methodName": "viewDidAppear",
+      "kind": "fsu-defined",
+      "requiresEaMethod": false,
+      "bundle": "compiled_2.js",
+      "status": "fsu-defined",
+      "snippet": null
+    },
+    {
+      "patchFile": "market.js",
+      "className": "UTClubSearchResultsView",
+      "methodName": "setItemsWithChemDiff",
+      "kind": "fsu-defined",
+      "requiresEaMethod": false,
+      "bundle": "compiled_2.js",
+      "status": "fsu-defined",
+      "snippet": null
+    },
+    {
+      "patchFile": "market.js",
+      "className": "UTMarketSearchFiltersView",
+      "methodName": "setFilters",
+      "kind": "fsu-defined",
+      "requiresEaMethod": false,
+      "bundle": "compiled_3.js",
+      "status": "fsu-defined",
+      "snippet": null
+    },
+    {
+      "patchFile": "market.js",
+      "className": "UTMarketSearchFiltersView",
+      "methodName": "setPinnedItem",
+      "kind": "fsu-defined",
+      "requiresEaMethod": false,
+      "bundle": "compiled_3.js",
+      "status": "fsu-defined",
+      "snippet": null
+    },
+    {
+      "patchFile": "market.js",
+      "className": "UTMarketSearchFiltersViewController",
+      "methodName": "eSearchSelected",
+      "kind": "fsu-defined",
+      "requiresEaMethod": false,
+      "bundle": "compiled_3.js",
+      "status": "fsu-defined",
+      "snippet": null
+    },
+    {
+      "patchFile": "market.js",
+      "className": "UTMarketSearchView",
+      "methodName": "_generate",
+      "kind": "fsu-defined",
+      "requiresEaMethod": false,
+      "bundle": "compiled_3.js",
+      "status": "fsu-defined",
+      "snippet": null
+    },
+    {
+      "patchFile": "market.js",
+      "className": "UTTransferListViewController",
+      "methodName": "_renderView",
+      "kind": "fsu-defined",
+      "requiresEaMethod": false,
+      "bundle": "compiled_3.js",
+      "status": "fsu-defined",
+      "snippet": null
+    },
+    {
+      "patchFile": "market.js",
+      "className": "UTTransferMarketPaginationViewModel",
+      "methodName": "startAuctionUpdates",
+      "kind": "fsu-defined",
+      "requiresEaMethod": false,
+      "bundle": "compiled_3.js",
+      "status": "fsu-defined",
+      "snippet": null
+    },
+    {
+      "patchFile": "misc-item.js",
+      "className": "UTMiscItemView",
+      "methodName": "renderItem",
+      "kind": "fsu-defined",
+      "requiresEaMethod": false,
+      "bundle": "compiled_2.js",
+      "status": "fsu-defined",
+      "snippet": null
+    },
+    {
+      "patchFile": "misc-patches.js",
+      "className": "UTStoreViewController",
+      "methodName": "gotoUnassigned",
+      "kind": "fsu-defined",
+      "requiresEaMethod": false,
+      "bundle": "compiled_4.js",
+      "status": "fsu-defined",
+      "snippet": null
+    },
+    {
+      "patchFile": "navigation.js",
+      "className": "UTAcademyHubViewController",
+      "methodName": null,
+      "kind": "instanceof",
+      "requiresEaMethod": false,
+      "bundle": "compiled_4.js",
+      "status": "ok",
+      "snippet": null
+    },
+    {
+      "patchFile": "navigation.js",
+      "className": "UTGameFlowNavigationController",
+      "methodName": "didPush",
+      "kind": "fsu-defined",
+      "requiresEaMethod": false,
+      "bundle": "compiled_4.js",
+      "status": "fsu-defined",
+      "snippet": null
+    },
+    {
+      "patchFile": "navigation.js",
+      "className": "UTGameFlowNavigationController",
+      "methodName": "viewDidAppear",
+      "kind": "prototype",
+      "requiresEaMethod": true,
+      "bundle": "compiled_4.js",
+      "status": "ok",
+      "snippet": "UTGameFlowNavigationController.prototype.viewDidAppear=function(){n.prototype.viewDidAppear.call(this),this.setNavigatio"
+    },
+    {
+      "patchFile": "navigation.js",
+      "className": "UTSBCSquadSplitViewController",
+      "methodName": null,
+      "kind": "className",
+      "requiresEaMethod": false,
+      "bundle": "compiled_4.js",
+      "status": "ok",
+      "snippet": null
+    },
+    {
+      "patchFile": "navigation.js, panel-patches.js, sbc-squad-overview.js",
+      "className": "UTSBCSquadOverviewViewController",
+      "methodName": null,
+      "kind": "className",
+      "requiresEaMethod": false,
+      "bundle": "compiled_4.js",
+      "status": "ok",
+      "snippet": null
+    },
+    {
+      "patchFile": "objectives-hub.js",
+      "className": "UTObjectiveCategoryView",
+      "methodName": "setCategoryGroups",
+      "kind": "fsu-defined",
+      "requiresEaMethod": false,
+      "bundle": "compiled_3.js",
+      "status": "fsu-defined",
+      "snippet": null
+    },
+    {
+      "patchFile": "objectives-hub.js",
+      "className": "UTObjectivesHubTileView",
+      "methodName": "setSubtitle",
+      "kind": "fsu-defined",
+      "requiresEaMethod": false,
+      "bundle": "compiled_3.js",
+      "status": "fsu-defined",
+      "snippet": null
+    },
+    {
+      "patchFile": "objectives-hub.js",
+      "className": "UTObjectivesHubView",
+      "methodName": "setupNavigation",
+      "kind": "fsu-defined",
+      "requiresEaMethod": false,
+      "bundle": "compiled_3.js",
+      "status": "fsu-defined",
+      "snippet": null
+    },
+    {
+      "patchFile": "panel-patches.js",
+      "className": "UTQuickListPanelViewController",
+      "methodName": "renderView",
+      "kind": "fsu-defined",
+      "requiresEaMethod": false,
+      "bundle": "compiled_3.js",
+      "status": "fsu-defined",
+      "snippet": null
+    },
+    {
+      "patchFile": "panel-patches.js, rewards.js",
+      "className": "UTRewardSelectionChoiceView",
+      "methodName": "expandRewardSet",
+      "kind": "fsu-defined",
+      "requiresEaMethod": false,
+      "bundle": "compiled_3.js",
+      "status": "fsu-defined",
+      "snippet": null
+    },
+    {
+      "patchFile": "picks-rewards.js",
+      "className": "UTGameRewardsViewController",
+      "methodName": "checkRewards",
+      "kind": "fsu-defined",
+      "requiresEaMethod": false,
+      "bundle": "compiled_3.js",
+      "status": "fsu-defined",
+      "snippet": null
+    },
+    {
+      "patchFile": "picks-rewards.js",
+      "className": "UTPlayerPicksView",
+      "methodName": "setCarouselItems",
+      "kind": "fsu-defined",
+      "requiresEaMethod": false,
+      "bundle": "compiled_3.js",
+      "status": "fsu-defined",
+      "snippet": null
+    },
+    {
+      "patchFile": "player-bio.js",
+      "className": "UTPlayerBioView",
+      "methodName": "render",
+      "kind": "prototype",
+      "requiresEaMethod": true,
+      "bundle": "compiled_2.js",
+      "status": "ok",
+      "snippet": "UTPlayerBioView.prototype.render=function(t,e,i){switch(this.clearComponentList(),DOMKit.empty(this.__dataDisplay),t){ca"
+    },
+    {
+      "patchFile": "player-bio.js",
+      "className": "UTPlayerBioView",
+      "methodName": "renderPlayerRoles",
+      "kind": "prototype",
+      "requiresEaMethod": true,
+      "bundle": "compiled_2.js",
+      "status": "ok",
+      "snippet": "UTPlayerBioView.prototype.renderPlayerRoles=function(o){this.clearComponentList(),DOMKit.empty(this.__dataDisplay);var r"
+    },
+    {
+      "patchFile": "player-details.js",
+      "className": "UTButtonControl",
+      "methodName": null,
+      "kind": "instanceof",
+      "requiresEaMethod": false,
+      "bundle": "compiled_2.js",
+      "status": "ok",
+      "snippet": null
+    },
+    {
+      "patchFile": "player-item.js",
+      "className": "UTPlayerItemView",
+      "methodName": "renderItem",
+      "kind": "fsu-defined",
+      "requiresEaMethod": false,
+      "bundle": "compiled_2.js",
+      "status": "fsu-defined",
+      "snippet": null
+    },
+    {
+      "patchFile": "player-item.js",
+      "className": "UTWatchListViewController",
+      "methodName": null,
+      "kind": "className",
+      "requiresEaMethod": false,
+      "bundle": "compiled_4.js",
+      "status": "ok",
+      "snippet": null
+    },
+    {
+      "patchFile": "player-item.js, player-list.js",
+      "className": "UTAcademyPlayerFromClubViewController",
+      "methodName": null,
+      "kind": "className",
+      "requiresEaMethod": false,
+      "bundle": "compiled_4.js",
+      "status": "ok",
+      "snippet": null
+    },
+    {
+      "patchFile": "player-list.js",
+      "className": "UTClubRepository",
+      "methodName": "removeClubItem",
+      "kind": "fsu-defined",
+      "requiresEaMethod": false,
+      "bundle": "compiled_2.js",
+      "status": "fsu-defined",
+      "snippet": null
+    },
+    {
+      "patchFile": "player-list.js",
+      "className": "UTPaginatedItemListView",
+      "methodName": "renderItems",
+      "kind": "fsu-defined",
+      "requiresEaMethod": false,
+      "bundle": "compiled_2.js",
+      "status": "fsu-defined",
+      "snippet": null
+    },
+    {
+      "patchFile": "player-list.js",
+      "className": "UTPlayerPicksView",
+      "methodName": null,
+      "kind": "className",
+      "requiresEaMethod": false,
+      "bundle": "compiled_3.js",
+      "status": "ok",
+      "snippet": null
+    },
+    {
+      "patchFile": "player-list.js",
+      "className": "UTSquadEntity",
+      "methodName": "getRating",
+      "kind": "fsu-defined",
+      "requiresEaMethod": false,
+      "bundle": "compiled_2.js",
+      "status": "fsu-defined",
+      "snippet": null
+    },
+    {
+      "patchFile": "rewards.js",
+      "className": "UTGameRewardsViewController",
+      "methodName": "onButtonTapped",
+      "kind": "fsu-defined",
+      "requiresEaMethod": false,
+      "bundle": "compiled_3.js",
+      "status": "fsu-defined",
+      "snippet": null
+    },
+    {
+      "patchFile": "rewards.js",
+      "className": "UTObjectivesHubViewController",
+      "methodName": null,
+      "kind": "className",
+      "requiresEaMethod": false,
+      "bundle": "compiled_3.js",
+      "status": "ok",
+      "snippet": null
+    },
+    {
+      "patchFile": "rewards.js",
+      "className": "UTRewardSelectionChoiceViewController",
+      "methodName": "viewDidAppear",
+      "kind": "fsu-defined",
+      "requiresEaMethod": false,
+      "bundle": "compiled_3.js",
+      "status": "fsu-defined",
+      "snippet": null
+    },
+    {
+      "patchFile": "rewards.js, sbc-fill-patches.js, store.js",
+      "className": "UTStorePackViewController",
+      "methodName": null,
+      "kind": "className",
+      "requiresEaMethod": false,
+      "bundle": "compiled_4.js",
+      "status": "ok",
+      "snippet": null
+    },
+    {
+      "patchFile": "sbc-challenges.js",
+      "className": "UTSBCChallengesViewController",
+      "methodName": "viewDidAppear",
+      "kind": "prototype",
+      "requiresEaMethod": true,
+      "bundle": "compiled_4.js",
+      "status": "ok",
+      "snippet": "UTSBCChallengesViewController.prototype.viewDidAppear=function(){var e,i;o.prototype.viewDidAppear.call(this),this.sbset"
+    },
+    {
+      "patchFile": "sbc-fill-events.js",
+      "className": "UTSquadBuilderViewModel",
+      "methodName": "generatePlayerCollection",
+      "kind": "fsu-defined",
+      "requiresEaMethod": false,
+      "bundle": "compiled_3.js",
+      "status": "fsu-defined",
+      "snippet": null
+    },
+    {
+      "patchFile": "sbc-fill-events.js",
+      "className": "UTUnassignedItemsViewController",
+      "methodName": "renderView",
+      "kind": "fsu-defined",
+      "requiresEaMethod": false,
+      "bundle": "compiled_3.js",
+      "status": "fsu-defined",
+      "snippet": null
+    },
+    {
+      "patchFile": "sbc-fill-patches.js",
+      "className": "UTAppSettingsView",
+      "methodName": "_generate",
+      "kind": "fsu-defined",
+      "requiresEaMethod": false,
+      "bundle": "compiled_4.js",
+      "status": "fsu-defined",
+      "snippet": null
+    },
+    {
+      "patchFile": "sbc-fill-patches.js",
+      "className": "UTSBCChallengeRequirementsView",
+      "methodName": "renderChallengeRequirements",
+      "kind": "fsu-defined",
+      "requiresEaMethod": false,
+      "bundle": "compiled_4.js",
+      "status": "fsu-defined",
+      "snippet": null
+    },
+    {
+      "patchFile": "sbc-fill-patches.js",
+      "className": "UTSBCService",
+      "methodName": "loadChallengeData",
+      "kind": "fsu-defined",
+      "requiresEaMethod": false,
+      "bundle": "compiled_2.js",
+      "status": "fsu-defined",
+      "snippet": null
+    },
+    {
+      "patchFile": "sbc-fill-patches.js",
+      "className": "UTSelectItemFromClubViewController",
+      "methodName": "updateItemList",
+      "kind": "fsu-defined",
+      "requiresEaMethod": false,
+      "bundle": "compiled_2.js",
+      "status": "fsu-defined",
+      "snippet": null
+    },
+    {
+      "patchFile": "sbc-fill-patches.js",
+      "className": "UTSquadEntity",
+      "methodName": "addItemToSlot",
+      "kind": "fsu-defined",
+      "requiresEaMethod": false,
+      "bundle": "compiled_2.js",
+      "status": "fsu-defined",
+      "snippet": null
+    },
+    {
+      "patchFile": "sbc-fill-patches.js",
+      "className": "UTSquadEntity",
+      "methodName": "removeAllItems",
+      "kind": "fsu-defined",
+      "requiresEaMethod": false,
+      "bundle": "compiled_2.js",
+      "status": "fsu-defined",
+      "snippet": null
+    },
+    {
+      "patchFile": "sbc-fill-patches.js",
+      "className": "UTSquadEntity",
+      "methodName": "removeItemFromSlot",
+      "kind": "fsu-defined",
+      "requiresEaMethod": false,
+      "bundle": "compiled_2.js",
+      "status": "fsu-defined",
+      "snippet": null
+    },
+    {
+      "patchFile": "sbc-fill-patches.js",
+      "className": "UTSquadEntity",
+      "methodName": "setPlayers",
+      "kind": "fsu-defined",
+      "requiresEaMethod": false,
+      "bundle": "compiled_2.js",
+      "status": "fsu-defined",
+      "snippet": null
+    },
+    {
+      "patchFile": "sbc-fill-patches.js",
+      "className": "UTSquadEntity",
+      "methodName": "swapPlayersByIndex",
+      "kind": "fsu-defined",
+      "requiresEaMethod": false,
+      "bundle": "compiled_2.js",
+      "status": "fsu-defined",
+      "snippet": null
+    },
+    {
+      "patchFile": "sbc-fill-patches.js",
+      "className": "UTStoreHubViewController",
+      "methodName": null,
+      "kind": "className",
+      "requiresEaMethod": false,
+      "bundle": "compiled_4.js",
+      "status": "ok",
+      "snippet": null
+    },
+    {
+      "patchFile": "sbc-fill-patches.js",
+      "className": "UTUnassignedTileView",
+      "methodName": "setNumberOfItems",
+      "kind": "fsu-defined",
+      "requiresEaMethod": false,
+      "bundle": "compiled_3.js",
+      "status": "fsu-defined",
+      "snippet": null
+    },
+    {
+      "patchFile": "sbc-hub.js",
+      "className": "UTSBCChallengeTableRowView",
+      "methodName": "render",
+      "kind": "prototype",
+      "requiresEaMethod": true,
+      "bundle": "compiled_4.js",
+      "status": "ok",
+      "snippet": "UTSBCChallengeTableRowView.prototype.render=function(e){var t=this,i=services.Localization,o=e.isCompleted(),n=o?enums.U"
+    },
+    {
+      "patchFile": "sbc-hub.js",
+      "className": "UTSBCGroupRewardListView",
+      "methodName": "setRewards",
+      "kind": "prototype",
+      "requiresEaMethod": true,
+      "bundle": "compiled_4.js",
+      "status": "ok",
+      "snippet": "UTSBCGroupRewardListView.prototype.setRewards=function(e,i){var o=this;void 0===i&&(i=!1),this.rewardRows.forEach(functi"
+    },
+    {
+      "patchFile": "sbc-hub.js",
+      "className": "UTSBCHubView",
+      "methodName": "populateNavigation",
+      "kind": "prototype",
+      "requiresEaMethod": true,
+      "bundle": "compiled_4.js",
+      "status": "ok",
+      "snippet": "UTSBCHubView.prototype.populateNavigation=function(e,t){var i=this;this._SBCCategoriesTM.clearTabs(),0<e.length?(this._S"
+    },
+    {
+      "patchFile": "sbc-hub.js",
+      "className": "UTSBCHubView",
+      "methodName": "populateTiles",
+      "kind": "prototype",
+      "requiresEaMethod": true,
+      "bundle": "compiled_4.js",
+      "status": "ok",
+      "snippet": "UTSBCHubView.prototype.populateTiles=function(e,t){var i=this;this.clearTiles(),e=e.filter(function(e){return e.isDispla"
+    },
+    {
+      "patchFile": "sbc-hub.js",
+      "className": "UTSBCSetsViewModel",
+      "methodName": "getCategories",
+      "kind": "prototype",
+      "requiresEaMethod": true,
+      "bundle": "compiled_4.js",
+      "status": "ok",
+      "snippet": "UTSBCSetsViewModel.prototype.getCategories=function(){return this.categoriesIterator.values()},UTSBCSetsViewModel.protot"
+    },
+    {
+      "patchFile": "sbc-hub.js",
+      "className": "UTSBCSetTileView",
+      "methodName": "setData",
+      "kind": "prototype",
+      "requiresEaMethod": true,
+      "bundle": "compiled_4.js",
+      "status": "ok",
+      "snippet": "UTSBCSetTileView.prototype.setData=function(e){var t=services.Localization,t=(this.data=e,this.setInteractionState(!this"
+    },
+    {
+      "patchFile": "sbc-reward-events.js, sbc-squad.js",
+      "className": "UTSBCHubViewController",
+      "methodName": null,
+      "kind": "className",
+      "requiresEaMethod": false,
+      "bundle": "compiled_4.js",
+      "status": "ok",
+      "snippet": null
+    },
+    {
+      "patchFile": "sbc-squad-overview.js",
+      "className": "UTSBCSquadDetailPanelViewController",
+      "methodName": "initWithSBCSet",
+      "kind": "prototype",
+      "requiresEaMethod": true,
+      "bundle": "compiled_4.js",
+      "status": "ok",
+      "snippet": "UTSBCSquadDetailPanelViewController.prototype.initWithSBCSet=function initWithChallenge(e,t){this.initialized||(DebugUti"
+    },
+    {
+      "patchFile": "sbc-squad-overview.js",
+      "className": "UTSBCSquadOverviewViewController",
+      "methodName": "initWithSBCSet",
+      "kind": "prototype",
+      "requiresEaMethod": true,
+      "bundle": "compiled_4.js",
+      "status": "ok",
+      "snippet": "UTSBCSquadOverviewViewController.prototype.initWithSBCSet=function initWithSBCSet(e,t){this.initialized||(DebugUtils.Ass"
+    },
+    {
+      "patchFile": "sbc-squad.js",
+      "className": "UTSBCRequirementsView",
+      "methodName": "render",
+      "kind": "prototype",
+      "requiresEaMethod": true,
+      "bundle": "compiled_4.js",
+      "status": "ok",
+      "snippet": "UTSBCRequirementsView.prototype.render=function(e,t,i,o){var n=e.isCompleted(),t=(this.__title.textContent=e.name,this._"
+    },
+    {
+      "patchFile": "sbc-squad.js",
+      "className": "UTSBCSquadOverviewViewController",
+      "methodName": "_onChallengeSubmitted",
+      "kind": "fsu-defined",
+      "requiresEaMethod": false,
+      "bundle": "compiled_4.js",
+      "status": "fsu-defined",
+      "snippet": null
+    },
+    {
+      "patchFile": "sbc-squad.js",
+      "className": "UTSBCSquadOverviewViewController",
+      "methodName": "_submitChallenge",
+      "kind": "fsu-defined",
+      "requiresEaMethod": false,
+      "bundle": "compiled_4.js",
+      "status": "fsu-defined",
+      "snippet": null
+    },
+    {
+      "patchFile": "sbc-submit.js",
+      "className": "UTSBCService",
+      "methodName": "submitChallenge",
+      "kind": "prototype",
+      "requiresEaMethod": true,
+      "bundle": "compiled_2.js",
+      "status": "ok",
+      "snippet": "UTSBCService.prototype.submitChallenge=function(o,r,i,n){var a,s,l=this,c=new EAObservable,u=new UTServiceResponseDTO;re"
+    },
+    {
+      "patchFile": "search-events.js",
+      "className": "UTDropDownControl",
+      "methodName": "open",
+      "kind": "fsu-defined",
+      "requiresEaMethod": false,
+      "bundle": "compiled_2.js",
+      "status": "fsu-defined",
+      "snippet": null
+    },
+    {
+      "patchFile": "search-events.js",
+      "className": "UTItemSearchView",
+      "methodName": "setFilters",
+      "kind": "fsu-defined",
+      "requiresEaMethod": false,
+      "bundle": "compiled_3.js",
+      "status": "fsu-defined",
+      "snippet": null
+    },
+    {
+      "patchFile": "search-events.js",
+      "className": "UTMyClubSearchFiltersViewController",
+      "methodName": null,
+      "kind": "className",
+      "requiresEaMethod": false,
+      "bundle": "compiled_2.js",
+      "status": "ok",
+      "snippet": null
+    },
+    {
+      "patchFile": "search-events.js",
+      "className": "UTPaginatedItemListView",
+      "methodName": "setPaginationState",
+      "kind": "fsu-defined",
+      "requiresEaMethod": false,
+      "bundle": "compiled_2.js",
+      "status": "fsu-defined",
+      "snippet": null
+    },
+    {
+      "patchFile": "sectioned-list.js",
+      "className": "UTSectionedItemListView",
+      "methodName": "addItems",
+      "kind": "fsu-defined",
+      "requiresEaMethod": false,
+      "bundle": "compiled_3.js",
+      "status": "fsu-defined",
+      "snippet": null
+    },
+    {
+      "patchFile": "squad-builder.js",
+      "className": "UTSquadBuilderViewController",
+      "methodName": "viewDidAppear",
+      "kind": "fsu-defined",
+      "requiresEaMethod": false,
+      "bundle": "compiled_3.js",
+      "status": "fsu-defined",
+      "snippet": null
+    },
+    {
+      "patchFile": "squad-overview-view.js",
+      "className": "UTSquadOverviewViewController",
+      "methodName": "viewDidAppear",
+      "kind": "fsu-defined",
+      "requiresEaMethod": false,
+      "bundle": "compiled_3.js",
+      "status": "fsu-defined",
+      "snippet": null
+    },
+    {
+      "patchFile": "store.js",
+      "className": "UTPackAnimationViewController",
+      "methodName": "runAnimation",
+      "kind": "fsu-defined",
+      "requiresEaMethod": false,
+      "bundle": "compiled_4.js",
+      "status": "fsu-defined",
+      "snippet": null
+    },
+    {
+      "patchFile": "store.js",
+      "className": "UTStoreHubViewController",
+      "methodName": "onPackLoadComplete",
+      "kind": "prototype",
+      "requiresEaMethod": true,
+      "bundle": "compiled_4.js",
+      "status": "ok",
+      "snippet": "UTStoreHubViewController.prototype.onPackLoadComplete=function(e,t){e.unobserve(this);var i,o,e=this.getView(),n=getAppM"
+    },
+    {
+      "patchFile": "store.js",
+      "className": "UTStoreRevealModalListView",
+      "methodName": "addItems",
+      "kind": "fsu-defined",
+      "requiresEaMethod": false,
+      "bundle": "compiled_4.js",
+      "status": "fsu-defined",
+      "snippet": null
+    },
+    {
+      "patchFile": "store.js",
+      "className": "UTStoreView",
+      "methodName": "setPacks",
+      "kind": "fsu-defined",
+      "requiresEaMethod": false,
+      "bundle": "compiled_4.js",
+      "status": "fsu-defined",
+      "snippet": null
+    },
+    {
+      "patchFile": "store.js",
+      "className": "UTStoreViewController",
+      "methodName": "eOpenPack",
+      "kind": "prototype",
+      "requiresEaMethod": true,
+      "bundle": "compiled_4.js",
+      "status": "ok",
+      "snippet": "UTStoreViewController.prototype.eOpenPack=function(a,e,t){var i,r,s,l,o,n,c,u,d,p=this;this.isOpeningPack||(r=this.getVi"
+    },
+    {
+      "patchFile": "store.js",
+      "className": "UTStoreViewController",
+      "methodName": "setCategory",
+      "kind": "fsu-defined",
+      "requiresEaMethod": false,
+      "bundle": "compiled_4.js",
+      "status": "fsu-defined",
+      "snippet": null
+    },
+    {
+      "patchFile": "unassigned.js",
+      "className": "UTUnassignedItemsView",
+      "methodName": "renderSection",
+      "kind": "fsu-defined",
+      "requiresEaMethod": false,
+      "bundle": "compiled_3.js",
+      "status": "fsu-defined",
+      "snippet": null
+    },
+    {
+      "patchFile": "unassigned.js",
+      "className": "UTUnassignedItemsViewController",
+      "methodName": "updateUntradeableDuplicateSectionOptions",
+      "kind": "fsu-defined",
+      "requiresEaMethod": false,
+      "bundle": "compiled_3.js",
+      "status": "fsu-defined",
+      "snippet": null
+    }
+  ]
+}

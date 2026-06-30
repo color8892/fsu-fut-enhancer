@@ -4,6 +4,9 @@ node_modules/
 # Extension release artifacts
 extension/dist/
 
+# Local EA bundle snapshots (not committed; use npm run check:ea-bundle)
+futwebapp/
+
 # OS / editor
 .DS_Store
 Thumbs.db

@@ -1274,6 +1274,14 @@
     "realprob.title_4": ["需要开启", "需要開啟", "Need to open"],
     "realprob.btn": ["真实概率", "真實概率", "Real Prob"],
     "fastsbc.tab.text": ["快速完成", "快速完成", "Fast"],
+    "fastsbc.batch.btn": ["一键完成全部快速SBC(%1)", "一鍵完成全部快速SBC(%1)", "Complete all fast SBCs (%1)"],
+    "fastsbc.batch.popupt": ["批量快速SBC确认", "批量快速SBC確認", "Confirm batch fast SBC"],
+    "fastsbc.batch.popupm": ["将安全完成 %1 个快速SBC，另有 %2 个因球员不足、珍贵卡或主力阵容被跳过。<br/>仅使用：未分配不可交易重复球员；排除锁定、主力、珍贵球员及高于黄金范围的金牌。", "將安全完成 %1 個快速SBC，另有 %2 個因球員不足、珍貴卡或主力陣容被跳過。<br/>僅使用：未分配不可交易重複球員；排除鎖定、主力、珍貴球員及高於黃金範圍的金牌。", "Will safely complete %1 fast SBCs; %2 skipped due to insufficient safe players.<br/>Uses only untradeable duplicate unassigned players; excludes locked, squad, precious, and high-rated gold players."],
+    "fastsbc.batch.none": ["当前没有可安全完成的快速SBC", "當前沒有可安全完成的快速SBC", "No fast SBCs can be completed safely right now"],
+    "fastsbc.batch.done": ["批量完成：成功 %1 个，未成功 %2 个", "批量完成：成功 %1 個，未成功 %2 個", "Batch finished: %1 succeeded, %2 did not"],
+    "fastsbc.batch.stopped.daily_limit": ["已接近当日建议上限，批量已停止", "已接近當日建議上限，批量已停止", "Batch stopped near the recommended daily limit"],
+    "fastsbc.batch.stopped.ban": ["检测到提交限制，批量已停止", "偵測到提交限制，批量已停止", "Batch stopped because SBC submission was blocked"],
+    "fastsbc.batch.running": ["正在完成", "正在完成", "Completing"],
     "builder.sabfirstcommon": ["青铜和白银球员优先普通", "青銅和白銀球員優先普通", "Bronze/Silver: common first"],
     "openpack.unassigned.notice": ["有未分配球员，请先分配后再尝试开包。", "有未分配球員，請先分配後再嘗試開包。", "You have unassigned players. Please assign them before opening a pack."],
     "openpack.openerror.notice": ["开包失败，错误代码：%1，请重新进入商店刷新列表。", "開包失敗，錯誤代碼：%1，請重新進入商店刷新列表。", "Pack opening failed (Error code: %1). Please return to the Store and refresh the list."],
@@ -1638,7 +1646,7 @@
   }
 
   // src/fsu/ui/fsu-styles.js
-  var FSU_BASE_STYLE = ".tns-horizontal.tns-subpixel>.tns-item{position: relative;}button.notevents{pointer-events: none;color: #a4a9b4;}.btn-standard.section-header-btn.mini.call-to-action.fsu-getprice{margin-left: 1rem;}.btn-standard.section-header-btn.mini.call-to-action.fsu-getprice:hover{background-color:#e9dfcd}.view-modal-container.form-modal header .fsu-getprice{position: absolute;top: .5rem;left: 0;height: 2rem;line-height: 2rem;}.ut-sbc-set-tile-view.production-tagged .tileHeader::before{display:none;}a.header_explain{color: #a2a2a2;text-decoration: none;line-height: 3rem;}a.header_explain:hover{color: #ffffff;}.ut-fifa-header-view{display: flex;justify-content: space-between;}    .fsu-loading-close{display: none;position: absolute;bottom: 38%;z-index: 999;}.fsu-loading .fsu-loading-close{display: block;text-align: center;}                                                               .fsu-sbc-info div{width: 50%;}.fsu-sbc-info div:last-child{display: flex;justify-content: space-around;}.fsu-sbc-info .currency-coins::after{font-size:16px}                .rewards-footer li{position: relative;}.fsu-sbc-vplayer {position: absolute;bottom: .25rem;right:0;background-color: #8A6E2C;padding: .5rem;color: #15191d;line-height: 1rem;font-size: 16px;}.fsu-sbc-vplayer:hover{background-color: #f6b803;}                 @media screen and (min-width:1280px) and (max-width:1441px) {.ut-split-view {padding:0;}.ut-split-view>.ut-content {max-height:100%;}}                     li.with-icon.hide {display: none;}                      .fsu-input{border: 0 !important;background-color: rgba(0,0,0,0) !important;padding-left: 0 !important;font-family: UltimateTeamCondensed,sans-serif;font-size: 1em;color: #f8eede;}                  .fsu-quick{position:absolute;top:100%;width:100%;display:flex;align-items:center;font-family:UltimateTeam,sans-serif;justify-content:center;margin-top:.2rem}.fsu-quick.top .fsu-quick-list{display:flex;align-items:center}.fsu-quick-list .im{height:1.8rem;line-height:1.8rem;cursor:pointer;background-color:#2b3540;font-family:UltimateTeam,sans-serif;border-radius:4px;padding:0 .2rem;font-size:1rem;font-weight:900;color:#f2f2f2;overflow: hidden;}.fsu-quick-list .im:hover{background-color:#394754}.fsu-quick-list.other .im{background-color:#f8eede;color:#ef6405;font-weight:500;margin-left:.3rem;text-align:center;}.fsu-quick-list.other .im:hover{background-color:#f5efe6}.fsu-quick-list .im span{font-size:.8rem;font-weight:300;color:#a4a9b4}.fsu-quick-list.left .im{margin-right:.3rem}.fsu-quick-list.right .im{margin-left:.3rem}.fsu-quick-inr{font-size:.8rem;margin:0 .3rem}.fsu-quick.right{position:absolute;top:50%;width:2rem;display:block;right:0%;z-index:3;-webkit-transform:translateY(-50%) !important;transform:translateY(-50%) !important}.phone .fsu-quick.right{top:8rem;-webkit-transform:translateY(0%) !important;transform:translateY(0%) !important}.fsu-quick.right .fsu-quick-list .im{width:1.4rem;margin-bottom:.2rem;text-align:center}.fsu-quick.right .fsu-quick-list .im.disabled{background-color:#30302e;color:#656563}.entityContainer>.name.untradeable{color:#f6b803}                                  .phone .fsu-sbc-info{font-size:.875rem}.phone .fsu-task{display:block;font-size:.875rem}.phone .fsu-price-box.right > div .value{font-size:1rem;margin-top:.2rem}.phone .fsu-price-box.right > div .title{font-size:.875rem}.phone .fsu-player-other > div{font-size:0.6rem}.phone .small.player .fsu-cards-price{font-size:.875rem}.phone .small.player .fsu-cards-price::after{font-size:.875rem}.phone .fsu-cards.fsu-cards-attr{font-size:.6rem}.phone .fsu-quick-list .im{font-size:.875rem}                                              .ut-pinned-item .listFUTItem.has-auction-data .fsu-player-other{margin-top:0 !important;top:.8rem;right:.2rem;position:absolute;z-index:2}        .fsu-sbcfilter-box{align-items:center;background-color:#394754;display:flex;justify-content:center;padding:1rem;z-index:10}.fsu-sbcfilter-option{align-items:center;box-sizing:border-box;display:flex;flex:1;max-width:300px}.fsu-sbcfilter-option .ut-drop-down-control{margin-left:1rem;flex:1}                                .fsu-setbox{display: grid;grid-template-columns: repeat(3, minmax(0, 1fr));}.phone .fsu-setbox{display: grid;grid-template-columns: repeat(1, minmax(0, 1fr));}                                  .btn-standard.mini.fsu-reward-but{height:2rem;line-height:2rem;position:absolute;top:.2rem;left:50%;transform:translateX(-50%)}.btn-standard.mini.fsu-reward-but.pcr{bottom:1.9rem;top:auto}           .btn-standard.mini.fsu-pickspc{line-height:2rem;height:2rem;margin:.5rem auto 0 auto}.ut-image-button-control.back-btn.fsu-picksback{height:100%;width:3rem;position:absolute;left:0;font-size:1.6rem}                       .fsu-fcount{position:absolute;right:0.5rem;height:1.4rem;top:.8rem;line-height:1.5rem;padding:0 .4rem;border-radius:.2rem;z-index:1;background-color: #264A35;}        .phone .fsu-store-tile .ut-tile-content-graphic-info .description{display:block;}        .fsu-range button{margin:0}                                                               .fsu-price-box{font-family:UltimateTeamCondensed,sans-serif}.fsu-price-box.right{position:absolute;right:1rem;top:50%;-webkit-transform:translateY(-50%);transform:translateY(-50%);display:flex;align-items:center}.fsu-price-box.right>div{background-color:#3B4754;color: #ffffff;padding:0.5rem;text-align:center;border-radius:4px;margin-top:0;display:block}.fsu-price-box.right>div .title{color:#a4a9b4;padding:0;font-size:1rem;line-height:1rem}.fsu-price-box.right>div .title span.plus{color:#36b84b;font-weight:500;padding-left:.2rem}.fsu-price-box.right>div .title span.minus{color:#d21433;font-weight:500;padding-left:.2rem}.fsu-price-val .currency-coins::after{font-size:1rem;margin-top:-3px}.fsu-price-box.bottom{padding-left:6.3rem;margin:.2rem 0rem}.fsu-price-box.bottom>div{display:flex;align-items:center;font-size:0.9375rem}.fsu-price-box.bottom>div .title{color:#a4a9b4;margin-right:.2rem}.fsu-price-box.bottom .fsu-price-val .currency-coins::after{font-size:inherit}.fsu-price-box.trf{position:absolute;left:54%;margin-top:.2rem}.fsu-price-box.trf .fsu-price-val{display:flex;align-items:center;background-color:#3B4754;color: #ffffff;text-align:center;border-radius:4px;padding:0 .3rem;height:20px}.fsu-price-box.trf .fsu-price-val .title{font-size:.875rem;margin-right:.2rem}.fsu-price-box.trf .fsu-price-val .currency-coins::after{margin-top:-2px}.fsu-price-box.top{position:absolute;right:0%;top:8%;display:flex;align-items:center}.fsu-price-box.top>div{display:flex;align-items:center;background-color:#3B4754;color: #ffffff;padding:.1rem 0.5rem;text-align:center;border-radius:4px}.fsu-price-box.top>div .title{font-size:0.875rem;margin-right:0.5rem}.fsu-price-last{margin-right:.5rem}.fsu-player-other{display:flex;margin-top:.2rem;font-family:UltimateTeamCondensed,sans-serif;font-size:.8rem;line-height:1rem}.fsu-price-box.top+.fsu-player-other{margin-top:.4rem}                                                                    .fsu-cards-lea-small,.fsu-cards-accele-large,.fsu-cards-meta,.fsu-cards-price{position:absolute;z-index:2;font-family:UltimateTeamCondensed,sans-serif;font-weight:300;text-align:center;width:1.6rem;top:25%}.fsu-cards-lea-small{bottom:8%;height:16%;font-size:70%;width:100%;top:auto;font-weight:500;line-height:1}.fsu-cards-lea-small~.playStyle,.ut-squad-pitch-view:not(.sbc) .fsu-cards-lea-small{display:none !important}.specials .fsu-cards-lea-small{bottom:10%}.fsu-cards-accele-large,.fsu-cards-meta,.fsu-cards-price{width:auto !important;padding:0 0.2rem;left:50%;-webkit-transform:translateX(-50%) !important;transform:translateX(-50%) !important;white-space:nowrap;background-color:#13151d;border:1px solid;border-radius:5px}.fsu-cards-accele-large,.fsu-cards-meta{bottom:0;top:auto !important}.fsu-cards-price{color:#fff;top:0 !important}.ut-squad-pitch-view:not(.sbc) .fsu-cards-lea-small~.playStyle{display:block !important}            .fsu-cards-attr,.fsu-cards-pos{position:absolute;z-index:2;font-family:UltimateTeamCondensed,sans-serif;font-weight:300;text-align:center;top:25%;display:flex;flex-direction:column;gap:2px;transform: scale(0.9);}                .large.player~.fsu-cards-attr,.large.player .fsu-cards-attr,.ut-tactics-instruction-menu-view  .fsu-cards-attr{left:calc(50% + 61px);font-size:14px;gap:4px;transform: scale(1);}           .large.player~.fsu-cards-attr > div,.large.player .fsu-cards-attr > div,.large.player~.fsu-cards-pos > div,.large.player .fsu-cards-pos > div{width:28px;height:16px;line-height:17px}       .small.player~.fsu-cards-attr{left:70px;font-size:12px;top:50%;transform:translateY(-50%) scale(0.9);}.small.player~.fsu-cards-attr > .fsu-bodytype{font-size:11px}                         .reward.small .small.player~.fsu-cards-attr{left:calc(50% + 42px);top:20%}.reward.small .small.player~.fsu-cards-pos{left:calc(50% - 66px);top:20%;font-size:12px}             .ut-squad-slot-view .small.player~.fsu-cards-attr{left:auto;right:-4px}              .large.player~.fsu-cards-pos,.large.player .fsu-cards-pos,.ut-tactics-instruction-menu-view  .fsu-cards-pos{left:calc(50% - 90px);font-size:14px;gap:4px;transform: scale(1);}                  .ut-squad-slot-view .small.player~.fsu-cards-pos{flex-direction:row;font-size:12px;top:auto;bottom:-1.6rem;left:50%;transform:translate(-50%,0)}                   .ut-squad-slot-dock-view .ut-squad-slot-view .small.player~.fsu-cards-pos{bottom:-.6rem}.ut-store-xray-pack-details-view .large.player~.fsu-cards-attr{left:calc(50% + 42px)}.large.player .fsu-cards-attr{right:0;left:auto;}.large.player .fsu-cards-pos{right:auto;left:0;}       .fsu-akb .ut-toggle-cell-view>.ut-toggle-control .ut-toggle-control--grip,.fsu-akb-title .ut-toggle-cell-view>.ut-toggle-control .ut-toggle-control--grip{font-family:UltimateTeam-Icons,sans-serif;font-style:normal;font-variant:normal;font-weight:400;text-transform:none;flex-shrink:0;font-size:1em;text-decoration:none;text-align:center;line-height:1.5rem;transition:color .3s,bottom .3s,top .3s}.fsu-akb .ut-toggle-cell-view>.ut-toggle-control .ut-toggle-control--grip::before,.fsu-akb-title .ut-toggle-cell-view>.ut-toggle-control .ut-toggle-control--grip::before{content:'\\\\E051';color:#3a4755}.fsu-akb .ut-toggle-cell-view>.ut-toggle-control.toggled:not(.disabled) .ut-toggle-control--grip::before,.fsu-akb-title .ut-toggle-cell-view>.ut-toggle-control.toggled:not(.disabled) .ut-toggle-control--grip::before{content:'\\\\E02F';color:#36b94b}.fsu-akb .ut-toggle-cell-view>.ut-toggle-control.toggled:not(.disabled) .ut-toggle-control--track,.fsu-akb-title .ut-toggle-cell-view>.ut-toggle-control.toggled:not(.disabled) .ut-toggle-control--track{background-color:#36b94b}.fsu-akb .ut-toggle-cell-view>.ut-toggle-cell-view--label{display:none}.fsu-akb .ut-toggle-cell-view{position:absolute;z-index:10;transform:scale(0.7);padding:0 1rem 1rem 0;cursor:pointer}.fsu-akb-title{align-items:center;background-color:#2b3540;display:flex;justify-content:space-between;padding:.75rem .5rem;border-top:solid 1px #556c95}.fsu-akb-left{display:flex;align-items:center}.fsu-akb-title .ut-toggle-cell-view>.ut-toggle-control .ut-toggle-control--grip{transition:color .3s,left .3s,right .3s}.fsu-akb-left>div{padding:0 .675rem 0 0}.fsu-akb-left>div:last-child{padding-right:0}                  body.landscape.futweb{min-height: 38rem;}                                                         html[dir=ltr] .listFUTItem .entityContainer>.name.fsulocked.locked,html[dir=ltr] .listFUTItem .entityContainer>.name.fsulocked.untradeable{padding-right:2.7em}html[dir=ltr] .listFUTItem .entityContainer>.name.fsulocked.locked::before,html[dir=ltr] .listFUTItem .entityContainer>.name.fsulocked.untradeable::before{right:1.4em}                                    .filter-btn.fsu-eligibilitysearch{height:1.8rem;width:1.8rem;position:absolute;right:0}.ut-image-button-control.filter-btn.fsu-eligibilitysearch::after{font-size:1rem;content:'\\\\E09D'}                  .item.player>.fsu-cards-rating{position:absolute;left:50%;top:50%;font-size:5rem;transform:translate(-50%,-50%)}.large.item.player>.fsu-cards-rating{font-size:7rem}.item.player.ut-item-loading>.fsu-cards-rating{opacity:1}.item.player.ut-item-loaded>.fsu-cards-rating{opacity:0}                        .fsu-chemistryfilter{position:absolute;right:.5rem;top:.5rem;}                          .ut-list-active-tag-view .label-container.fsu-inclubtag{background-color:#0b96ff}.ut-list-active-tag-view .label-container.fsu-inclubtag::after{border-color:#0b96ff}                                           .fsu-optionbest{position:relative}.fsu-optionbest > span,.fsu-optionbest > .player-pick-option,.fsu-optionbest > .fsu-pickspc{position:relative;z-index:1}.fsu-optionbest >.no-favorites-tile{position:absolute;max-width:100%;height:120%;width:100%;margin:-15% 0 0 0;z-index:0;top:0px;right:0px;padding:0;background-image: url(https://www.ea.com/ea-sports-fc/ultimate-team/web-app/content/25E4CDAE-799B-45BE-B257-667FDCDE8044/2025/fut/dynamicObjectives/groups/f4c231d9-a38c-44a4-a932-87af2136cca5/group_background.png);}.fsu-optionbest > .no-favorites-tile::before{font-size:2.2rem;height:2.2rem;width:2.2rem;line-height:2.2rem;}.fsu-optionbest > .player-pick-option.selected ~ .no-favorites-tile::before{display:none}                      .fsu-navsbc{height:80%;justify-content:flex-end;margin-right:1rem;flex: 0 0 auto;}.fsu-navsbc button{margin:-0.25rem;width:60px;}.phone .fsu-navsbc{margin-right:.25rem}.phone .fsu-navsbc button{margin:-.1rem}    .fsu-shownavsbc .ut-navigation-button-control{width:3rem}.fsu-shownavsbc .title{flex:1 0;position:relative !important;width:auto !important;text-align:left !important;padding:0 0 0 0.5rem !important}.fsu-shownavsbc .fsu-navsbc{height:3rem}.fsu-shownavsbc .ut-iteminfochange-button-control{display:none}.fsu-shownavsbc .fsu-navsbc button{width:2.6rem}        .phone .fsu-optionbest > .no-favorites-tile{height:108%;margin:-4% 0 0 0;border-radius:10px}.phone .fsu-optionbest > .no-favorites-tile::before{font-size:1rem;height:1rem;width:1rem;line-height:1rem;margin:.25rem}                .fsu-cards-attr div.fsu-academytips{display:flex;align-content:center;justify-content:center;background:linear-gradient(to bottom,#00A7CC 0,#007D99 100%);color:#0f1010;box-shadow:0 1px 1px 0 rgba(0,0,0,.5);border:none}.fsu-academytips-icon{height:0;width:10px;margin-left:-2px;}                              .fsu-academytips-icon::before,.ut-store-pack-details-view--description.fsu-packprice:before,.fsu-cards-price.fsu-unassigned:before{font-family:UltimateTeam-Icons,sans-serif;font-style:normal;font-variant:normal;font-weight:400;text-decoration:none;text-transform:none}.fsu-academytips-icon::before{content:'\\\\E001'}.ut-store-pack-details-view--description.fsu-packprice:before{color:#f7b702;display:inline-block;content:'\\\\E096';margin-right:.25rem}.fsu-cards-price.fsu-unassigned:before{content:'\\\\E0C4';display:inline-block;margin-right:.3em;vertical-align:middle;color:#f7b702}                                      .fsu-cards-meta{padding:0;display:flex;font-family:UltimateTeam,sans-serif;font-size:.8rem;height:1rem;align-items:center;z-index:5;cursor:pointer;}.fsu-cards-meta > div{margin-right:.2rem}.fsu-cards-meta > div:first-child{border-radius:4px 0 0 4px;height:1rem;width:1.6rem;font-weight:900;}                                button.currency.call-to-action.fsu-challengefastbtn{height:2.6rem;line-height:1.4rem;padding:0px 1rem;font-size:1rem}button.currency.call-to-action.fsu-challengefastbtn > span{display: block !important;}button.currency.call-to-action.fsu-challengefastbtn .subtext{font-size:80%;line-height:1rem;color:#a6a6a6;}.ut-sbc-challenge-table-row-view .fsu-challengefastbtn{width:70%}@media (min-width:768px){.ut-sbc-challenge-table-row-view .fsu-challengefastbtn{width:60%}}.ut-sbc-challenge-table-row-view.selected button.currency.call-to-action.fsu-challengefastbtn{background-color:#222426;color:#fcfcf7}.ut-sbc-challenge-table-row-view.selected button.currency.call-to-action.fsu-challengefastbtn.hover{background-color:#575753}.ut-sbc-challenge-table-row-view button.currency.call-to-action.fsu-challengefastbtn.disabled{background-color:#575753;color:#30312f}                                     .fsu-navsbccount{padding:.2em 0;margin-right:.5rem;align-items:center;display:flex;justify-content:flex-end}.fsu-navsbccount::after{background-position:right top;content:'';background-repeat:no-repeat;background-size:100%;display:inline-block;height:1em;vertical-align:middle;width:1em;background-image:url(https://www.ea.com/ea-sports-fc/ultimate-team/web-app/images/sbc/logo_SBC_home_tile.png);margin-top:-.15em;margin-left:.3em}                                .ut-image-button-control.filter-btn.fsu-transfer::after{content:'\\\\E0E5';font-size:1.6rem}.ut-image-button-control.filter-btn.fsu-club::after{content:'\\\\E052';font-size:1.6rem}.ut-image-button-control.filter-btn.fsu-swap::after{content:'\\\\E0E4';font-size:1.4rem}.ut-image-button-control.filter-btn.fsu-refresh::after{content:'\\\\E0C4';font-size:1.4rem}.ut-image-button-control.filter-btn.fsu-storage::after{content:'\\\\E0C9';font-size:1.4rem}.filter-btn.fsu-swap,.filter-btn.fsu-transfer,.filter-btn.fsu-club,.filter-btn.fsu-storage,.filter-btn.fsu-refresh{margin-left:1rem;width:3rem;height:3rem}                                            .ut-club-hub-view .tile.fsu-storage .tileContent:before { content:'\\\\E0C9'; }                          .ut-list-active-tag-view .label-container.fsu-instoragetag,.listFUTItem.hover .ut-list-active-tag-view .label-container.fsu-instoragetag{background-color:#f19be6}.ut-list-active-tag-view .label-container.fsu-instoragetag::after,.listFUTItem.hover .ut-list-active-tag-view .label-container.fsu-instoragetag::after{border-top-color:#f19be6}                                                                                                                                      .ut-player-picks-view .carousel-indicator-dots.fsu-pickbest li{width:16px;height:16px;text-align:center;overflow:hidden}.ut-player-picks-view .carousel-indicator-dots.fsu-pickbest li.active{transform:scale(1.4)}.ut-player-picks-view .carousel-indicator-dots.fsu-pickbest li.best::after{content:'\\\\E0D4';font-family:UltimateTeam-Icons,sans-serif;font-style:normal;font-variant:normal;font-weight:400;text-decoration:none;text-transform:none;color:#07f468;font-size:1rem;line-height:1.1rem}.ut-player-picks-view .carousel-indicator-dots.fsu-pickbest li.best.active::after{color:#fd4821}                                     .ut-button-group button.more.fsu-open::after{-webkit-transform:rotate(0deg) !important;transform:rotate(0deg) !important}                                                                .fsu-sbcNeedsBody,.fsu-realProdBody{height:30vh;overflow-y:auto}.fsu-sbcNeedsTitle,.fsu-sbcNeedsBodyItem,.fsu-realProdTitle,.fsu-realProdBodyItem{display:flex}.fsu-sbcNeedsTitle,.fsu-realProdTitle{padding:.5rem 1rem;background-color:#30312f;font-size:1rem}.fsu-sbcNeedsBodyItem,.fsu-realProdBodyItem{padding:.75rem 1rem;align-items:center;background-color:#18191b;font-size:1em}.fsu-sbcNeedsBodyItem:nth-of-type(even),.fsu-realProdBodyItem:nth-of-type(even){background-color:#212224}.fsu-sbcNeedsTitle div,.fsu-sbcNeedsBodyItem div{width:18%}.fsu-realProdTitle div,.fsu-realProdBodyItem div{width:20%}.fsu-sbcNeedsTitle div:last-child,.fsu-sbcNeedsBodyItem div:last-child{width:28%;text-align:right}.fsu-realProdTitle div:first-child,.fsu-realProdBodyItem div:first-child{width:40%}                                    .fsu-price-reward::after{font-family:UltimateTeam-Icons,sans-serif;content:'\\\\E0C9';font-size:94%;color:#fae8e6}.small.player .fsu-price-box{font-size:90%}.large.player .fsu-price-box{font-size:1rem}.small.player .fsu-price-box,.large.player .fsu-price-box{display:flex;justify-content:center;align-items:center}.fsu-price-box.old{background-color:#0f1417;color:#a4a9b4;border:0}.fsu-price-val[data-value='0'][data-type='1']{display:none !important}.fsu-cards-price::after{margin-left:.2em !important;margin-top:0}.large.player .fsu-cards-price.currency-coins::after{margin-top:-.15em}.fsu-price-box.right>div .value{font-size:1.2rem;margin-top:.5rem;line-height:1.2rem;display:flex;justify-content:center;align-items:center}.fsu-price-val .fsu-price-reward::after{margin-left:.3em;font-size:80%;margin-top:-.15em}                              .fsu-cards-foot{position:relative}.fsu-cards-foot::after{content:'';height:3px;width:3px;background-color:var(--fsu-cards-foot-color);display:block;position:absolute;bottom:0px;border-radius:2px}.fsu-cards-foot.l::after{left:0px}.fsu-cards-foot.r::after{right:0px}                    .fsu-cards-attr div,.fsu-cards-pos div{border:1px solid;border-color:inherit;line-height:100%;border-radius:5px;color:var(--fsu-cards-color);background:var(--fsu-cards-background);width:22px;white-space:nowrap;height: 13px;line-height: 15px;}                        .fsu-lockbtn{padding:0 8px !important;min-height:30px !important;position:absolute;right:64px;bottom:0;font-size:0.75rem !important;z-index:2;display:flex;align-items:center}.fsu-lockbtn.lock::before{content:'\\\\E09C'}.fsu-lockbtn.unlock::before{content:'\\\\E09C'}.fsu-lockbtn::before{font-family:UltimateTeam-Icons,sans-serif;padding-right:.2rem;content:'';display:block}.fsu-lockbtn.unlock{background-color:#fcfcf7;color:#151616}.fsu-lockbtn.unlock::after{content:'';display:block;position:absolute;left:18px;top:10px;width:2px;height:16px;background:#ff4c4c;transform:rotate(45deg);transform-origin:top center}.ut-club-hub-view .tile.fsu-lock .tileContent:before { content:'\\\\E09C'; }html[dir=ltr] .listFUTItem .entityContainer>.name.fsulocked::after{font-family:UltimateTeam-Icons,sans-serif;color:#d31332;margin-top:2px;position:absolute;width:1.1em;content:'\\\\E09C';right:0}html[dir=ltr] .listFUTItem .entityContainer>.name.fsulocked{padding-right:1.4em}html[dir=ltr] :not(.phone) .listFUTItem .entityContainer>.name.fsulocked.untradeable { max-width: 42%; }.fsu-cardlock{position:absolute;height:.9rem;width:.9rem;right:0;bottom:5%;z-index:2;background-color:#222426;border:1px solid #333d47;border-radius:100%;text-align:center;box-shadow:0 1px 3px #000;font-size:10.8px}.fsu-cardlock::before{font-family:UltimateTeam-Icons,sans-serif;content:'\\\\E09C';display:inline-block;vertical-align:middle;background-size:100% auto;color:#d31332;background-repeat:no-repeat}                                  .listfilter-btn{padding:0;width:100%;height:1.6rem;line-height:1.8rem;border-radius:.4rem;font-size:.9rem;min-height:1.6rem}                                      .ut-squad-building-set-status-label-view.refresh.sbccount{display:flex;align-items:center;gap:4px;opacity:0.5}.ut-squad-building-set-status-label-view.refresh.sbccount::before{content:'\\\\E0C2';color:#36b84b;font-size:14px;line-height:17px}                                                           .fsu-trypack-box{position:absolute;right:0}.landscape button.currency.fsu-trypack{padding:.25rem .5rem;width:auto;color:#f2f2f2;background:#556c95;border-radius:.6rem;align-items:center;display:flex;font-family:UltimateTeam-Icons,sans-serif;min-height:36px}.landscape button.currency.fsu-trypack .text{font-size:1rem;font-weight:600}.landscape button.currency.fsu-trypack::after{content:'\\\\E0A2';font-size:110%;padding-left:.2rem}.landscape button.currency.fsu-trypack.hover{background:#9e9e99}.phone .fsu-trypack-box{position:relative;}                                .fsu-player-other>div{background:#3B4754;color:#a4a9b4;padding:0.1rem 0.3rem;text-align:center;border-radius:20px;font-size:inherit;line-height:1.5;margin-right:0.5rem;height:1rem;white-space:nowrap}.fsu-player-other>div.swap{background:#36b84b;color:#201e20}.fsu-player-other>div.not{background:#8A6E2C;color:#201e20}.fsu-player-other>div.storage{background:#f6b803;color:#201e20}.fsu-player-other>div.yes{background:#264A35;color:#201e20}.large.player+.fsu-player-other{justify-content:center}.large.player+.fsu-player-other>div{margin-right:0rem}.fsu-player-other .currency-coins::after{font-size:.875rem;margin-top:-3px;margin-left:2px !important}@media (max-width:1130px){.has-auction-data .fsu-player-other{margin-top:5rem !important}.has-auction-data .fsu-price-box.trf{margin-top:5rem !important;left:auto;right:3%}}                                                                                     /*商店数量标识*/.ut-store-hub-view .storehub-tile.packs-tile.highlight[data-num]::after{content:attr(data-num);top:22px;padding:2px 6px;border-radius:4px;line-height:1.2rem;font-size:1.2rem;color:#0c0d0d;height:16px;width:auto}@media (min-width:768px){.ut-store-hub-view .storehub-tile.packs-tile.highlight[data-num]::after{height:20px;font-size:1.4rem;line-height:1.4rem;top:26px;padding:2px 8px}}                         /*旧卡样式去除边框*/.fsu-cards.old div{border:none}                                 /*阵容价值部分*/.fsu-squad-pValue{font-family:UltimateTeamCondensed,sans-serif;font-weight:400;font-size:.875rem;text-overflow:ellipsis;white-space:nowrap}.fsu-squad-pValue.currency-coins::after{font-size:.875rem;margin-left:.2em !important;margin-top:-.2em !important}.fsu-squad-pTitle .plus{color:#36b84b;padding-left:.1rem}.fsu-squad-pTitle .minus{color:#d21433;padding-left:.1rem}                                    /*弹窗球员列表显示优化*/.fsu-popupItemList{display:flex;flex-direction:column;gap:12px}.fsu-popupItemList > .listFUTItem{margin:0 !important}                                           /*改变为公共新标识*/.fsu-newtips{background-color: #ee2208;z-index:2;position:absolute;left:0;top:20px;transform:rotate(-45deg);transform-origin:0 100%;height:36px;line-height:42px;width:80px;text-align:center;font-weight:bold}            /*调整配色*/.fsu-task{display: flex;justify-content: space-between;padding: 0.5rem;background-color: #ee2208;}.fsu-task.no{background-color: #b1570c;}.task-expire{background-color: #b1570c;height: 2rem;line-height: 2rem;text-align: center;}.fsu-sbc-info{padding: 0.5rem;background-color: #2f4a5b;display: flex;font-family: UltimateTeamCondensed,sans-serif;justify-content: space-between;font-size: 1rem;}                        /*导航栏计数标识*/.fsu-tab-count{font-size:14px;align-self:center;padding:4px 6px;background-color: #575753;color:#a6a6a1;line-height:1;border-radius:4px;margin-left:6px}.selected > .fsu-tab-count{background-color: #ee2208;color:#fcfcfc}.selected > .fsu-tab-count.expire{background-color: #aa540c}.phone .fsu-tab-count{padding:2px 3px;font-size:12px;border-radius:3px}                           /*挑选包预览*/.fsu-popupItemList .listFUTItem .entityContainer>.name{padding-top:10px;padding-bottom:0px}html[dir=ltr] .fsu-popupItemList .listFUTItem .entityContainer .item{margin-right:14px}.fsu-popupItemOther{font-size:26px;display:flex;color:#ffffff;width:100%;justify-content:space-between;align-items:center;padding:8px;background-color:#2f4a5b;box-sizing:border-box;gap:12px}.fsu-popupItemOther .btn-standard{width:auto;flex:0;min-width:120px;margin-bottom:0}.fsu-popupItemTrait{display:flex;gap:8px}.phone .fsu-popupItemOther{flex-direction:column}.phone .fsu-popupItemOther .btn-standard{width:100%}.fsu-traitIcon.fut_icon.icon{color:#ffc91f}.fsu-traitIcon.fut_icon.icon_basetrait16{position:relative}.fsu-traitIcon.fut_icon.icon_basetrait16:before{content:'\\\\E074';z-index:1;position:relative;top:2px;background:#2f4a5b;clip-path:inset(5px 5px 10px 5px)}.fsu-traitIcon.fut_icon.icon_basetrait16::after{content:'\\\\E031';position:absolute;left:0;z-index:0}.fsu-popupItemList .listFUTItem .rowContent{border-radius:10px}                              /*卡片状态标识配色*/.fsu-cards-buyerror,.fsu-cards-storage,.fsu-cards-unassigned{left:auto !important;right:1% !important;background-color:#5b167d !important;border-color:#7c319e !important;color:#fae8e6 !important}.fsu-cards-buyerror{background-color:#d31332 !important;border-color:#d6675d !important;color:#fae8e6 !important}.fsu-cards-unassigned{background-color:#d19a01 !important;border-color:#DEBA43 !important;color:#FCFBF0 !important}                                             /*未分配快速任务标签*/.fsu-unassigned-fastsbcbox{display:flex;padding:6px 16px;gap:12px;overflow-x:auto}.fsu-unassigned-fastsbcbox .btn-standard{overflow:visible;position:relative;padding:3px 6px;border-radius:6px}.fsu-unassigned-fastsbcinfo{display:flex;align-items:flex-start;justify-content:center;flex-direction:column;max-width:10rem;overflow:hidden}.fsu-unassigned-fastsbcdot{position:absolute;top:-6px;right:-6px;background:#0ff;height:14px;width:14px;line-height:14px}.fsu-unassigned-fastsbctext{line-height:20px;max-width:10rem;font-size:14px;text-overflow:ellipsis;overflow:hidden;white-space:nowrap}.fsu-unassigned-fastsbctsub{line-height:12px;max-width:10rem;font-size:12px;color:rgb(166,166,166)}.fsu-unassigned-fastsbctsub span{margin:0px 2px}                                                                   /*可开球员tile和特殊品质tile*/.fsu-showPlayerstile header p{padding-top:4px;color:#a6a6a1}.fsu-showPlayerstile .img-box{text-align:center;height:160px}.fsu-showPlayerstile .img-box img{height:auto;width:80%}.fsu-showPlayerstile.fsu-specialTile .img-box img{height:80%;width:auto}.fsu-showPlayerstile.fsu-specialTile .img-box img:first-child{height:70%}.fsu-showPlayerstile.fsu-specialTile .img-box img:last-child{height:70%}.fsu-showPlayerstile .ut-label-view{margin-top:-32px}                               /*包内球员*/.fsu-showPlayers{}.fsu-showPlayersList{grid-template-columns:repeat(auto-fill,300px);display:grid;justify-content:center;gap:30px;padding:48px}.fsu-showPlayersItem{background-color:#2d2c36;border-radius:16px;color:#fcfcfc;padding:16px 16px 48px 16px;overflow:clip;position:relative}.phone .fsu-showPlayersList{padding:8px;gap:8px;grid-template-columns:1fr 1fr}.phone .fsu-showPlayersItem{zoom:0.6}.fsu-showPlayersTrais{display:flex;gap:8px;justify-content:center;font-size:24px;margin:8px 0;padding:8px 0;opacity:0.6;flex-wrap: wrap;}.fsu-showPlayersCard{display:grid;justify-content:center}.fsu-showPlayersBtn{width:100%;margin:0 -16px;border-radius:0;border:none;line-height:32px;position:absolute;bottom:0}.fsu-showPlayersLabel{position:absolute;left:0;top:0;line-height:32px;font-size:14px;color:#0f0f0f;background-color:#0b96ff;padding:0 20px;border-radius:0 0 16px 0}                               /*移除部分界面name的内间距*/.fsu-removeNamePadding ~ div.name{padding-top:14px !important;padding-bottom:0px !important}                                            /*卡组展示*/.fsu-showPlayersItem.fsu-showRarity{display:flex;flex-direction:column;font-size:14px;line-height:14px}.fsu-showRarityCard{display:grid;text-align:center;position:relative;margin-top:-16px}.fsu-showRarityCard img{height:200px;margin:auto}.fsu-showRarityCount{position:absolute;top:138px;width:100%;line-height:32px;font-size:32px;font-family:UltimateTeamCondensed,sans-serif;font-weight:bold}.fsu-showRarityBtns{display:flex;position:absolute;bottom:0;width:100%;margin:0 -16px;gap:1px;background-color:rgba(222,222,216,.25)}.fsu-showRarityBtns > button{flex:1;border:0;border-radius:0;line-height:32px}.fsu-showRarityBtns > button.btn-standard.disabled{background-color:#6a6a65}.fsu-showRarityTips{padding:0 16px;background-color:#0b96ff;color:#0f0f0f;height:32px;line-height:32px;position:absolute;top:0;left:0;border-bottom-right-radius:19px}.fsu-showRarityInfo{padding:16px 0;display:flex;flex-direction:column;gap:4px;font-size:12px;line-height:12px}.fsu-showRarityAttrs,.fsu-showRarityExpiry{display:flex;align-items:center;gap:8px;justify-content:center;flex-wrap:wrap}.fsu-showRarityExpiry{gap:6px}.fsu-showRarityExpiry i{color:#f7b702}.fsu-showRarityAttrs div{padding:4px 8px;background-color:rgba(7,244,104,.4);border-radius:20px}                          /*新SBC右侧快捷列表*/.fsu-substitutionBox{margin:0 16px;padding:12px;display:flex;flex-direction:column;gap:6px}.fsu-substitutionTitle{font-size:12px;line-height:14px}.fsu-substitutionBtns{background:#6a696d;display:flex;justify-content:space-around;font-size:14px;line-height:14px;gap:1px;border-radius:12px;overflow:clip;align-items:center}.fsu-substitutionBtns > button{flex:1;text-align:center;padding:12px 0;background:#504f52;font-size:inherit;line-height:inherit;border-radius:0;border:0;min-height:auto;}.fsu-substitutionTitle:not(:first-of-type) {margin-top: 12px;}                                                    /*新排序筛选*/.fsu-SortFilterBox{display:flex;gap:8px;margin:0px 16px 8px 16px}.fsu-SortFilterItem{flex:1;min-width:0}.fsu-SortFilterTitle{font-size:12px;line-height:14px;margin-bottom:4px;color:#a6a6a1}.fsu-SortFilterBtn{border:none;border-radius:8px;width:100%;min-height:auto;font-size:14px;background:#504f52;padding:8px 0px;white-space:nowrap;line-height:14px;overflow:hidden}.fsu-SortFilterBtn.priority{background: #786735;}                                   /*新阵容价值*/.fsu-SquadValue{position:absolute;right:20px;top:20px;font-family:UltimateTeamCondensed,sans-serif;font-weight:400}.fsu-SquadValueItem{background:#4e4f4dcc;font-size:17px;line-height:18px;padding:8px 10px 6px 10px;border-radius:4px;display:flex;align-items:center;gap:8px;color:#fcfcfc;justify-content:space-between;margin-bottom:10px}.fsu-SquadValueTitle{font-size:14px}.fsu-SquadValuePrice{}.phone .fsu-SquadValue{right:auto;left:14px;top:auto;bottom:62px;text-shadow:2px 2px 3px rgba(0,0,0,.5)}.phone .fsu-SquadValueItem{font-size:15px;line-height:16px;padding:0px;margin-bottom:0px;background:none;margin-top:8px}.phone .fsu-SquadValueTitle{font-size:13px}                               /*新价格显示框*/.fsu-PriceBar{position:absolute;transform:translateX(-50%) scale(0.9) !important;left:50%;z-index:2;font-family:UltimateTeamCondensed,sans-serif;display:flex;gap:8px}.fsu-PriceBarItem{display:flex;align-items:stretch;justify-content:center;background-color:#13151d;border:1px solid #3f444b;font-size:15px;border-radius:4px;overflow:hidden;height:17px;box-shadow:0px 1px 3px rgb(63 68 75 / 40%)}.fsu-PriceBarItem .fsu-PriceValue{display:flex;align-items:center;padding:3px 4px 0px 4px;color:#f7b702}.fsu-PriceBarItem .fsu-PriceType{display:flex;align-items:center;padding:2px 3px 0 1.6px;background-color:#2b3036;color:#a0a0a0;font-size:11px;font-weight:700;font-style:italic;letter-spacing:.4px;text-transform:uppercase}.large.player .fsu-PriceBar{transform:translateX(-50%) scale(1.2) !important;top:4px}.fsu-PriceRightBox{position:absolute;right:16px;z-index:2;transform:translateY(-50%) !important;top:50%;display:flex;gap:16px;font-family:UltimateTeamCondensed,sans-serif}.fsu-PriceRightItem{background-color:#3b4754;border-radius:8px;padding:8px 6px;color:#a4a9b4;display:flex;flex-direction:column;gap:8px;align-items:center}.fsu-PriceRightBox.top{top:16px}.fsu-PriceRightBox.top .fsu-PriceRightItem{flex-direction:row;padding:4px 6px 2px}.fsu-PriceRightBoxTitle{font-size:14px;text-align:center;line-height:14px}.fsu-PriceRightBoxBar{display:flex;justify-content:center;align-items:center}.fsu-PriceRightItem .fsu-PriceValue{font-size:22px;line-height:18px;color:#f7b702}.fsu-PriceRightItem .fsu-PriceType{text-transform:uppercase;font-size:14px;font-weight:500;padding:3px 4px 2.2px 1.6px;background-color:#2b3036;color:#a0a0a0;font-style:italic;margin-left:4px;border-radius:4px;margin-top:-3px}.fsu-PriceBarItem[data-show='0'],.fsu-PriceRightItem[data-show='0']{display:none !important}.fsu-PriceBarItem.tradable .fsu-PriceValue,.fsu-PriceRightItem.tradable .fsu-PriceValue{color:#fcfcfc}.fsu-PriceType[data-content='ut']{font-size:0}.fsu-PriceType[data-content='ut']::after{background-position:right top;content:'';background-repeat:no-repeat;background-size:100%;display:inline-block;height:12px;vertical-align:middle;width:12px;background-image:url(../web-app/images/coinIcon.png);margin-top:-2px;margin-right:-1px}.fsu-PriceBarItem.precious .fsu-PriceType{background-color:#fd7254}.fsu-PriceBarItem.precious{background:#ee2208;border-color:#fd7254}.fsu-PriceRightBoxBar .fsu-PriceType[data-content='ut']{height:16px;width:16px}.fsu-PriceRightBoxBar .fsu-PriceType[data-content='ut']::after{margin-top:0.5px;margin-right:0px;margin-left:2px;height:14px;width:14px}                                /*进化增加属性展示*/.fsu-academyAttribute{font-family:UltimateTeam-Icons,sans-serif;font-size:14px;line-height:16px;color:#80807a}.fsu-academyAttributeIncrease{padding-left:8px;padding-right:4px}.fsu-academyAttributeIncrease span{color:#07f468}.fsu-academyAttributeValue{font-weight:bold;font-size:16px}.fsu-academyAttributeValue.added{color:#0b96ff}.fsu-academyAttributeValue.addedMain{color:#fd4821}                                    /*进化属性显示*/.academieBtn{background:#2d2c36;border-radius:8px;padding:8px 12px 6px 12px;cursor:pointer;margin-bottom:8px;font-family:UltimateTeamCondensed,sans-serif;border:1px solid #2d2c36}.academieBtn.not{opacity:0.5}.academieBtn:hover{border-color:#1fc3c1}.academieBtnTitle{display:flex;align-items:center;justify-content:space-between;line-height:14px;margin-bottom:6px}.academieBtnName{color:#b5b9c3;font-size:14px}.academieBtnTime{font-size:12px;color:#9e9e9a}.academyBoostsBox{display:flex;gap:4px;font-size:12px;line-height:11px;text-transform:uppercase;flex-wrap:wrap;flex-direction:row}.academyBoostsItem{padding:4px 4px 1px 4px;border-radius:4px;font-weight:500;background:#3a4652;color:#d4d8de}.academyBoostsItem span{color:#07f468;font-size:16px;padding-left:2px;font-weight:100}.academyBoostsTips{flex:100%;padding-top:6px;color:#9e9e9a}.academyBtnTips{color:#fd7254;padding:8px 4px;font-size:14px;text-align:center}.academyViewBox{background:#191820;border-radius:8px;padding:8px 12px 6px 12px;margin-bottom:8px;font-family:UltimateTeamCondensed,sans-serif}.academyViewBox .academyBoostsBox{gap:8px;justify-content:center}.academyViewBox .academyBoostsTips{text-align:center}.academyViewBox.itemList{padding:24px 8px 8px;margin:-32px 16px 16px}.academyViewBox.itemList .academyBoostsBox{gap:4px}.academyViewBox.itemList .academyBoostsBox > *{zoom:0.8}                                    /*进化需求按钮*/.fsu-substitutionBtns>button.fsu-substitutionReqBtn{display:flex;align-items:center;justify-content:center;gap:4px;position:relative;height:36px}.fsu-substitutionReqBtn>img{height:24px;width:auto}.fsu-substitutionReqBtn>img.small{height:20px;width:20px}.fsu-substitutionReqBtn>div{position:absolute;right:0;bottom:0;padding:3px 4px 0px;background:rgb(253 114 84 / 70%);font-size:14px;line-height:12px;border-top-left-radius:4px}.fsu-substitutionReqBtn.state-meet>div{background:rgb(38 133 53 / 70%)} */                                                     /*CSS*/";
+  var FSU_BASE_STYLE = ".tns-horizontal.tns-subpixel>.tns-item{position: relative;}button.notevents{pointer-events: none;color: #a4a9b4;}.btn-standard.section-header-btn.mini.call-to-action.fsu-getprice{margin-left: 1rem;}.btn-standard.section-header-btn.mini.call-to-action.fsu-getprice:hover{background-color:#e9dfcd}.view-modal-container.form-modal header .fsu-getprice{position: absolute;top: .5rem;left: 0;height: 2rem;line-height: 2rem;}.ut-sbc-set-tile-view.production-tagged .tileHeader::before{display:none;}a.header_explain{color: #a2a2a2;text-decoration: none;line-height: 3rem;}a.header_explain:hover{color: #ffffff;}.ut-fifa-header-view{display: flex;justify-content: space-between;}    .fsu-loading-close{display: none;position: absolute;bottom: 38%;z-index: 999;}.fsu-loading .fsu-loading-close{display: block;text-align: center;}                                                               .fsu-sbc-info div{width: 50%;}.fsu-sbc-info div:last-child{display: flex;justify-content: space-around;}.fsu-sbc-info .currency-coins::after{font-size:16px}                .rewards-footer li{position: relative;}.fsu-sbc-vplayer {position: absolute;bottom: .25rem;right:0;background-color: #8A6E2C;padding: .5rem;color: #15191d;line-height: 1rem;font-size: 16px;}.fsu-sbc-vplayer:hover{background-color: #f6b803;}                 @media screen and (min-width:1280px) and (max-width:1441px) {.ut-split-view {padding:0;}.ut-split-view>.ut-content {max-height:100%;}}                     li.with-icon.hide {display: none;}                      .fsu-input{border: 0 !important;background-color: rgba(0,0,0,0) !important;padding-left: 0 !important;font-family: UltimateTeamCondensed,sans-serif;font-size: 1em;color: #f8eede;}                  .fsu-quick{position:absolute;top:100%;width:100%;display:flex;align-items:center;font-family:UltimateTeam,sans-serif;justify-content:center;margin-top:.2rem}.fsu-quick.top .fsu-quick-list{display:flex;align-items:center}.fsu-quick-list .im{height:1.8rem;line-height:1.8rem;cursor:pointer;background-color:#2b3540;font-family:UltimateTeam,sans-serif;border-radius:4px;padding:0 .2rem;font-size:1rem;font-weight:900;color:#f2f2f2;overflow: hidden;}.fsu-quick-list .im:hover{background-color:#394754}.fsu-quick-list.other .im{background-color:#f8eede;color:#ef6405;font-weight:500;margin-left:.3rem;text-align:center;}.fsu-quick-list.other .im:hover{background-color:#f5efe6}.fsu-quick-list .im span{font-size:.8rem;font-weight:300;color:#a4a9b4}.fsu-quick-list.left .im{margin-right:.3rem}.fsu-quick-list.right .im{margin-left:.3rem}.fsu-quick-inr{font-size:.8rem;margin:0 .3rem}.fsu-quick.right{position:absolute;top:50%;width:2rem;display:block;right:0%;z-index:3;-webkit-transform:translateY(-50%) !important;transform:translateY(-50%) !important}.phone .fsu-quick.right{top:8rem;-webkit-transform:translateY(0%) !important;transform:translateY(0%) !important}.fsu-quick.right .fsu-quick-list .im{width:1.4rem;margin-bottom:.2rem;text-align:center}.fsu-quick.right .fsu-quick-list .im.disabled{background-color:#30302e;color:#656563}.entityContainer>.name.untradeable{color:#f6b803}                                  .phone .fsu-sbc-info{font-size:.875rem}.phone .fsu-task{display:block;font-size:.875rem}.phone .fsu-price-box.right > div .value{font-size:1rem;margin-top:.2rem}.phone .fsu-price-box.right > div .title{font-size:.875rem}.phone .fsu-player-other > div{font-size:0.6rem}.phone .small.player .fsu-cards-price{font-size:.875rem}.phone .small.player .fsu-cards-price::after{font-size:.875rem}.phone .fsu-cards.fsu-cards-attr{font-size:.6rem}.phone .fsu-quick-list .im{font-size:.875rem}                                              .ut-pinned-item .listFUTItem.has-auction-data .fsu-player-other{margin-top:0 !important;top:.8rem;right:.2rem;position:absolute;z-index:2}        .fsu-solve-all-fast-box{display:flex;justify-content:flex-end;padding:.5rem 1rem 0}.fsu-solve-all-fast-btn{min-width:12rem}.fsu-sbcfilter-box{align-items:center;background-color:#394754;display:flex;justify-content:center;padding:1rem;z-index:10}.fsu-sbcfilter-option{align-items:center;box-sizing:border-box;display:flex;flex:1;max-width:300px}.fsu-sbcfilter-option .ut-drop-down-control{margin-left:1rem;flex:1}                                .fsu-setbox{display: grid;grid-template-columns: repeat(3, minmax(0, 1fr));}.phone .fsu-setbox{display: grid;grid-template-columns: repeat(1, minmax(0, 1fr));}                                  .btn-standard.mini.fsu-reward-but{height:2rem;line-height:2rem;position:absolute;top:.2rem;left:50%;transform:translateX(-50%)}.btn-standard.mini.fsu-reward-but.pcr{bottom:1.9rem;top:auto}           .btn-standard.mini.fsu-pickspc{line-height:2rem;height:2rem;margin:.5rem auto 0 auto}.ut-image-button-control.back-btn.fsu-picksback{height:100%;width:3rem;position:absolute;left:0;font-size:1.6rem}                       .fsu-fcount{position:absolute;right:0.5rem;height:1.4rem;top:.8rem;line-height:1.5rem;padding:0 .4rem;border-radius:.2rem;z-index:1;background-color: #264A35;}        .phone .fsu-store-tile .ut-tile-content-graphic-info .description{display:block;}        .fsu-range button{margin:0}                                                               .fsu-price-box{font-family:UltimateTeamCondensed,sans-serif}.fsu-price-box.right{position:absolute;right:1rem;top:50%;-webkit-transform:translateY(-50%);transform:translateY(-50%);display:flex;align-items:center}.fsu-price-box.right>div{background-color:#3B4754;color: #ffffff;padding:0.5rem;text-align:center;border-radius:4px;margin-top:0;display:block}.fsu-price-box.right>div .title{color:#a4a9b4;padding:0;font-size:1rem;line-height:1rem}.fsu-price-box.right>div .title span.plus{color:#36b84b;font-weight:500;padding-left:.2rem}.fsu-price-box.right>div .title span.minus{color:#d21433;font-weight:500;padding-left:.2rem}.fsu-price-val .currency-coins::after{font-size:1rem;margin-top:-3px}.fsu-price-box.bottom{padding-left:6.3rem;margin:.2rem 0rem}.fsu-price-box.bottom>div{display:flex;align-items:center;font-size:0.9375rem}.fsu-price-box.bottom>div .title{color:#a4a9b4;margin-right:.2rem}.fsu-price-box.bottom .fsu-price-val .currency-coins::after{font-size:inherit}.fsu-price-box.trf{position:absolute;left:54%;margin-top:.2rem}.fsu-price-box.trf .fsu-price-val{display:flex;align-items:center;background-color:#3B4754;color: #ffffff;text-align:center;border-radius:4px;padding:0 .3rem;height:20px}.fsu-price-box.trf .fsu-price-val .title{font-size:.875rem;margin-right:.2rem}.fsu-price-box.trf .fsu-price-val .currency-coins::after{margin-top:-2px}.fsu-price-box.top{position:absolute;right:0%;top:8%;display:flex;align-items:center}.fsu-price-box.top>div{display:flex;align-items:center;background-color:#3B4754;color: #ffffff;padding:.1rem 0.5rem;text-align:center;border-radius:4px}.fsu-price-box.top>div .title{font-size:0.875rem;margin-right:0.5rem}.fsu-price-last{margin-right:.5rem}.fsu-player-other{display:flex;margin-top:.2rem;font-family:UltimateTeamCondensed,sans-serif;font-size:.8rem;line-height:1rem}.fsu-price-box.top+.fsu-player-other{margin-top:.4rem}                                                                    .fsu-cards-lea-small,.fsu-cards-accele-large,.fsu-cards-meta,.fsu-cards-price{position:absolute;z-index:2;font-family:UltimateTeamCondensed,sans-serif;font-weight:300;text-align:center;width:1.6rem;top:25%}.fsu-cards-lea-small{bottom:8%;height:16%;font-size:70%;width:100%;top:auto;font-weight:500;line-height:1}.fsu-cards-lea-small~.playStyle,.ut-squad-pitch-view:not(.sbc) .fsu-cards-lea-small{display:none !important}.specials .fsu-cards-lea-small{bottom:10%}.fsu-cards-accele-large,.fsu-cards-meta,.fsu-cards-price{width:auto !important;padding:0 0.2rem;left:50%;-webkit-transform:translateX(-50%) !important;transform:translateX(-50%) !important;white-space:nowrap;background-color:#13151d;border:1px solid;border-radius:5px}.fsu-cards-accele-large,.fsu-cards-meta{bottom:0;top:auto !important}.fsu-cards-price{color:#fff;top:0 !important}.ut-squad-pitch-view:not(.sbc) .fsu-cards-lea-small~.playStyle{display:block !important}            .fsu-cards-attr,.fsu-cards-pos{position:absolute;z-index:2;font-family:UltimateTeamCondensed,sans-serif;font-weight:300;text-align:center;top:25%;display:flex;flex-direction:column;gap:2px;transform: scale(0.9);}                .large.player~.fsu-cards-attr,.large.player .fsu-cards-attr,.ut-tactics-instruction-menu-view  .fsu-cards-attr{left:calc(50% + 61px);font-size:14px;gap:4px;transform: scale(1);}           .large.player~.fsu-cards-attr > div,.large.player .fsu-cards-attr > div,.large.player~.fsu-cards-pos > div,.large.player .fsu-cards-pos > div{width:28px;height:16px;line-height:17px}       .small.player~.fsu-cards-attr{left:70px;font-size:12px;top:50%;transform:translateY(-50%) scale(0.9);}.small.player~.fsu-cards-attr > .fsu-bodytype{font-size:11px}                         .reward.small .small.player~.fsu-cards-attr{left:calc(50% + 42px);top:20%}.reward.small .small.player~.fsu-cards-pos{left:calc(50% - 66px);top:20%;font-size:12px}             .ut-squad-slot-view .small.player~.fsu-cards-attr{left:auto;right:-4px}              .large.player~.fsu-cards-pos,.large.player .fsu-cards-pos,.ut-tactics-instruction-menu-view  .fsu-cards-pos{left:calc(50% - 90px);font-size:14px;gap:4px;transform: scale(1);}                  .ut-squad-slot-view .small.player~.fsu-cards-pos{flex-direction:row;font-size:12px;top:auto;bottom:-1.6rem;left:50%;transform:translate(-50%,0)}                   .ut-squad-slot-dock-view .ut-squad-slot-view .small.player~.fsu-cards-pos{bottom:-.6rem}.ut-store-xray-pack-details-view .large.player~.fsu-cards-attr{left:calc(50% + 42px)}.large.player .fsu-cards-attr{right:0;left:auto;}.large.player .fsu-cards-pos{right:auto;left:0;}       .fsu-akb .ut-toggle-cell-view>.ut-toggle-control .ut-toggle-control--grip,.fsu-akb-title .ut-toggle-cell-view>.ut-toggle-control .ut-toggle-control--grip{font-family:UltimateTeam-Icons,sans-serif;font-style:normal;font-variant:normal;font-weight:400;text-transform:none;flex-shrink:0;font-size:1em;text-decoration:none;text-align:center;line-height:1.5rem;transition:color .3s,bottom .3s,top .3s}.fsu-akb .ut-toggle-cell-view>.ut-toggle-control .ut-toggle-control--grip::before,.fsu-akb-title .ut-toggle-cell-view>.ut-toggle-control .ut-toggle-control--grip::before{content:'\\\\E051';color:#3a4755}.fsu-akb .ut-toggle-cell-view>.ut-toggle-control.toggled:not(.disabled) .ut-toggle-control--grip::before,.fsu-akb-title .ut-toggle-cell-view>.ut-toggle-control.toggled:not(.disabled) .ut-toggle-control--grip::before{content:'\\\\E02F';color:#36b94b}.fsu-akb .ut-toggle-cell-view>.ut-toggle-control.toggled:not(.disabled) .ut-toggle-control--track,.fsu-akb-title .ut-toggle-cell-view>.ut-toggle-control.toggled:not(.disabled) .ut-toggle-control--track{background-color:#36b94b}.fsu-akb .ut-toggle-cell-view>.ut-toggle-cell-view--label{display:none}.fsu-akb .ut-toggle-cell-view{position:absolute;z-index:10;transform:scale(0.7);padding:0 1rem 1rem 0;cursor:pointer}.fsu-akb-title{align-items:center;background-color:#2b3540;display:flex;justify-content:space-between;padding:.75rem .5rem;border-top:solid 1px #556c95}.fsu-akb-left{display:flex;align-items:center}.fsu-akb-title .ut-toggle-cell-view>.ut-toggle-control .ut-toggle-control--grip{transition:color .3s,left .3s,right .3s}.fsu-akb-left>div{padding:0 .675rem 0 0}.fsu-akb-left>div:last-child{padding-right:0}                  body.landscape.futweb{min-height: 38rem;}                                                         html[dir=ltr] .listFUTItem .entityContainer>.name.fsulocked.locked,html[dir=ltr] .listFUTItem .entityContainer>.name.fsulocked.untradeable{padding-right:2.7em}html[dir=ltr] .listFUTItem .entityContainer>.name.fsulocked.locked::before,html[dir=ltr] .listFUTItem .entityContainer>.name.fsulocked.untradeable::before{right:1.4em}                                    .filter-btn.fsu-eligibilitysearch{height:1.8rem;width:1.8rem;position:absolute;right:0}.ut-image-button-control.filter-btn.fsu-eligibilitysearch::after{font-size:1rem;content:'\\\\E09D'}                  .item.player>.fsu-cards-rating{position:absolute;left:50%;top:50%;font-size:5rem;transform:translate(-50%,-50%)}.large.item.player>.fsu-cards-rating{font-size:7rem}.item.player.ut-item-loading>.fsu-cards-rating{opacity:1}.item.player.ut-item-loaded>.fsu-cards-rating{opacity:0}                        .fsu-chemistryfilter{position:absolute;right:.5rem;top:.5rem;}                          .ut-list-active-tag-view .label-container.fsu-inclubtag{background-color:#0b96ff}.ut-list-active-tag-view .label-container.fsu-inclubtag::after{border-color:#0b96ff}                                           .fsu-optionbest{position:relative}.fsu-optionbest > span,.fsu-optionbest > .player-pick-option,.fsu-optionbest > .fsu-pickspc{position:relative;z-index:1}.fsu-optionbest >.no-favorites-tile{position:absolute;max-width:100%;height:120%;width:100%;margin:-15% 0 0 0;z-index:0;top:0px;right:0px;padding:0;background-image: url(https://www.ea.com/ea-sports-fc/ultimate-team/web-app/content/25E4CDAE-799B-45BE-B257-667FDCDE8044/2025/fut/dynamicObjectives/groups/f4c231d9-a38c-44a4-a932-87af2136cca5/group_background.png);}.fsu-optionbest > .no-favorites-tile::before{font-size:2.2rem;height:2.2rem;width:2.2rem;line-height:2.2rem;}.fsu-optionbest > .player-pick-option.selected ~ .no-favorites-tile::before{display:none}                      .fsu-navsbc{height:80%;justify-content:flex-end;margin-right:1rem;flex: 0 0 auto;}.fsu-navsbc button{margin:-0.25rem;width:60px;}.phone .fsu-navsbc{margin-right:.25rem}.phone .fsu-navsbc button{margin:-.1rem}    .fsu-shownavsbc .ut-navigation-button-control{width:3rem}.fsu-shownavsbc .title{flex:1 0;position:relative !important;width:auto !important;text-align:left !important;padding:0 0 0 0.5rem !important}.fsu-shownavsbc .fsu-navsbc{height:3rem}.fsu-shownavsbc .ut-iteminfochange-button-control{display:none}.fsu-shownavsbc .fsu-navsbc button{width:2.6rem}        .phone .fsu-optionbest > .no-favorites-tile{height:108%;margin:-4% 0 0 0;border-radius:10px}.phone .fsu-optionbest > .no-favorites-tile::before{font-size:1rem;height:1rem;width:1rem;line-height:1rem;margin:.25rem}                .fsu-cards-attr div.fsu-academytips{display:flex;align-content:center;justify-content:center;background:linear-gradient(to bottom,#00A7CC 0,#007D99 100%);color:#0f1010;box-shadow:0 1px 1px 0 rgba(0,0,0,.5);border:none}.fsu-academytips-icon{height:0;width:10px;margin-left:-2px;}                              .fsu-academytips-icon::before,.ut-store-pack-details-view--description.fsu-packprice:before,.fsu-cards-price.fsu-unassigned:before{font-family:UltimateTeam-Icons,sans-serif;font-style:normal;font-variant:normal;font-weight:400;text-decoration:none;text-transform:none}.fsu-academytips-icon::before{content:'\\\\E001'}.ut-store-pack-details-view--description.fsu-packprice:before{color:#f7b702;display:inline-block;content:'\\\\E096';margin-right:.25rem}.fsu-cards-price.fsu-unassigned:before{content:'\\\\E0C4';display:inline-block;margin-right:.3em;vertical-align:middle;color:#f7b702}                                      .fsu-cards-meta{padding:0;display:flex;font-family:UltimateTeam,sans-serif;font-size:.8rem;height:1rem;align-items:center;z-index:5;cursor:pointer;}.fsu-cards-meta > div{margin-right:.2rem}.fsu-cards-meta > div:first-child{border-radius:4px 0 0 4px;height:1rem;width:1.6rem;font-weight:900;}                                button.currency.call-to-action.fsu-challengefastbtn{height:2.6rem;line-height:1.4rem;padding:0px 1rem;font-size:1rem}button.currency.call-to-action.fsu-challengefastbtn > span{display: block !important;}button.currency.call-to-action.fsu-challengefastbtn .subtext{font-size:80%;line-height:1rem;color:#a6a6a6;}.ut-sbc-challenge-table-row-view .fsu-challengefastbtn{width:70%}@media (min-width:768px){.ut-sbc-challenge-table-row-view .fsu-challengefastbtn{width:60%}}.ut-sbc-challenge-table-row-view.selected button.currency.call-to-action.fsu-challengefastbtn{background-color:#222426;color:#fcfcf7}.ut-sbc-challenge-table-row-view.selected button.currency.call-to-action.fsu-challengefastbtn.hover{background-color:#575753}.ut-sbc-challenge-table-row-view button.currency.call-to-action.fsu-challengefastbtn.disabled{background-color:#575753;color:#30312f}                                     .fsu-navsbccount{padding:.2em 0;margin-right:.5rem;align-items:center;display:flex;justify-content:flex-end}.fsu-navsbccount::after{background-position:right top;content:'';background-repeat:no-repeat;background-size:100%;display:inline-block;height:1em;vertical-align:middle;width:1em;background-image:url(https://www.ea.com/ea-sports-fc/ultimate-team/web-app/images/sbc/logo_SBC_home_tile.png);margin-top:-.15em;margin-left:.3em}                                .ut-image-button-control.filter-btn.fsu-transfer::after{content:'\\\\E0E5';font-size:1.6rem}.ut-image-button-control.filter-btn.fsu-club::after{content:'\\\\E052';font-size:1.6rem}.ut-image-button-control.filter-btn.fsu-swap::after{content:'\\\\E0E4';font-size:1.4rem}.ut-image-button-control.filter-btn.fsu-refresh::after{content:'\\\\E0C4';font-size:1.4rem}.ut-image-button-control.filter-btn.fsu-storage::after{content:'\\\\E0C9';font-size:1.4rem}.filter-btn.fsu-swap,.filter-btn.fsu-transfer,.filter-btn.fsu-club,.filter-btn.fsu-storage,.filter-btn.fsu-refresh{margin-left:1rem;width:3rem;height:3rem}                                            .ut-club-hub-view .tile.fsu-storage .tileContent:before { content:'\\\\E0C9'; }                          .ut-list-active-tag-view .label-container.fsu-instoragetag,.listFUTItem.hover .ut-list-active-tag-view .label-container.fsu-instoragetag{background-color:#f19be6}.ut-list-active-tag-view .label-container.fsu-instoragetag::after,.listFUTItem.hover .ut-list-active-tag-view .label-container.fsu-instoragetag::after{border-top-color:#f19be6}                                                                                                                                      .ut-player-picks-view .carousel-indicator-dots.fsu-pickbest li{width:16px;height:16px;text-align:center;overflow:hidden}.ut-player-picks-view .carousel-indicator-dots.fsu-pickbest li.active{transform:scale(1.4)}.ut-player-picks-view .carousel-indicator-dots.fsu-pickbest li.best::after{content:'\\\\E0D4';font-family:UltimateTeam-Icons,sans-serif;font-style:normal;font-variant:normal;font-weight:400;text-decoration:none;text-transform:none;color:#07f468;font-size:1rem;line-height:1.1rem}.ut-player-picks-view .carousel-indicator-dots.fsu-pickbest li.best.active::after{color:#fd4821}                                     .ut-button-group button.more.fsu-open::after{-webkit-transform:rotate(0deg) !important;transform:rotate(0deg) !important}                                                                .fsu-sbcNeedsBody,.fsu-realProdBody{height:30vh;overflow-y:auto}.fsu-sbcNeedsTitle,.fsu-sbcNeedsBodyItem,.fsu-realProdTitle,.fsu-realProdBodyItem{display:flex}.fsu-sbcNeedsTitle,.fsu-realProdTitle{padding:.5rem 1rem;background-color:#30312f;font-size:1rem}.fsu-sbcNeedsBodyItem,.fsu-realProdBodyItem{padding:.75rem 1rem;align-items:center;background-color:#18191b;font-size:1em}.fsu-sbcNeedsBodyItem:nth-of-type(even),.fsu-realProdBodyItem:nth-of-type(even){background-color:#212224}.fsu-sbcNeedsTitle div,.fsu-sbcNeedsBodyItem div{width:18%}.fsu-realProdTitle div,.fsu-realProdBodyItem div{width:20%}.fsu-sbcNeedsTitle div:last-child,.fsu-sbcNeedsBodyItem div:last-child{width:28%;text-align:right}.fsu-realProdTitle div:first-child,.fsu-realProdBodyItem div:first-child{width:40%}                                    .fsu-price-reward::after{font-family:UltimateTeam-Icons,sans-serif;content:'\\\\E0C9';font-size:94%;color:#fae8e6}.small.player .fsu-price-box{font-size:90%}.large.player .fsu-price-box{font-size:1rem}.small.player .fsu-price-box,.large.player .fsu-price-box{display:flex;justify-content:center;align-items:center}.fsu-price-box.old{background-color:#0f1417;color:#a4a9b4;border:0}.fsu-price-val[data-value='0'][data-type='1']{display:none !important}.fsu-cards-price::after{margin-left:.2em !important;margin-top:0}.large.player .fsu-cards-price.currency-coins::after{margin-top:-.15em}.fsu-price-box.right>div .value{font-size:1.2rem;margin-top:.5rem;line-height:1.2rem;display:flex;justify-content:center;align-items:center}.fsu-price-val .fsu-price-reward::after{margin-left:.3em;font-size:80%;margin-top:-.15em}                              .fsu-cards-foot{position:relative}.fsu-cards-foot::after{content:'';height:3px;width:3px;background-color:var(--fsu-cards-foot-color);display:block;position:absolute;bottom:0px;border-radius:2px}.fsu-cards-foot.l::after{left:0px}.fsu-cards-foot.r::after{right:0px}                    .fsu-cards-attr div,.fsu-cards-pos div{border:1px solid;border-color:inherit;line-height:100%;border-radius:5px;color:var(--fsu-cards-color);background:var(--fsu-cards-background);width:22px;white-space:nowrap;height: 13px;line-height: 15px;}                        .fsu-lockbtn{padding:0 8px !important;min-height:30px !important;position:absolute;right:64px;bottom:0;font-size:0.75rem !important;z-index:2;display:flex;align-items:center}.fsu-lockbtn.lock::before{content:'\\\\E09C'}.fsu-lockbtn.unlock::before{content:'\\\\E09C'}.fsu-lockbtn::before{font-family:UltimateTeam-Icons,sans-serif;padding-right:.2rem;content:'';display:block}.fsu-lockbtn.unlock{background-color:#fcfcf7;color:#151616}.fsu-lockbtn.unlock::after{content:'';display:block;position:absolute;left:18px;top:10px;width:2px;height:16px;background:#ff4c4c;transform:rotate(45deg);transform-origin:top center}.ut-club-hub-view .tile.fsu-lock .tileContent:before { content:'\\\\E09C'; }html[dir=ltr] .listFUTItem .entityContainer>.name.fsulocked::after{font-family:UltimateTeam-Icons,sans-serif;color:#d31332;margin-top:2px;position:absolute;width:1.1em;content:'\\\\E09C';right:0}html[dir=ltr] .listFUTItem .entityContainer>.name.fsulocked{padding-right:1.4em}html[dir=ltr] :not(.phone) .listFUTItem .entityContainer>.name.fsulocked.untradeable { max-width: 42%; }.fsu-cardlock{position:absolute;height:.9rem;width:.9rem;right:0;bottom:5%;z-index:2;background-color:#222426;border:1px solid #333d47;border-radius:100%;text-align:center;box-shadow:0 1px 3px #000;font-size:10.8px}.fsu-cardlock::before{font-family:UltimateTeam-Icons,sans-serif;content:'\\\\E09C';display:inline-block;vertical-align:middle;background-size:100% auto;color:#d31332;background-repeat:no-repeat}                                  .listfilter-btn{padding:0;width:100%;height:1.6rem;line-height:1.8rem;border-radius:.4rem;font-size:.9rem;min-height:1.6rem}                                      .ut-squad-building-set-status-label-view.refresh.sbccount{display:flex;align-items:center;gap:4px;opacity:0.5}.ut-squad-building-set-status-label-view.refresh.sbccount::before{content:'\\\\E0C2';color:#36b84b;font-size:14px;line-height:17px}                                                           .fsu-trypack-box{position:absolute;right:0}.landscape button.currency.fsu-trypack{padding:.25rem .5rem;width:auto;color:#f2f2f2;background:#556c95;border-radius:.6rem;align-items:center;display:flex;font-family:UltimateTeam-Icons,sans-serif;min-height:36px}.landscape button.currency.fsu-trypack .text{font-size:1rem;font-weight:600}.landscape button.currency.fsu-trypack::after{content:'\\\\E0A2';font-size:110%;padding-left:.2rem}.landscape button.currency.fsu-trypack.hover{background:#9e9e99}.phone .fsu-trypack-box{position:relative;}                                .fsu-player-other>div{background:#3B4754;color:#a4a9b4;padding:0.1rem 0.3rem;text-align:center;border-radius:20px;font-size:inherit;line-height:1.5;margin-right:0.5rem;height:1rem;white-space:nowrap}.fsu-player-other>div.swap{background:#36b84b;color:#201e20}.fsu-player-other>div.not{background:#8A6E2C;color:#201e20}.fsu-player-other>div.storage{background:#f6b803;color:#201e20}.fsu-player-other>div.yes{background:#264A35;color:#201e20}.large.player+.fsu-player-other{justify-content:center}.large.player+.fsu-player-other>div{margin-right:0rem}.fsu-player-other .currency-coins::after{font-size:.875rem;margin-top:-3px;margin-left:2px !important}@media (max-width:1130px){.has-auction-data .fsu-player-other{margin-top:5rem !important}.has-auction-data .fsu-price-box.trf{margin-top:5rem !important;left:auto;right:3%}}                                                                                     /*商店数量标识*/.ut-store-hub-view .storehub-tile.packs-tile.highlight[data-num]::after{content:attr(data-num);top:22px;padding:2px 6px;border-radius:4px;line-height:1.2rem;font-size:1.2rem;color:#0c0d0d;height:16px;width:auto}@media (min-width:768px){.ut-store-hub-view .storehub-tile.packs-tile.highlight[data-num]::after{height:20px;font-size:1.4rem;line-height:1.4rem;top:26px;padding:2px 8px}}                         /*旧卡样式去除边框*/.fsu-cards.old div{border:none}                                 /*阵容价值部分*/.fsu-squad-pValue{font-family:UltimateTeamCondensed,sans-serif;font-weight:400;font-size:.875rem;text-overflow:ellipsis;white-space:nowrap}.fsu-squad-pValue.currency-coins::after{font-size:.875rem;margin-left:.2em !important;margin-top:-.2em !important}.fsu-squad-pTitle .plus{color:#36b84b;padding-left:.1rem}.fsu-squad-pTitle .minus{color:#d21433;padding-left:.1rem}                                    /*弹窗球员列表显示优化*/.fsu-popupItemList{display:flex;flex-direction:column;gap:12px}.fsu-popupItemList > .listFUTItem{margin:0 !important}                                           /*改变为公共新标识*/.fsu-newtips{background-color: #ee2208;z-index:2;position:absolute;left:0;top:20px;transform:rotate(-45deg);transform-origin:0 100%;height:36px;line-height:42px;width:80px;text-align:center;font-weight:bold}            /*调整配色*/.fsu-task{display: flex;justify-content: space-between;padding: 0.5rem;background-color: #ee2208;}.fsu-task.no{background-color: #b1570c;}.task-expire{background-color: #b1570c;height: 2rem;line-height: 2rem;text-align: center;}.fsu-sbc-info{padding: 0.5rem;background-color: #2f4a5b;display: flex;font-family: UltimateTeamCondensed,sans-serif;justify-content: space-between;font-size: 1rem;}                        /*导航栏计数标识*/.fsu-tab-count{font-size:14px;align-self:center;padding:4px 6px;background-color: #575753;color:#a6a6a1;line-height:1;border-radius:4px;margin-left:6px}.selected > .fsu-tab-count{background-color: #ee2208;color:#fcfcfc}.selected > .fsu-tab-count.expire{background-color: #aa540c}.phone .fsu-tab-count{padding:2px 3px;font-size:12px;border-radius:3px}                           /*挑选包预览*/.fsu-popupItemList .listFUTItem .entityContainer>.name{padding-top:10px;padding-bottom:0px}html[dir=ltr] .fsu-popupItemList .listFUTItem .entityContainer .item{margin-right:14px}.fsu-popupItemOther{font-size:26px;display:flex;color:#ffffff;width:100%;justify-content:space-between;align-items:center;padding:8px;background-color:#2f4a5b;box-sizing:border-box;gap:12px}.fsu-popupItemOther .btn-standard{width:auto;flex:0;min-width:120px;margin-bottom:0}.fsu-popupItemTrait{display:flex;gap:8px}.phone .fsu-popupItemOther{flex-direction:column}.phone .fsu-popupItemOther .btn-standard{width:100%}.fsu-traitIcon.fut_icon.icon{color:#ffc91f}.fsu-traitIcon.fut_icon.icon_basetrait16{position:relative}.fsu-traitIcon.fut_icon.icon_basetrait16:before{content:'\\\\E074';z-index:1;position:relative;top:2px;background:#2f4a5b;clip-path:inset(5px 5px 10px 5px)}.fsu-traitIcon.fut_icon.icon_basetrait16::after{content:'\\\\E031';position:absolute;left:0;z-index:0}.fsu-popupItemList .listFUTItem .rowContent{border-radius:10px}                              /*卡片状态标识配色*/.fsu-cards-buyerror,.fsu-cards-storage,.fsu-cards-unassigned{left:auto !important;right:1% !important;background-color:#5b167d !important;border-color:#7c319e !important;color:#fae8e6 !important}.fsu-cards-buyerror{background-color:#d31332 !important;border-color:#d6675d !important;color:#fae8e6 !important}.fsu-cards-unassigned{background-color:#d19a01 !important;border-color:#DEBA43 !important;color:#FCFBF0 !important}                                             /*未分配快速任务标签*/.fsu-unassigned-fastsbcbox{display:flex;padding:6px 16px;gap:12px;overflow-x:auto}.fsu-unassigned-fastsbcbox .btn-standard{overflow:visible;position:relative;padding:3px 6px;border-radius:6px}.fsu-unassigned-fastsbcinfo{display:flex;align-items:flex-start;justify-content:center;flex-direction:column;max-width:10rem;overflow:hidden}.fsu-unassigned-fastsbcdot{position:absolute;top:-6px;right:-6px;background:#0ff;height:14px;width:14px;line-height:14px}.fsu-unassigned-fastsbctext{line-height:20px;max-width:10rem;font-size:14px;text-overflow:ellipsis;overflow:hidden;white-space:nowrap}.fsu-unassigned-fastsbctsub{line-height:12px;max-width:10rem;font-size:12px;color:rgb(166,166,166)}.fsu-unassigned-fastsbctsub span{margin:0px 2px}                                                                   /*可开球员tile和特殊品质tile*/.fsu-showPlayerstile header p{padding-top:4px;color:#a6a6a1}.fsu-showPlayerstile .img-box{text-align:center;height:160px}.fsu-showPlayerstile .img-box img{height:auto;width:80%}.fsu-showPlayerstile.fsu-specialTile .img-box img{height:80%;width:auto}.fsu-showPlayerstile.fsu-specialTile .img-box img:first-child{height:70%}.fsu-showPlayerstile.fsu-specialTile .img-box img:last-child{height:70%}.fsu-showPlayerstile .ut-label-view{margin-top:-32px}                               /*包内球员*/.fsu-showPlayers{}.fsu-showPlayersList{grid-template-columns:repeat(auto-fill,300px);display:grid;justify-content:center;gap:30px;padding:48px}.fsu-showPlayersItem{background-color:#2d2c36;border-radius:16px;color:#fcfcfc;padding:16px 16px 48px 16px;overflow:clip;position:relative}.phone .fsu-showPlayersList{padding:8px;gap:8px;grid-template-columns:1fr 1fr}.phone .fsu-showPlayersItem{zoom:0.6}.fsu-showPlayersTrais{display:flex;gap:8px;justify-content:center;font-size:24px;margin:8px 0;padding:8px 0;opacity:0.6;flex-wrap: wrap;}.fsu-showPlayersCard{display:grid;justify-content:center}.fsu-showPlayersBtn{width:100%;margin:0 -16px;border-radius:0;border:none;line-height:32px;position:absolute;bottom:0}.fsu-showPlayersLabel{position:absolute;left:0;top:0;line-height:32px;font-size:14px;color:#0f0f0f;background-color:#0b96ff;padding:0 20px;border-radius:0 0 16px 0}                               /*移除部分界面name的内间距*/.fsu-removeNamePadding ~ div.name{padding-top:14px !important;padding-bottom:0px !important}                                            /*卡组展示*/.fsu-showPlayersItem.fsu-showRarity{display:flex;flex-direction:column;font-size:14px;line-height:14px}.fsu-showRarityCard{display:grid;text-align:center;position:relative;margin-top:-16px}.fsu-showRarityCard img{height:200px;margin:auto}.fsu-showRarityCount{position:absolute;top:138px;width:100%;line-height:32px;font-size:32px;font-family:UltimateTeamCondensed,sans-serif;font-weight:bold}.fsu-showRarityBtns{display:flex;position:absolute;bottom:0;width:100%;margin:0 -16px;gap:1px;background-color:rgba(222,222,216,.25)}.fsu-showRarityBtns > button{flex:1;border:0;border-radius:0;line-height:32px}.fsu-showRarityBtns > button.btn-standard.disabled{background-color:#6a6a65}.fsu-showRarityTips{padding:0 16px;background-color:#0b96ff;color:#0f0f0f;height:32px;line-height:32px;position:absolute;top:0;left:0;border-bottom-right-radius:19px}.fsu-showRarityInfo{padding:16px 0;display:flex;flex-direction:column;gap:4px;font-size:12px;line-height:12px}.fsu-showRarityAttrs,.fsu-showRarityExpiry{display:flex;align-items:center;gap:8px;justify-content:center;flex-wrap:wrap}.fsu-showRarityExpiry{gap:6px}.fsu-showRarityExpiry i{color:#f7b702}.fsu-showRarityAttrs div{padding:4px 8px;background-color:rgba(7,244,104,.4);border-radius:20px}                          /*新SBC右侧快捷列表*/.fsu-substitutionBox{margin:0 16px;padding:12px;display:flex;flex-direction:column;gap:6px}.fsu-substitutionTitle{font-size:12px;line-height:14px}.fsu-substitutionBtns{background:#6a696d;display:flex;justify-content:space-around;font-size:14px;line-height:14px;gap:1px;border-radius:12px;overflow:clip;align-items:center}.fsu-substitutionBtns > button{flex:1;text-align:center;padding:12px 0;background:#504f52;font-size:inherit;line-height:inherit;border-radius:0;border:0;min-height:auto;}.fsu-substitutionTitle:not(:first-of-type) {margin-top: 12px;}                                                    /*新排序筛选*/.fsu-SortFilterBox{display:flex;gap:8px;margin:0px 16px 8px 16px}.fsu-SortFilterItem{flex:1;min-width:0}.fsu-SortFilterTitle{font-size:12px;line-height:14px;margin-bottom:4px;color:#a6a6a1}.fsu-SortFilterBtn{border:none;border-radius:8px;width:100%;min-height:auto;font-size:14px;background:#504f52;padding:8px 0px;white-space:nowrap;line-height:14px;overflow:hidden}.fsu-SortFilterBtn.priority{background: #786735;}                                   /*新阵容价值*/.fsu-SquadValue{position:absolute;right:20px;top:20px;font-family:UltimateTeamCondensed,sans-serif;font-weight:400}.fsu-SquadValueItem{background:#4e4f4dcc;font-size:17px;line-height:18px;padding:8px 10px 6px 10px;border-radius:4px;display:flex;align-items:center;gap:8px;color:#fcfcfc;justify-content:space-between;margin-bottom:10px}.fsu-SquadValueTitle{font-size:14px}.fsu-SquadValuePrice{}.phone .fsu-SquadValue{right:auto;left:14px;top:auto;bottom:62px;text-shadow:2px 2px 3px rgba(0,0,0,.5)}.phone .fsu-SquadValueItem{font-size:15px;line-height:16px;padding:0px;margin-bottom:0px;background:none;margin-top:8px}.phone .fsu-SquadValueTitle{font-size:13px}                               /*新价格显示框*/.fsu-PriceBar{position:absolute;transform:translateX(-50%) scale(0.9) !important;left:50%;z-index:2;font-family:UltimateTeamCondensed,sans-serif;display:flex;gap:8px}.fsu-PriceBarItem{display:flex;align-items:stretch;justify-content:center;background-color:#13151d;border:1px solid #3f444b;font-size:15px;border-radius:4px;overflow:hidden;height:17px;box-shadow:0px 1px 3px rgb(63 68 75 / 40%)}.fsu-PriceBarItem .fsu-PriceValue{display:flex;align-items:center;padding:3px 4px 0px 4px;color:#f7b702}.fsu-PriceBarItem .fsu-PriceType{display:flex;align-items:center;padding:2px 3px 0 1.6px;background-color:#2b3036;color:#a0a0a0;font-size:11px;font-weight:700;font-style:italic;letter-spacing:.4px;text-transform:uppercase}.large.player .fsu-PriceBar{transform:translateX(-50%) scale(1.2) !important;top:4px}.fsu-PriceRightBox{position:absolute;right:16px;z-index:2;transform:translateY(-50%) !important;top:50%;display:flex;gap:16px;font-family:UltimateTeamCondensed,sans-serif}.fsu-PriceRightItem{background-color:#3b4754;border-radius:8px;padding:8px 6px;color:#a4a9b4;display:flex;flex-direction:column;gap:8px;align-items:center}.fsu-PriceRightBox.top{top:16px}.fsu-PriceRightBox.top .fsu-PriceRightItem{flex-direction:row;padding:4px 6px 2px}.fsu-PriceRightBoxTitle{font-size:14px;text-align:center;line-height:14px}.fsu-PriceRightBoxBar{display:flex;justify-content:center;align-items:center}.fsu-PriceRightItem .fsu-PriceValue{font-size:22px;line-height:18px;color:#f7b702}.fsu-PriceRightItem .fsu-PriceType{text-transform:uppercase;font-size:14px;font-weight:500;padding:3px 4px 2.2px 1.6px;background-color:#2b3036;color:#a0a0a0;font-style:italic;margin-left:4px;border-radius:4px;margin-top:-3px}.fsu-PriceBarItem[data-show='0'],.fsu-PriceRightItem[data-show='0']{display:none !important}.fsu-PriceBarItem.tradable .fsu-PriceValue,.fsu-PriceRightItem.tradable .fsu-PriceValue{color:#fcfcfc}.fsu-PriceType[data-content='ut']{font-size:0}.fsu-PriceType[data-content='ut']::after{background-position:right top;content:'';background-repeat:no-repeat;background-size:100%;display:inline-block;height:12px;vertical-align:middle;width:12px;background-image:url(../web-app/images/coinIcon.png);margin-top:-2px;margin-right:-1px}.fsu-PriceBarItem.precious .fsu-PriceType{background-color:#fd7254}.fsu-PriceBarItem.precious{background:#ee2208;border-color:#fd7254}.fsu-PriceRightBoxBar .fsu-PriceType[data-content='ut']{height:16px;width:16px}.fsu-PriceRightBoxBar .fsu-PriceType[data-content='ut']::after{margin-top:0.5px;margin-right:0px;margin-left:2px;height:14px;width:14px}                                /*进化增加属性展示*/.fsu-academyAttribute{font-family:UltimateTeam-Icons,sans-serif;font-size:14px;line-height:16px;color:#80807a}.fsu-academyAttributeIncrease{padding-left:8px;padding-right:4px}.fsu-academyAttributeIncrease span{color:#07f468}.fsu-academyAttributeValue{font-weight:bold;font-size:16px}.fsu-academyAttributeValue.added{color:#0b96ff}.fsu-academyAttributeValue.addedMain{color:#fd4821}                                    /*进化属性显示*/.academieBtn{background:#2d2c36;border-radius:8px;padding:8px 12px 6px 12px;cursor:pointer;margin-bottom:8px;font-family:UltimateTeamCondensed,sans-serif;border:1px solid #2d2c36}.academieBtn.not{opacity:0.5}.academieBtn:hover{border-color:#1fc3c1}.academieBtnTitle{display:flex;align-items:center;justify-content:space-between;line-height:14px;margin-bottom:6px}.academieBtnName{color:#b5b9c3;font-size:14px}.academieBtnTime{font-size:12px;color:#9e9e9a}.academyBoostsBox{display:flex;gap:4px;font-size:12px;line-height:11px;text-transform:uppercase;flex-wrap:wrap;flex-direction:row}.academyBoostsItem{padding:4px 4px 1px 4px;border-radius:4px;font-weight:500;background:#3a4652;color:#d4d8de}.academyBoostsItem span{color:#07f468;font-size:16px;padding-left:2px;font-weight:100}.academyBoostsTips{flex:100%;padding-top:6px;color:#9e9e9a}.academyBtnTips{color:#fd7254;padding:8px 4px;font-size:14px;text-align:center}.academyViewBox{background:#191820;border-radius:8px;padding:8px 12px 6px 12px;margin-bottom:8px;font-family:UltimateTeamCondensed,sans-serif}.academyViewBox .academyBoostsBox{gap:8px;justify-content:center}.academyViewBox .academyBoostsTips{text-align:center}.academyViewBox.itemList{padding:24px 8px 8px;margin:-32px 16px 16px}.academyViewBox.itemList .academyBoostsBox{gap:4px}.academyViewBox.itemList .academyBoostsBox > *{zoom:0.8}                                    /*进化需求按钮*/.fsu-substitutionBtns>button.fsu-substitutionReqBtn{display:flex;align-items:center;justify-content:center;gap:4px;position:relative;height:36px}.fsu-substitutionReqBtn>img{height:24px;width:auto}.fsu-substitutionReqBtn>img.small{height:20px;width:20px}.fsu-substitutionReqBtn>div{position:absolute;right:0;bottom:0;padding:3px 4px 0px;background:rgb(253 114 84 / 70%);font-size:14px;line-height:12px;border-top-left-radius:4px}.fsu-substitutionReqBtn.state-meet>div{background:rgb(38 133 53 / 70%)} */                                                     /*CSS*/";
 
   // src/fsu/patches/unassigned.js
   function installUnassignedPatches(deps) {
@@ -1671,15 +1679,15 @@
         section._fsuGoToStorage.getRootElement().after(section._fsuRefreshBtn.getRootElement());
       }
     };
-    UTUnassignedItemsView.prototype.renderSection = function(e2, t, i2) {
-      call.view.unassignedRenderSection.call(this, e2, t, i2);
+    UTUnassignedItemsView.prototype.renderSection = function(e2, t, i) {
+      call.view.unassignedRenderSection.call(this, e2, t, i);
       let section = this.sections[t];
       let controller = _.find(this.eventDelegates, (ed) => {
         return ed.className && ed.className.includes("UTUnassigned") && ed.className.includes("Controller");
       });
       if (t == UTUnassignedItemsViewModel.SECTION.ITEMS) {
-        let tradable = _.filter(e2, (i3) => {
-          return i3.loans == -1 && i3.type == "player" && !i3.untradeableCount;
+        let tradable = _.filter(e2, (i2) => {
+          return i2.loans == -1 && i2.type == "player" && !i2.untradeableCount;
         });
         if (tradable.length) {
           if (!_.has(section, "_fsuTransfer")) {
@@ -1694,8 +1702,8 @@
             section._header.getRootElement().appendChild(section._fsuTransfer.getRootElement());
           }
         }
-        let toClubPlayers = _.filter(e2, (i3) => {
-          return i3.loans == -1 && i3.type == "player";
+        let toClubPlayers = _.filter(e2, (i2) => {
+          return i2.loans == -1 && i2.type == "player";
         });
         if (toClubPlayers.length && !_.has(section, "_fsuClub")) {
           section._fsuClub = events.createButton(
@@ -1710,8 +1718,8 @@
         }
       }
       if (t == UTUnassignedItemsViewModel.SECTION.DUPLICATES) {
-        let players = _.filter(e2, (i3) => {
-          return i3.loans == -1 && i3.type == "player";
+        let players = _.filter(e2, (i2) => {
+          return i2.loans == -1 && i2.type == "player";
         });
         if (players.length) {
           if (!_.has(section, "_fsuTransfer")) {
@@ -1728,17 +1736,17 @@
         }
       }
       if (t == UTUnassignedItemsViewModel.SECTION.UNTRADABLEDUPLICATES) {
-        let players = _.filter(e2, (i3) => {
-          return i3.loans == -1 && i3.type == "player";
+        let players = _.filter(e2, (i2) => {
+          return i2.loans == -1 && i2.type == "player";
         });
         if (players.length) {
-          let playerIds = _.map(players, (i3) => {
-            return i3.definitionId;
+          let playerIds = _.map(players, (i2) => {
+            return i2.definitionId;
           });
           let r = repositories.Item;
           if (r.numItemsInCache(ItemPile.STORAGE) && !_.has(section, "_fsuGoToStorage")) {
-            let sendClubPlayers = _.filter(repositories.Item.storage.values(), (i3) => {
-              let clubPlayers = events.getItemBy(1, { "definitionId": i3.definitionId, "upgrades": null }, false, repositories.Item.club.items.values());
+            let sendClubPlayers = _.filter(repositories.Item.storage.values(), (i2) => {
+              let clubPlayers = events.getItemBy(1, { "definitionId": i2.definitionId, "upgrades": null }, false, repositories.Item.club.items.values());
               return clubPlayers.length == 0;
             });
             if (sendClubPlayers.length) {
@@ -1791,7 +1799,7 @@
             section._fsuStorage.getRootElement().appendChild(notif);
             section._header.getRootElement().appendChild(section._fsuStorage.getRootElement());
           }
-          const hPlayers = _.orderBy(_.filter(players, (i3) => i3.rating > info.set.goldenrange), ["rating"], ["desc"]);
+          const hPlayers = _.orderBy(_.filter(players, (i2) => i2.rating > info.set.goldenrange), ["rating"], ["desc"]);
           if (storageLack && hPlayers.length && !_.has(section, "_fsuHighStorage") && (hPlayers.length < playerIds.length || hPlayers.length > storageLack)) {
             section._fsuHighStorage = events.createButton(
               new UTImageButtonControl(),
@@ -1830,10 +1838,10 @@
       } else {
         let sPrice = [];
         let sPlayers = [];
-        _.map(controller.viewmodel.values(), (i3) => {
-          if (i3.type == "player") {
-            sPlayers.push(i3.definitionId);
-            sPrice.push(events.getCachePrice(i3.definitionId, 1).num);
+        _.map(controller.viewmodel.values(), (i2) => {
+          if (i2.type == "player") {
+            sPlayers.push(i2.definitionId);
+            sPrice.push(events.getCachePrice(i2.definitionId, 1).num);
           }
         });
         let sSection = new UTSectionedItemListView();
@@ -1876,19 +1884,19 @@
         if (fastList.length) {
           if (_.size(services.SBC.repository.getSets())) {
             controller._fsuFastList = [];
-            _.forOwn(fastList, (i3) => {
-              const set = services.SBC.repository.getSetById(i3.sId);
-              const challenge = set ? set.getChallenge(i3.cId) : null;
+            _.forOwn(fastList, (i2) => {
+              const set = services.SBC.repository.getSetById(i2.sId);
+              const challenge = set ? set.getChallenge(i2.cId) : null;
               if (set && !set.isComplete() && (challenge == null || !challenge.isCompleted())) {
                 let btnTitle = "";
-                if (!_.has(info.base.fastsbc[i3.n], "n")) {
+                if (!_.has(info.base.fastsbc[i2.n], "n")) {
                   if (set.challengesCount === 1) {
-                    info.base.fastsbc[i3.n]["n"] = set.name;
+                    info.base.fastsbc[i2.n]["n"] = set.name;
                   } else if (challenge && challenge.name) {
-                    info.base.fastsbc[i3.n]["n"] = `${set.name}-${challenge.name}`;
+                    info.base.fastsbc[i2.n]["n"] = `${set.name}-${challenge.name}`;
                   }
                 }
-                btnTitle = _.has(info.base.fastsbc[i3.n], "n") ? `${info.base.fastsbc[i3.n].n}` : `${set.name}-${i3.cId}`;
+                btnTitle = _.has(info.base.fastsbc[i2.n], "n") ? `${info.base.fastsbc[i2.n].n}` : `${set.name}-${i2.cId}`;
                 console.log(btnTitle);
                 const duplicatePlayerIds = events.getItemBy(1, { id: _.map(e2, "duplicateId"), untradeableCount: 0 });
                 const swapPlayers = e2.filter((item) => duplicatePlayerIds.includes(item.definitionId));
@@ -1948,16 +1956,16 @@
                 let fastBtnText = events.createElementWithConfig("div", {
                   classList: "fsu-unassigned-fastsbctsub"
                 });
-                fastBtnText.innerHTML = events.getFastSbcSubText(info.base.fastsbc[i3.n]);
+                fastBtnText.innerHTML = events.getFastSbcSubText(info.base.fastsbc[i2.n]);
                 fastBtnBox.appendChild(fastBtnText);
                 let fastBtnTips = events.createElementWithConfig("div", {
-                  textContent: i3.c,
+                  textContent: i2.c,
                   classList: ["ut-tab-bar-item-notif", "fsu-unassigned-fastsbcdot"]
                 });
                 fastBtn.getRootElement().appendChild(fastBtnTips);
                 fastBtn.getRootElement().appendChild(fastBtnBox);
-                fastBtn._sId = i3.sId;
-                fastBtn._cId = i3.cId;
+                fastBtn._sId = i2.sId;
+                fastBtn._cId = i2.cId;
                 fastBtn._swap = swapPlayers;
                 controller._fsuFastList.push(fastBtn);
               }
@@ -2083,13 +2091,13 @@
     };
     events.playerSelectionSort = (view, player) => {
       let leagueOrder = [13, 53, 31, 19, 16, 2221, 2222];
-      let playerArr = _.map(player, (i2, k) => {
+      let playerArr = _.map(player, (i, k) => {
         return {
-          p: events.getCachePrice(i2.definitionId, 1).num,
-          r: i2.rating,
-          f: i2.rareflag,
+          p: events.getCachePrice(i.definitionId, 1).num,
+          r: i.rating,
+          f: i.rareflag,
           k,
-          l: _.includes(leagueOrder, i2.leagueId) ? _.indexOf(leagueOrder, i2.leagueId) : 99999
+          l: _.includes(leagueOrder, i.leagueId) ? _.indexOf(leagueOrder, i.leagueId) : 99999
         };
       });
       let sortKey = ["r", "f", "l"], sortOrder = ["desc", "desc", "asc"];
@@ -2108,9 +2116,9 @@
       }
       let bestPlayer = _.take(_.orderBy(playerArr, sortKey, sortOrder), pickNumber);
       if (bestPlayer.length) {
-        _.forOwn(bestPlayer, (i2) => {
+        _.forOwn(bestPlayer, (i) => {
           view.__carouselIndicatorDots.classList.add("fsu-pickbest");
-          view.__carouselIndicatorDots.querySelectorAll("li")[i2.k].classList.add("best");
+          view.__carouselIndicatorDots.querySelectorAll("li")[i.k].classList.add("best");
         });
       }
     };
@@ -2521,10 +2529,10 @@
               31: `.player-pick-option .small  ${sp2}`
             };
             let cs = 0;
-            for (let i2 in pm) {
-              if (document.querySelector(pm[i2])) {
-                if (!document.querySelector(pm[i2]).parentNode.querySelectorAll(".fsu-cards").length) {
-                  cs = Number(i2);
+            for (let i in pm) {
+              if (document.querySelector(pm[i])) {
+                if (!document.querySelector(pm[i]).parentNode.querySelectorAll(".fsu-cards").length) {
+                  cs = Number(i);
                   break;
                 }
               }
@@ -2847,9 +2855,9 @@
     };
     UTGameRewardsViewController.prototype.checkRewards = function(e2) {
       call.other.rewards.check.UT.call(this, e2);
-      _.map(e2, (t, i2) => {
+      _.map(e2, (t, i) => {
         if (t.isPack) {
-          events.setRewardOddo(this.getView()._rewardsCarousel.getRootElement().querySelectorAll(".reward")[i2], t);
+          events.setRewardOddo(this.getView()._rewardsCarousel.getRootElement().querySelectorAll(".reward")[i], t);
         }
       });
     };
@@ -2862,7 +2870,7 @@
       call.plist.squad.call(this);
       this._fsu ??= {};
       if (info.set.info_squad && !_.has(this._fsu, "squadValueBox")) {
-        const squadPrice = _.sumBy(this._squad.getFieldPlayers(), (i2) => events.getCachePrice(i2.item.definitionId, 1).num);
+        const squadPrice = _.sumBy(this._squad.getFieldPlayers(), (i) => events.getCachePrice(i.item.definitionId, 1).num);
         let squadValueBox = events.createElementWithConfig("div", {
           classList: ["fsu-SquadValue"]
         });
@@ -2934,10 +2942,10 @@
           });
           this._fsu.quickOther = quickOther;
         }
-        for (let i2 of eligibility) {
+        for (let i of eligibility) {
           if (this._fsu?.quickOther) {
-            if (i2.kvPairs._collection.hasOwnProperty(SBCEligibilityKey2.TEAM_RATING)) {
-              baseRating = i2.kvPairs._collection[SBCEligibilityKey2.TEAM_RATING][0];
+            if (i.kvPairs._collection.hasOwnProperty(SBCEligibilityKey2.TEAM_RATING)) {
+              baseRating = i.kvPairs._collection[SBCEligibilityKey2.TEAM_RATING][0];
               this._fsu.countRating = events.createButton(
                 new UTButtonControl(),
                 fy2("sbc.count"),
@@ -2948,7 +2956,7 @@
               );
               this._fsu?.quickOther.append(this._fsu.countRating.getRootElement());
             }
-            if (i2.kvPairs._collection.hasOwnProperty(SBCEligibilityKey2.CHEMISTRY_POINTS) || i2.kvPairs._collection.hasOwnProperty(SBCEligibilityKey2.ALL_PLAYERS_CHEMISTRY_POINTS)) {
+            if (i.kvPairs._collection.hasOwnProperty(SBCEligibilityKey2.CHEMISTRY_POINTS) || i.kvPairs._collection.hasOwnProperty(SBCEligibilityKey2.ALL_PLAYERS_CHEMISTRY_POINTS)) {
               this._fsu.consult = events.createButton(
                 new UTButtonControl(),
                 fy2("sbc.consult"),
@@ -2960,12 +2968,12 @@
               this._fsu?.quickOther.append(this._fsu.consult.getRootElement());
             }
           }
-          if (i2.kvPairs._collection.hasOwnProperty(SBCEligibilityKey2.PLAYER_MIN_OVR) && eligibility.length == 1) {
-            baseRating = i2.kvPairs._collection[SBCEligibilityKey2.PLAYER_MIN_OVR][0];
+          if (i.kvPairs._collection.hasOwnProperty(SBCEligibilityKey2.PLAYER_MIN_OVR) && eligibility.length == 1) {
+            baseRating = i.kvPairs._collection[SBCEligibilityKey2.PLAYER_MIN_OVR][0];
             listType = 2;
           }
-          if (i2.kvPairs._collection.hasOwnProperty(SBCEligibilityKey2.PLAYER_QUALITY)) {
-            qualityType = i2.kvPairs._collection[SBCEligibilityKey2.PLAYER_QUALITY][0];
+          if (i.kvPairs._collection.hasOwnProperty(SBCEligibilityKey2.PLAYER_QUALITY)) {
+            qualityType = i.kvPairs._collection[SBCEligibilityKey2.PLAYER_QUALITY][0];
             isQuality = true;
             if (qualityType == 1) {
               baseRating = 45;
@@ -2979,8 +2987,8 @@
             }
             listType = 2;
           }
-          if (i2.kvPairs._collection.hasOwnProperty(SBCEligibilityKey2.PLAYER_EXACT_OVR) && eligibility.length == 1) {
-            baseRating = i2.kvPairs._collection[SBCEligibilityKey2.PLAYER_EXACT_OVR][0];
+          if (i.kvPairs._collection.hasOwnProperty(SBCEligibilityKey2.PLAYER_EXACT_OVR) && eligibility.length == 1) {
+            baseRating = i.kvPairs._collection[SBCEligibilityKey2.PLAYER_EXACT_OVR][0];
             listType = 3;
           }
         }
@@ -3017,20 +3025,20 @@
         }
         let ratingStart = baseRating !== 0 ? baseRating : 75;
         let ratingArray = [], ratingLimit = listType == 1 ? isPhone2() ? [4, 8] : [5, 10] : listType == 2 ? isPhone2() ? [0, 8] : [0, 10] : [0, 1];
-        for (let i2 = 1; i2 < 11; i2++) {
+        for (let i = 1; i < 11; i++) {
           if (listType == 2 || listType == 3) {
             break;
           }
-          if (events.getDedupPlayers(events.getItemBy(1, { "rating": ratingStart - i2 }), this._squad.getPlayers()).length) {
-            ratingArray.push(ratingStart - i2);
+          if (events.getDedupPlayers(events.getItemBy(1, { "rating": ratingStart - i }), this._squad.getPlayers()).length) {
+            ratingArray.push(ratingStart - i);
           }
           if (ratingArray.length == ratingLimit[0]) {
             break;
           }
         }
-        for (let i2 = 0; i2 < maxRating - ratingStart; i2++) {
-          if (events.getDedupPlayers(events.getItemBy(1, { "rating": ratingStart + i2 }), this._squad.getPlayers()).length) {
-            ratingArray.unshift(ratingStart + i2);
+        for (let i = 0; i < maxRating - ratingStart; i++) {
+          if (events.getDedupPlayers(events.getItemBy(1, { "rating": ratingStart + i }), this._squad.getPlayers()).length) {
+            ratingArray.unshift(ratingStart + i);
           }
           if (ratingArray.length == ratingLimit[1]) {
             break;
@@ -3113,20 +3121,20 @@
           });
           quickRight.appendChild(quickRightList);
           this._fsu.quickRightList = quickRightList;
-          for (let i2 of ratingArray) {
+          for (let i of ratingArray) {
             let rightRatingBtn = events.createButton(
               new UTButtonControl(),
-              i2,
+              i,
               () => {
                 events.squadPositionSelection(
                   thisController,
-                  { rating: i2 },
+                  { rating: i },
                   null
                 );
               },
               "im"
             );
-            this._fsu[`rightRatingBtn_${i2}`] = rightRatingBtn;
+            this._fsu[`rightRatingBtn_${i}`] = rightRatingBtn;
             quickRightList.append(rightRatingBtn.getRootElement());
           }
           if (repositories2.Item.numItemsInCache(ItemPile.PURCHASED)) {
@@ -3236,8 +3244,8 @@
   // src/fsu/patches/sectioned-list.js
   function installSectionedListPatches(deps) {
     const { call, events, info, fy: fy2, cntlr: cntlr2, services: services2 } = deps;
-    UTSectionedItemListView.prototype.addItems = function(t, e2, i2, r) {
-      call.plist.sectioned.call(this, t, e2, i2, r);
+    UTSectionedItemListView.prototype.addItems = function(t, e2, i, r) {
+      call.plist.sectioned.call(this, t, e2, i, r);
       events.loadPlayerInfo(_.map(this.listRows, "data"), this);
       if (info.set.player_loas && services2.User.getUser().tradeAccess == TradeAccessLevel.ALLOWED && cntlr2.current().getNavigationTitle() !== services2.Localization.localize("navbar.label.watchlist") && (cntlr2.current().getNavigationTitle() !== services2.Localization.localize("navbar.label.assigncards") || repositories.Item.getPileSize(ItemPile.TRANSFER) - repositories.Item.numItemsInCache(ItemPile.TRANSFER) > 0)) {
         let pn = 0, pr = {}, ln = 0;
@@ -3332,9 +3340,9 @@
               events.popup(
                 fy2("loas.popupt"),
                 fy2(["loas.popupm", e3._parent._fsuAkb.querySelector(".fsu-akb-num").innerText, e3._parent._fsuAkb.querySelector(".fsu-akb-price").innerText]),
-                (t2, i3) => {
+                (t2, i2) => {
                   if (t2 === 2) {
-                    let v = Number(i3.getValue()), vAudit = [0, 1, 3, 6, 12, 24, 72];
+                    let v = Number(i2.getValue()), vAudit = [0, 1, 3, 6, 12, 24, 72];
                     if (!_.isNaN(v) && _.includes(vAudit, v)) {
                       events.losAuctionSell(e3, v);
                     } else {
@@ -3398,7 +3406,7 @@
           msg: `shieldlea.popupm`,
           set: `shield_league`,
           attribute: `leagueId`,
-          factories: () => factories.DataProvider.getLeagueDP(true).filter((l2) => l2.id !== -1)
+          factories: () => factories.DataProvider.getLeagueDP(true).filter((l) => l.id !== -1)
         },
         2: {
           title: `shieldflag.btntext`,
@@ -3410,7 +3418,7 @@
             itemTypes: ["player"],
             quality: "any",
             tradableOnly: false
-          }).filter((l2) => l2.id !== -1)
+          }).filter((l) => l.id !== -1)
         }
       };
       if (type in typeConfig) {
@@ -3436,9 +3444,9 @@
         events.ignorePlayerPopup();
       });
       gPopupClickShield.setActivePopup(mp);
-      _.flatMap(mp.getView().dialogOptions, (v, i2) => {
+      _.flatMap(mp.getView().dialogOptions, (v, i) => {
         if (v.__text.innerHTML == "*") {
-          v.setText(fy2(`popupButtonsText.${mp.options[i2].labelEnum}`));
+          v.setText(fy2(`popupButtonsText.${mp.options[i].labelEnum}`));
         }
       });
       mp.getView().__msg.style.padding = "1rem";
@@ -3517,9 +3525,9 @@
           events.popup(
             fy2("goldenplayer.popupmt"),
             fy2("goldenplayer.popupm"),
-            (t, i2) => {
+            (t, i) => {
               if (t === 2) {
-                let v = Number(i2.getValue());
+                let v = Number(i.getValue());
                 if (!_.isNaN(v) && v > 75 && v < 100) {
                   set.save("goldenrange", v);
                 } else if (v == 0) {
@@ -3541,9 +3549,9 @@
         ignoreTextElment.textContent = events.getIgnoreText();
       });
       gPopupClickShield.setActivePopup(mp);
-      _.flatMap(mp.getView().dialogOptions, (v, i2) => {
+      _.flatMap(mp.getView().dialogOptions, (v, i) => {
         if (v.__text.innerHTML == "*") {
-          v.setText(fy2(`popupButtonsText.${mp.options[i2].labelEnum}`));
+          v.setText(fy2(`popupButtonsText.${mp.options[i].labelEnum}`));
         }
       });
       mp.getView().__msg.style.padding = "1rem";
@@ -3585,19 +3593,19 @@
         const academyAttr = _.find(info.academy, { id: academyId });
         const currentThis = this;
         if (academyAttr) {
-          this.listRows.map(function(i2) {
-            i2._fsu ??= {};
+          this.listRows.map(function(i) {
+            i._fsu ??= {};
             const attrBox = events.createElementWithConfig("div", {
               classList: ["academyViewBox", "itemList"]
             });
-            i2.getRootElement().after(attrBox);
-            i2._fsu.attrBox = attrBox;
-            currentThis._fsu[`attrBox_${i2.data.id}`] = attrBox;
-            if (repositories2.PlayerMeta.get(i2.data.definitionId)) {
-              const attrMap = events.academyAttrToList(events.academyAddAttr(academyAttr.attr, academyAttr.isGK, i2.data).map);
+            i.getRootElement().after(attrBox);
+            i._fsu.attrBox = attrBox;
+            currentThis._fsu[`attrBox_${i.data.id}`] = attrBox;
+            if (repositories2.PlayerMeta.get(i.data.definitionId)) {
+              const attrMap = events.academyAttrToList(events.academyAddAttr(academyAttr.attr, academyAttr.isGK, i.data).map);
               attrBox.appendChild(events.academyAddAttrOutput(attrMap));
-              i2._fsu.attrMap = attrMap;
-              currentThis._fsu[`attrMap_${i2.data.id}`] = attrMap;
+              i._fsu.attrMap = attrMap;
+              currentThis._fsu[`attrMap_${i.data.id}`] = attrMap;
               if (attrMap.size === 0) {
                 attrBox.querySelector(".academyBoostsBox").style.opacity = "0.5";
               }
@@ -3614,12 +3622,12 @@
           });
         }
       }
-      this.listRows.map(function(i2) {
-        if (i2.data.type == "player") {
-          if (events.getCachePrice(i2.data.definitionId, 3)) {
-            let np = events.getCachePrice(i2.data.definitionId, 1).num;
-            if (np && i2.data.getAuctionData().buyNowPrice <= np) {
-              i2.__auctionBuyValue.style.backgroundColor = "#36b84b";
+      this.listRows.map(function(i) {
+        if (i.data.type == "player") {
+          if (events.getCachePrice(i.data.definitionId, 3)) {
+            let np = events.getCachePrice(i.data.definitionId, 1).num;
+            if (np && i.data.getAuctionData().buyNowPrice <= np) {
+              i.__auctionBuyValue.style.backgroundColor = "#36b84b";
             }
           }
         }
@@ -3645,11 +3653,11 @@
         if (c.getNavigationTitle() == services2.Localization.localize("navbar.label.clubsearch")) {
           let s2 = [];
           if (_.has(c, "_fsuFillArray") && c._fsuFillArray.length && c.currentController.searchCriteria.defId.length && this.listRows.length) {
-            s2 = this.listRows.map((i2) => {
-              if (c.currentController.searchCriteria.defId.includes(i2.data.definitionId)) {
-                return i2.data.definitionId;
+            s2 = this.listRows.map((i) => {
+              if (c.currentController.searchCriteria.defId.includes(i.data.definitionId)) {
+                return i.data.definitionId;
               } else {
-                i2.hide();
+                i.hide();
               }
             }).filter(Boolean);
             if (!s2.length) {
@@ -3665,9 +3673,9 @@
           if (info.set.sbc_market && pn.hasOwnProperty("pinnedItemView") && pn.pinnedItemView && pn.pinnedItemView.itemCell.data.concept) {
             let z = 0;
             let pi = pn.pinnedItemView.itemCell.data.definitionId;
-            this.listRows.forEach(function(i2) {
-              if (i2.data.definitionId !== pi) {
-                i2.__root.style.filter = "brightness(0.5)";
+            this.listRows.forEach(function(i) {
+              if (i.data.definitionId !== pi) {
+                i.__root.style.filter = "brightness(0.5)";
                 z++;
               }
             });
@@ -3688,14 +3696,14 @@
       let r = call.plist.squadGR.call(this);
       let totalElement = document.getElementById("squadValue");
       if (totalElement) {
-        totalElement.innerText = _.sumBy(this.getFieldPlayers(), (i2) => events.getCachePrice(i2.item.definitionId, 1).num).toLocaleString();
+        totalElement.innerText = _.sumBy(this.getFieldPlayers(), (i) => events.getCachePrice(i.item.definitionId, 1).num).toLocaleString();
       }
       return r;
     };
     events.loadPlayerInfo = async (items, el, type) => {
       const list = _.map(
-        _.filter(items, function(i2) {
-          return _.has(i2, "type") && i2.type == "player" && !events.getCachePrice(i2.definitionId, 3) && i2.definitionId > 0;
+        _.filter(items, function(i) {
+          return _.has(i, "type") && i.type == "player" && !events.getCachePrice(i.definitionId, 3) && i.definitionId > 0;
         }),
         "definitionId"
       );
@@ -3709,14 +3717,14 @@
             if (type) {
               playerPrice = Object.fromEntries(
                 await Promise.all(
-                  pu[k].map(async (i2) => {
-                    if (_.has(info.futbinId, i2)) {
-                      await futbinId.getPrice(i2, info.futbinId[i2]);
-                      return [i2, info.roster.data[i2]];
+                  pu[k].map(async (i) => {
+                    if (_.has(info.futbinId, i)) {
+                      await futbinId.getPrice(i, info.futbinId[i]);
+                      return [i, info.roster.data[i]];
                     } else {
-                      const item = items.find((it) => it.definitionId === i2);
+                      const item = items.find((it) => it.definitionId === i);
                       await futbinId.getId(item);
-                      return [i2, info.roster.data[i2]];
+                      return [i, info.roster.data[i]];
                     }
                   })
                 )
@@ -3733,15 +3741,15 @@
             if (info.roster.element[k2]) {
               const priceJson = events.getCachePrice(k2, 1);
               const priceType = info.priceType[priceJson.type];
-              _.map(info.roster.element[k2], (i2) => {
-                i2.setAttribute("data-show", 1);
-                i2.querySelector(".fsu-PriceValue").innerText = priceJson.text;
-                const typeElement = i2.querySelector(".fsu-PriceType");
+              _.map(info.roster.element[k2], (i) => {
+                i.setAttribute("data-show", 1);
+                i.querySelector(".fsu-PriceValue").innerText = priceJson.text;
+                const typeElement = i.querySelector(".fsu-PriceType");
                 typeElement.innerText = priceType;
                 typeElement.setAttribute("data-content", priceType);
-                const { cs, rareflag, rating } = i2.dataset;
+                const { cs, rareflag, rating } = i.dataset;
                 if (Number(cs) == 21 && rareflag && rating && events.isPrecious(Number(rating), Number(rareflag), priceJson.num, priceJson.type)) {
-                  i2.classList.add("precious");
+                  i.classList.add("precious");
                 }
               });
               info.roster.element[k2] = null;
@@ -3751,7 +3759,7 @@
         }
         let totalElement = document.getElementById("squadValue");
         if (totalElement) {
-          totalElement.innerText = _.sumBy(cntlr2.current()._squad.getFieldPlayers(), (i2) => events.getCachePrice(i2.item.definitionId, 1).num).toLocaleString();
+          totalElement.innerText = _.sumBy(cntlr2.current()._squad.getFieldPlayers(), (i) => events.getCachePrice(i.item.definitionId, 1).num).toLocaleString();
         }
       }
       if (el) {
@@ -3759,8 +3767,8 @@
           events.playerSelectionSort(el);
         } else if (el.className.includes("UTUnassigned") && el.className.includes("Controller") && "_fsuScreenshot" in el) {
           let sPrice = 0;
-          _.map(list, (i2) => {
-            sPrice += events.getCachePrice(i2, 1).num;
+          _.map(list, (i) => {
+            sPrice += events.getCachePrice(i, 1).num;
           });
           el._fsuScreenshot._header.setText(fy2(["screenshot.text", list.length, sPrice.toLocaleString()]));
         } else {
@@ -3768,8 +3776,8 @@
         }
       }
       if (!type && list.length > 0) {
-        let lackPlayers = _.filter(items, function(i2) {
-          return _.has(i2, "type") && i2.type == "player" && !events.getCachePrice(i2.definitionId, 3) && i2.definitionId > 0;
+        let lackPlayers = _.filter(items, function(i) {
+          return _.has(i, "type") && i.type == "player" && !events.getCachePrice(i.definitionId, 3) && i.definitionId > 0;
         });
         if (lackPlayers.length) {
           events.loadPlayerInfo(lackPlayers, el, 2);
@@ -3803,9 +3811,9 @@
       return;
     }
     const g = e2.getIndex();
-    _.forEach(tiles, (i2) => {
+    _.forEach(tiles, (i) => {
       let y = true;
-      const d = i2.data.id;
+      const d = i.data.id;
       if (info.task.sbc.stat.hasOwnProperty(d)) {
         const s2 = info.task.sbc.stat[d];
         if (g == 1 && !_.includes(info.task.sbc.stat.new, d)) y = false;
@@ -3821,7 +3829,7 @@
       } else {
         y = g == 0;
       }
-      y ? i2.show() : i2.hide();
+      y ? i.show() : i.hide();
     });
   }
   function installSbcHubPatches(deps) {
@@ -3881,9 +3889,9 @@
       originalPopulateNavigation.call(this, e2, t);
       setTimeout(() => {
         if (info.set.info_sbc) {
-          _.map(e2, (i2, k) => {
-            const catNewIds = _.intersection(info.task.sbc.stat.new, i2.setIds);
-            const catExpiryIds = _.intersection(info.task.sbc.stat.expiry, i2.setIds);
+          _.map(e2, (i, k) => {
+            const catNewIds = _.intersection(info.task.sbc.stat.new, i.setIds);
+            const catExpiryIds = _.intersection(info.task.sbc.stat.expiry, i.setIds);
             if (catNewIds.length || catExpiryIds.length) {
               const realNewCount = _.filter(
                 catNewIds,
@@ -3917,8 +3925,8 @@
       );
       originalPopulateTiles.call(this, newList, t);
       if (info.set.info_sbc) {
-        _.forEach(this.sbcSetTiles, (i2) => {
-          events.sbcInfoFill(i2.data.id, i2);
+        _.forEach(this.sbcSetTiles, (i) => {
+          events.sbcInfoFill(i.data.id, i);
         });
         if (!t) {
           events.notice("notice.basesbc", 0);
@@ -3931,12 +3939,38 @@
       if (playerArray.length) {
         events.loadPlayerInfo(playerArray);
       }
+      if (_.size(info.base.fastsbc)) {
+        const plan = events.planAllFastSbcs();
+        const existingBox = this.__root.querySelector(".fsu-solve-all-fast-box");
+        if (existingBox) {
+          existingBox.remove();
+        }
+        const solveAllBox = events.createElementWithConfig("div", {
+          classList: ["fsu-solve-all-fast-box"]
+        });
+        const solveAllBtn = events.createButton(
+          new UTStandardButtonControl(),
+          fy2(["fastsbc.batch.btn", plan.entries.length]),
+          () => events.solveAllFastSbcs(),
+          plan.entries.length ? "call-to-action mini fsu-solve-all-fast-btn" : "mini fsu-solve-all-fast-btn"
+        );
+        if (!plan.entries.length) {
+          solveAllBtn.setInteractionState(0);
+        }
+        solveAllBox.appendChild(solveAllBtn.getRootElement());
+        const filterBox = this.__root.querySelector(".fsu-sbcfilter-box");
+        if (filterBox) {
+          filterBox.before(solveAllBox);
+        } else if (this._SBCCategoriesTM?.__root) {
+          this._SBCCategoriesTM.__root.after(solveAllBox);
+        }
+      }
       if (Object.keys(info.task.sbc.stat).length && info.set.info_sbcf && t) {
         if (!this.hasOwnProperty("_fsuSbcFilter")) {
           this._fsuSbcFilter = new UTDropDownControl();
           const fa = [];
-          for (let i2 = 0; i2 < 4; i2++) {
-            fa.push(new UTDataProviderEntryDTO(i2, i2, fy2(`sbc.filter${i2}`)));
+          for (let i = 0; i < 4; i++) {
+            fa.push(new UTDataProviderEntryDTO(i, i, fy2(`sbc.filter${i}`)));
           }
           this._fsuSbcFilter.init();
           this._fsuSbcFilter.setOptions(fa);
@@ -4019,14 +4053,11 @@
         );
         if (_.size(fastInfo)) {
           if (e2.data.challengesCount == 1) {
-            let fastCount = events.fastSBCQuantity(
-              true,
-              _.filter(
-                repositories2.Item.getUnassignedItems(),
-                (item) => item.isPlayer() && item.duplicateId !== 0
-              ),
-              _.values(fastInfo)[0]
+            const safePool = events.getSafeUnassignedPool ? events.getSafeUnassignedPool() : _.filter(
+              repositories2.Item.getUnassignedItems(),
+              (item) => item.isPlayer() && item.duplicateId !== 0 && item.untradeableCount > 0 && !info.lock.includes(item.id)
             );
+            let fastCount = events.fastSBCQuantity(false, safePool, _.values(fastInfo)[0]);
             let fastIds = _.map(_.split(_.keys(fastInfo)[0], "#"), (s3) => parseInt(s3));
             let fastSid = fastIds[1];
             let fastCid = fastIds[0];
@@ -4128,7 +4159,7 @@
       UTAcademyHubView_setupTabs.call(this, e2);
       _.forEach(this._navigation.items, (item) => {
         if (item.id !== -1) {
-          const academyCategory = _.find(e2, (i2) => i2.id === item.id);
+          const academyCategory = _.find(e2, (i) => i.id === item.id);
           if (academyCategory) {
             const newCount = _.intersection(academyCategory.slotIds, info.evolutions.new).length;
             if (newCount) {
@@ -4286,16 +4317,16 @@
           }
           if ("data" in subPrice) {
             sbcStat.child = {};
-            for (let i2 of subPrice.data) {
-              let j = { tv: i2.price.ps, pc: i2.price.pc };
-              sbcStat.child[i2.challengeId] = j;
+            for (let i of subPrice.data) {
+              let j = { tv: i.price.ps, pc: i.price.pc };
+              sbcStat.child[i.challengeId] = j;
             }
           }
         }
         if (_.has(sbcStat, "child")) {
-          for (let i2 of e2._challengeRows) {
-            if (i2?._fsu?.subSet) {
-              const sId = i2._fsu.subSet.id;
+          for (let i of e2._challengeRows) {
+            if (i?._fsu?.subSet) {
+              const sId = i._fsu.subSet.id;
               const child = sbcStat.child[sId];
               let box = events.createElementWithConfig("div", {
                 style: {
@@ -4313,7 +4344,7 @@
               );
               if (!_.has(child, "award")) {
                 child.award = 0;
-                _.forOwn(i2._fsu.subSet.awards, (item) => {
+                _.forOwn(i._fsu.subSet.awards, (item) => {
                   if (item.isPack || item.isItem && item.item && item.item.isPlayerPickItem()) {
                     let packCoinValue = events.getOddo(item.value);
                     if (packCoinValue) {
@@ -4332,9 +4363,9 @@
                 box.style.flexDirection = "column";
                 box.style.fontSize = "14px";
               }
-              i2._fsu.priceBox = box;
-              i2.__rowTitle.insertAdjacentElement("afterend", box);
-              const fast = info.base.fastsbc[`${sId}#${i2._fsu.subSet.setId}`];
+              i._fsu.priceBox = box;
+              i.__rowTitle.insertAdjacentElement("afterend", box);
+              const fast = info.base.fastsbc[`${sId}#${i._fsu.subSet.setId}`];
               if (fast) {
                 const fastCount = events.fastSBCQuantity(
                   true,
@@ -4344,28 +4375,28 @@
                   ),
                   fast
                 );
-                i2._fsu.fastBtn = events.createButton(
+                i._fsu.fastBtn = events.createButton(
                   new UTCurrencyButtonControl(),
                   fy2(["fastsbc.sbcbtntext", fastCount]),
                   () => {
                     if (info.base.fastsbctips) {
-                      events.isSBCCache(i2._fsu.subSet.setId, sId);
+                      events.isSBCCache(i._fsu.subSet.setId, sId);
                     } else {
                       events.popup(fy2("fastsbc.popupt"), fy2("fastsbc.popupm"), (t) => {
                         if (t === 2) {
                           info.base.fastsbctips = true;
-                          events.isSBCCache(i2._fsu.subSet.setId, sId);
+                          events.isSBCCache(i._fsu.subSet.setId, sId);
                         }
                       });
                     }
                   },
                   "call-to-action mini fsu-challengefastbtn"
                 );
-                i2._fsu.fastBtn.__currencyLabel.innerHTML = events.getFastSbcSubText(fast);
-                if (i2._fsu.subSet.isCompleted()) {
-                  i2._fsu.fastBtn.setInteractionState(0);
+                i._fsu.fastBtn.__currencyLabel.innerHTML = events.getFastSbcSubText(fast);
+                if (i._fsu.subSet.isCompleted()) {
+                  i._fsu.fastBtn.setInteractionState(0);
                 }
-                i2._progressBar.getRootElement().after(i2._fsu.fastBtn.getRootElement());
+                i._progressBar.getRootElement().after(i._fsu.fastBtn.getRootElement());
               }
             }
           }
@@ -4505,8 +4536,8 @@
   function installSbcRequirementsPatch(deps) {
     const { events, info, fy: fy2, repositories: repositories2 } = deps;
     const UTSBCRequirementsView_render = UTSBCRequirementsView.prototype.render;
-    UTSBCRequirementsView.prototype.render = function(e2, t, i2, o) {
-      UTSBCRequirementsView_render.call(this, e2, t, i2, o);
+    UTSBCRequirementsView.prototype.render = function(e2, t, i, o) {
+      UTSBCRequirementsView_render.call(this, e2, t, i, o);
       const sName = `${e2.id}#${e2.setId}`;
       this._fsu ??= {};
       if (_.has(info.base.fastsbc, sName)) {
@@ -4634,31 +4665,31 @@
   function registerSbcNavEvents(deps) {
     const { events, info, fy: fy2, cntlr: cntlr2, isPhone: isPhone2, repositories: repositories2, services: services2, futbinId: futbinId2, GM_openInTab: GM_openInTab2 } = deps;
     events.squadCount = (reqRating) => {
-      let pa = cntlr2.current()._squad.getFieldPlayers().map((i2) => {
-        if (!i2.isBrick() && i2.item.rating && !i2.item.concept) {
-          return i2.item.rating;
+      let pa = cntlr2.current()._squad.getFieldPlayers().map((i) => {
+        if (!i.isBrick() && i.item.rating && !i.item.concept) {
+          return i.item.rating;
         }
       }).filter(Boolean), pr = "";
       if (pa.length > 0) {
         pr = "&ratings=" + pa.join(",");
       }
-      let dli = [...new Set(events.getItemBy(2, { "NEdatabaseId": cntlr2.current()._squad.getFieldPlayers().map((i2) => i2.item.databaseId).filter(Boolean) }).map((i2) => {
-        return i2.rating;
-      }))], br = reqRating > 84 ? 70 : reqRating < 61 ? 46 : reqRating - 15, cs = Array.from({ length: 30 }, (_2, i2) => i2 + br).filter((n) => !dli.includes(n)), l2 = cs.length ? `&lock=${cs.join(",")}` : "";
-      GM_openInTab2(`https://futcd.com/sbc.html?target=${reqRating}${pr}${l2}`, { active: true, insert: true, setParent: true });
+      let dli = [...new Set(events.getItemBy(2, { "NEdatabaseId": cntlr2.current()._squad.getFieldPlayers().map((i) => i.item.databaseId).filter(Boolean) }).map((i) => {
+        return i.rating;
+      }))], br = reqRating > 84 ? 70 : reqRating < 61 ? 46 : reqRating - 15, cs = Array.from({ length: 30 }, (_2, i) => i + br).filter((n) => !dli.includes(n)), l = cs.length ? `&lock=${cs.join(",")}` : "";
+      GM_openInTab2(`https://futcd.com/sbc.html?target=${reqRating}${pr}${l}`, { active: true, insert: true, setParent: true });
     };
     events.getDedupPlayers = (s2, p) => {
-      let dp = p.map((i2) => {
-        return i2.item.databaseId;
+      let dp = p.map((i) => {
+        return i.item.databaseId;
       }).filter(Boolean);
-      let r = s2.map((i2) => {
-        if (typeof i2 === "object") {
-          if (!dp.includes(i2.databaseId)) {
-            return i2;
+      let r = s2.map((i) => {
+        if (typeof i === "object") {
+          if (!dp.includes(i.databaseId)) {
+            return i;
           }
         } else {
-          if (!dp.includes(i2)) {
-            return i2;
+          if (!dp.includes(i)) {
+            return i;
           }
         }
       }).filter(Boolean);
@@ -4987,24 +5018,24 @@
       stat.catNew ??= {};
       stat.catExpiry ??= {};
       stat.catReward = 0;
-      _.forEach(items, (i2) => {
-        if (_.has(i2, "notifBubble")) {
-          stat.catReward += _.toInteger(i2.notifBubble.getRootElement().textContent);
+      _.forEach(items, (i) => {
+        if (_.has(i, "notifBubble")) {
+          stat.catReward += _.toInteger(i.notifBubble.getRootElement().textContent);
         }
-        if (_.has(stat.catNew, i2.id) && stat.catNew[i2.id] !== 0) {
-          events.navigationAddCount(i2, stat.catNew[i2.id]);
+        if (_.has(stat.catNew, i.id) && stat.catNew[i.id] !== 0) {
+          events.navigationAddCount(i, stat.catNew[i.id]);
         }
-        if (_.has(stat.catExpiry, i2.id) && stat.catExpiry[i2.id] !== 0) {
-          events.navigationAddCount(i2, -stat.catExpiry[i2.id]);
+        if (_.has(stat.catExpiry, i.id) && stat.catExpiry[i.id] !== 0) {
+          events.navigationAddCount(i, -stat.catExpiry[i.id]);
         }
       });
     };
     FCObjectiveSeasonView.prototype.setCampaign = function(n) {
       call.task.seasonSet.call(this, n);
       let playersList = [];
-      _.forEach(this.levels, (i2) => {
-        const rewards = _.flatMap(i2.levelRewards, "rewards");
-        const views = i2.fcRewardViews;
+      _.forEach(this.levels, (i) => {
+        const rewards = _.flatMap(i.levelRewards, "rewards");
+        const views = i.fcRewardViews;
         if (rewards.length == views.length) {
           _.forEach(rewards, (reward, index) => {
             if (reward.isPack || reward.isUtItem && reward.utItem.isPlayerPickItem()) {
@@ -5017,26 +5048,26 @@
       });
       events.loadPlayerInfo(playersList);
     };
-    UTObjectiveCategoryView.prototype.setCategoryGroups = function(i2, e2, o, n) {
-      call.task.objG.call(this, i2, e2, o, n);
+    UTObjectiveCategoryView.prototype.setCategoryGroups = function(i, e2, o, n) {
+      call.task.objG.call(this, i, e2, o, n);
       const groups = this.groups;
       if (!groups) {
         return;
       }
-      for (const i3 of groups) {
+      for (const i2 of groups) {
         if (!info.task?.obj?.stat || !Object.keys(info.task.obj.stat).length) {
           return;
         }
-        if (_.includes(info.task.obj.stat.new, i3.id)) {
-          i3.getRootElement().insertBefore(
+        if (_.includes(info.task.obj.stat.new, i2.id)) {
+          i2.getRootElement().insertBefore(
             events.createDF(`<div class="fsu-newtips">${fy2("task.new")}</div>`),
-            i3.getRootElement().firstChild
+            i2.getRootElement().firstChild
           );
         }
-        if (_.includes(info.task.obj.stat.expiry, i3.id)) {
-          i3.__title.parentNode.after(events.createDF(`<div class="task-expire">${fy2("task.expire")}</div>`));
+        if (_.includes(info.task.obj.stat.expiry, i2.id)) {
+          i2.__title.parentNode.after(events.createDF(`<div class="task-expire">${fy2("task.expire")}</div>`));
         }
-        let item = e2.find((z) => z.compositeId == i3.id);
+        let item = e2.find((z) => z.compositeId == i2.id);
         if (item && item.rewards.rewards.length && item.rewards.rewards.length == 1) {
           let reward = item.rewards.rewards[0];
           if (reward.isPack || reward.isItem && reward.item && reward.item.isPlayerPickItem()) {
@@ -5062,8 +5093,8 @@
                 textContent: (packCoinValue * reward.count).toLocaleString()
               });
               packBox.appendChild(packCoin);
-              i3._rewardView.__asset.style.position = "relative";
-              i3._rewardView.__asset.appendChild(packBox);
+              i2._rewardView.__asset.style.position = "relative";
+              i2._rewardView.__asset.appendChild(packBox);
             }
           }
         }
@@ -5280,11 +5311,11 @@
       call.view.transferMarket.call(this, ...args);
       if (services2.Item.marketRepository.pages.length) {
         _.map(services2.Item.marketRepository.pages, (p) => {
-          _.map(p.items, (i2) => {
-            if (!_.has(info.roster.ea, i2.definitionId) || i2._marketAverage !== -1) {
-              info.roster.ea[i2.definitionId] = {
-                n: i2._marketAverage,
-                t: i2._marketAverage !== -1 ? i2._marketAverage.toLocaleString() : 0
+          _.map(p.items, (i) => {
+            if (!_.has(info.roster.ea, i.definitionId) || i._marketAverage !== -1) {
+              info.roster.ea[i.definitionId] = {
+                n: i._marketAverage,
+                t: i._marketAverage !== -1 ? i._marketAverage.toLocaleString() : 0
               };
             }
           });
@@ -5325,7 +5356,7 @@
         let controller = this.getView().getSection(key);
         let list = controller.listRows;
         if (list.length) {
-          let solePlayers = list.filter((i2) => i2.data.duplicateId == 0);
+          let solePlayers = list.filter((i) => i.data.duplicateId == 0);
           if (solePlayers.length && info.set.player_transfertoclub) {
             controller._fsuSendClub = events.createButton(
               new UTImageButtonControl(),
@@ -5346,8 +5377,8 @@
               },
               "filter-btn fsu-club"
             );
-            controller._fsuSendClub.list = solePlayers.map((i2) => {
-              return i2.data;
+            controller._fsuSendClub.list = solePlayers.map((i) => {
+              return i.data;
             });
             controller._fsuSendClub.parent = this;
             controller._header.getRootElement().appendChild(controller._fsuSendClub.getRootElement());
@@ -5377,8 +5408,8 @@
     UTClubSearchFiltersViewController.prototype.onSearchModeChanged = function(t, e2) {
       call.search.club.modeChange.call(this, t, e2);
     };
-    UTClubSearchResultsView.prototype.setItemsWithChemDiff = function(t, a, s2, l2, c) {
-      call.search.club.setChemDiff.call(this, t, a, s2, l2, c);
+    UTClubSearchResultsView.prototype.setItemsWithChemDiff = function(t, a, s2, l, c) {
+      call.search.club.setChemDiff.call(this, t, a, s2, l, c);
       _.map(t, (player, index) => {
         let iconName = "";
         let className = "";
@@ -5403,8 +5434,8 @@
         }
       });
     };
-    UTMarketSearchFiltersViewController.prototype.eSearchSelected = function(e2, t, i2) {
-      call.other.market.eSearch.call(this, e2, t, i2);
+    UTMarketSearchFiltersViewController.prototype.eSearchSelected = function(e2, t, i) {
+      call.other.market.eSearch.call(this, e2, t, i);
       if (_.includes(this.className, "UTMarketSearch") && this.pinnedListRowItem == null) {
         let criteria = JSON.parse(JSON.stringify(this.viewmodel.searchCriteria));
         if (criteria.maskedDefId) {
@@ -5567,11 +5598,11 @@
           classList: ["itemList", "fsu-popupItemList"]
         });
         popupController._fsu.listBox.appendChild(popupController._fsu.list);
-        players.forEach((i2) => {
+        players.forEach((i) => {
           const row = new UTItemTableCellView();
-          row.setData(i2, void 0, ListItemPriority.DEFAULT);
+          row.setData(i, void 0, ListItemPriority.DEFAULT);
           row.render();
-          if (!desc && i2._playStyles.length) {
+          if (!desc && i._playStyles.length) {
             const popupItemOther = events.createElementWithConfig("div", {
               classList: "fsu-popupItemOther"
             });
@@ -5580,7 +5611,7 @@
             });
             popupItemOther.appendChild(traitBox);
             _.map(
-              _.orderBy(i2._playStyles, [(item) => item.isIcon ? 0 : 1, "category"], ["asc", "asc"]),
+              _.orderBy(i._playStyles, [(item) => item.isIcon ? 0 : 1, "category"], ["asc", "asc"]),
               (t) => {
                 const classList = ["fut_icon", "fsu-traitIcon"];
                 if (t.isIcon) {
@@ -5594,7 +5625,7 @@
             const popupItemOtherBtn = events.createButton(
               new UTButtonControl(),
               fy2("sbc.watchplayer"),
-              (e2) => events.openFutbinPlayerUrl(e2, i2),
+              (e2) => events.openFutbinPlayerUrl(e2, i),
               "btn-standard mini"
             );
             popupItemOther.appendChild(popupItemOtherBtn.getRootElement());
@@ -5618,9 +5649,9 @@
       popupView.getRootElement().querySelector(".ea-dialog-view--body").prepend(popupBox);
       gPopupClickShield.setActivePopup(popupController);
     };
-    UTStoreRevealModalListView.prototype.addItems = function(e2, t, i2, o) {
-      const showPlayers = _.orderBy(e2, [(i3) => i3.isPlayer(), "rareflag", "rating"], ["desc", "desc", "desc"]);
-      call.plist.storeReveal.call(this, showPlayers, t, i2, o);
+    UTStoreRevealModalListView.prototype.addItems = function(e2, t, i, o) {
+      const showPlayers = _.orderBy(e2, [(i2) => i2.isPlayer(), "rareflag", "rating"], ["desc", "desc", "desc"]);
+      call.plist.storeReveal.call(this, showPlayers, t, i, o);
       events.loadPlayerInfo(e2);
     };
     events.truncateStrict = (text, maxLength = 26, tail = "...") => {
@@ -5635,7 +5666,7 @@
       }
       return result;
     };
-    UTStoreView.prototype.setPacks = function(e2, t, i2, o) {
+    UTStoreView.prototype.setPacks = function(e2, t, i, o) {
       const HideAndShow = this.getStoreCategory() == "mypacks";
       let showList = [];
       if (HideAndShow) {
@@ -5681,7 +5712,7 @@
         ], ["desc", "desc", "desc", "desc"]);
         showList = sorted;
       }
-      call.other.store.setPacks.call(this, showList, t, i2, o);
+      call.other.store.setPacks.call(this, showList, t, i, o);
       setTimeout(() => {
         let packTileExists = "_fsuPackTile" in this, SBCTileExists = "_fsuSBCTile" in this, packFilter = "_fsufilter" in this, unassignedTile = "_fsuUnassignedTile" in this, itemListElement = this.__itemList, unassignedItems = repositories2.Item.getUnassignedItems().length;
         this.storePacks.forEach((item) => {
@@ -5785,8 +5816,8 @@
             let filterOptionArray = [];
             let tradeableCount = this.__itemList.querySelectorAll(".is-tradeable").length;
             let packTotal = _.sumBy(_.values(this._fsuPacks), "count");
-            let packValue = _.sum(_.map(this._fsuPacks, (i3) => {
-              return i3.count * i3.value;
+            let packValue = _.sum(_.map(this._fsuPacks, (i2) => {
+              return i2.count * i2.value;
             }));
             filterOptionArray.push(new UTDataProviderEntryDTO(-1, -1, fy2(`sbc.filter0`)));
             filterOptionArray.push(new UTDataProviderEntryDTO(0, 0, fy2([`packfilter.total`, packTotal, packValue.toLocaleString()])));
@@ -5817,11 +5848,11 @@
                 e3.setIndex(0);
                 return;
               }
-              e3._parent.storePacks.forEach((i3) => {
-                if (i3.articleId == filterId || filterId == -1 || filterId == 1 && i3.getRootElement().classList.contains("is-tradeable")) {
-                  i3.show();
+              e3._parent.storePacks.forEach((i2) => {
+                if (i2.articleId == filterId || filterId == -1 || filterId == 1 && i2.getRootElement().classList.contains("is-tradeable")) {
+                  i2.show();
                 } else {
-                  i3.hide();
+                  i2.hide();
                 }
                 if (filterId == -1) {
                   e3._parent.__itemList.addEventListener(EventType.SCROLL, e3._parent.debounceCallback, false);
@@ -5894,7 +5925,7 @@
               fy2("douagain.packtile.text"),
               (_e) => {
                 let current = cntlr2.current();
-                let pack = current.viewmodel.getPacks("mypacks").filter((i3) => i3.id == info.douagain.pack).pop();
+                let pack = current.viewmodel.getPacks("mypacks").filter((i2) => i2.id == info.douagain.pack).pop();
                 current.eOpenPack(
                   current.getView(),
                   UTStorePackDetailsView.Event.OPEN,
@@ -5980,12 +6011,12 @@
     const UTSVCEOP_CALL = UTStoreViewController.prototype.eOpenPack;
     UTStoreViewController.prototype.eOpenPack = function(p, e2, t) {
       UTSVCEOP_CALL.call(this, p, e2, t);
-      let i2, d = null === (i2 = this.viewmodel) || void 0 === i2 ? void 0 : i2.getPackById(t.articleId, e2 === UTStorePackDetailsView.Event.OPEN, JSUtils.isBoolean(t.tradable) ? t.tradable : void 0);
+      let i, d = null === (i = this.viewmodel) || void 0 === i ? void 0 : i.getPackById(t.articleId, e2 === UTStorePackDetailsView.Event.OPEN, JSUtils.isBoolean(t.tradable) ? t.tradable : void 0);
       if (d.isMyPack) {
-        if (repositories2.Store.myPacks.values().filter((i3) => i3.id == d.id).length > 1) {
+        if (repositories2.Store.myPacks.values().filter((i2) => i2.id == d.id).length > 1) {
           info.douagain.pack = d.id;
         } else {
-          if (!repositories2.Store.myPacks.values().filter((i3) => i3.id == info.douagain.pack).length) {
+          if (!repositories2.Store.myPacks.values().filter((i2) => i2.id == info.douagain.pack).length) {
             info.douagain.pack = 0;
           }
         }
@@ -6470,13 +6501,13 @@
           if (_.has(filterToPlayer, e2.setId)) {
             groupedData = _.groupBy(basePlayers, filterToPlayer[e2.setId]);
           } else if (e2.setId == "level") {
-            groupedData = _.groupBy(basePlayers, (i2) => {
-              if (i2.isSpecial()) {
+            groupedData = _.groupBy(basePlayers, (i) => {
+              if (i.isSpecial()) {
                 return 3;
               } else {
-                if (i2.isBronzeRating()) {
+                if (i.isBronzeRating()) {
                   return 0;
-                } else if (i2.isSilverRating()) {
+                } else if (i.isSilverRating()) {
                   return 1;
                 } else {
                   return 2;
@@ -6667,9 +6698,9 @@
         }
         if (info.criteria.sortBy !== c.sortBy || info.criteria._sort !== c._sort) {
           let sort = ["valuedesc", "valueasc", "ovrdesc", "ovrasc", "recentdesc"];
-          for (let i2 = 0; i2 < sort.length; i2++) {
-            if (info.criteria.sortBy + info.criteria._sort == sort[i2]) {
-              await e2.getView().getSortDropDown().setIndexById(i2);
+          for (let i = 0; i < sort.length; i++) {
+            if (info.criteria.sortBy + info.criteria._sort == sort[i]) {
+              await e2.getView().getSortDropDown().setIndexById(i);
               break;
             }
           }
@@ -6739,39 +6770,39 @@
     };
     events.searchInput = (c) => {
       if (!info.set.sbc_input) return;
-      for (let i2 of ["club", "nation", "league"]) {
-        let s2 = c.searchFilters._collection[i2];
+      for (let i of ["club", "nation", "league"]) {
+        let s2 = c.searchFilters._collection[i];
         if (!s2._interactionState) {
           continue;
         }
         ;
         let a = s2.options.map((e2) => e2.label);
-        s2.__root.setAttribute("data-f", i2);
+        s2.__root.setAttribute("data-f", i);
         let st = s2.__label.innerText;
         s2.__label.innerHTML = "";
         s2.__label.style.marginRight = 0;
         0;
         s2.__list.style.height = "14rem";
         s2.__list.style.backgroundColor = "#171826";
-        s2.__list.setAttribute("data-f", i2);
+        s2.__list.setAttribute("data-f", i);
         let ip = document.createElement("input");
         ip.classList.remove("ut-text-input-control");
         ip.classList.add("fsu-input");
-        if (st == services.Localization.localize(`sbc.requirements.subType.${i2}`)) {
+        if (st == services.Localization.localize(`sbc.requirements.subType.${i}`)) {
           ip.setAttribute("placeholder", st);
         } else {
           ip.setAttribute("value", st);
         }
         ip.setAttribute("maxlength", "50");
-        ip.setAttribute("data-f", i2);
+        ip.setAttribute("data-f", i);
         ip._oData = a;
         ip.addEventListener("compositionstart", events.searchInputEvent);
         ip.addEventListener("compositionend", events.searchInputEvent);
         ip.addEventListener("input", events.searchInputEvent);
         ip.addEventListener("blur", events.searchInputEvent);
         ip.addEventListener("focus", events.searchInputEvent);
-        s2[`_fsu${i2}`] = ip;
-        s2.__label.append(s2[`_fsu${i2}`]);
+        s2[`_fsu${i}`] = ip;
+        s2.__label.append(s2[`_fsu${i}`]);
       }
     };
     events.searchInputEvent = (e2) => {
@@ -6795,8 +6826,8 @@
             if (!z.isOpen) {
               z.open();
             }
-            e2.target._oData.forEach(function(el, i2) {
-              let a = document.querySelectorAll(p)[i2], c = info.set.sbc_icount && "_oCount" in e2.target ? e2.target._oCount[i2] >= Number(v) ? true : false : false;
+            e2.target._oData.forEach(function(el, i) {
+              let a = document.querySelectorAll(p)[i], c = info.set.sbc_icount && "_oCount" in e2.target ? e2.target._oCount[i] >= Number(v) ? true : false : false;
               if (el.includes(v) || c) {
                 a.classList.remove("hide");
               } else {
@@ -6831,11 +6862,11 @@
         events.searchInput(this);
       }
       if (e2.searchCriteria.type == "player" && e2.searchFeature == "club" && info.set.sbc_icount) {
-        _.map(this.searchFilters.values(), (i2) => {
-          i2._fsuFiltersCount = 1;
-          i2.criteria = e2;
+        _.map(this.searchFilters.values(), (i) => {
+          i._fsuFiltersCount = 1;
+          i.criteria = e2;
           if (isPhone2() && !cntlr2.current()._fsuFillType % 2) {
-            events.playerSearchCountShow(i2);
+            events.playerSearchCountShow(i);
           }
         });
       }
@@ -6890,8 +6921,8 @@
       let rs = info.build.rare ? [3] : [];
       let p = o.filter((item) => !ls.includes(item.leagueId) && !rs.includes(item.rareflag));
       let v = 0;
-      for (let i2 = 0; i2 < 11; i2++) {
-        if (!r.getSlot(i2).isValid() && !r.getSlot(i2).isBrick()) {
+      for (let i = 0; i < 11; i++) {
+        if (!r.getSlot(i).isValid() && !r.getSlot(i).isBrick()) {
           v++;
         }
       }
@@ -6900,8 +6931,8 @@
       }
       let s2 = this;
       let pa = e2.map(function(_2, t) {
-        var i2 = r ? r.getSlot(t) : null;
-        return i2 && (i2.isValid() || i2.isBrick()) ? i2.getItem() : info.build.ignorepos ? p[c++] : s2.getBestPlayerForPos(_2, p);
+        var i = r ? r.getSlot(t) : null;
+        return i && (i.isValid() || i.isBrick()) ? i.getItem() : info.build.ignorepos ? p[c++] : s2.getBestPlayerForPos(_2, p);
       });
       events.loadPlayerInfo(pa);
       return pa;
@@ -6916,10 +6947,10 @@
       }
       debug2.log(squad._fsuBuyEroor);
       if (!isPhone2()) {
-        _.map(squad._fsuBuyEroor, (i2) => {
-          if (document.querySelector(`.fsu-cards-buyerror[data-id="${i2}"]`) == null && document.querySelector(`.fsu-cards-price[data-id="${i2}"]`) !== null) {
+        _.map(squad._fsuBuyEroor, (i) => {
+          if (document.querySelector(`.fsu-cards-buyerror[data-id="${i}"]`) == null && document.querySelector(`.fsu-cards-price[data-id="${i}"]`) !== null) {
             let buyErrorElement = events.getCardTipsHtml(1);
-            let targetElement = document.querySelector(`.ut-squad-slot-view .concept .fsu-cards-price[data-id="${i2}"]`).parentNode;
+            let targetElement = document.querySelector(`.ut-squad-slot-view .concept .fsu-cards-price[data-id="${i}"]`).parentNode;
             let parentElement = targetElement.parentNode;
             if (parentElement.querySelector(".fsu-cards-buyerror") == null) {
               parentElement.insertBefore(buyErrorElement, targetElement);
@@ -7041,9 +7072,9 @@
             events.popup(
               fy2("apiprroxy.popupt"),
               fy2("apiprroxy.popupm"),
-              (t, i2) => {
+              (t, i) => {
                 if (t === 2) {
-                  let v = _.trim(i2.getValue());
+                  let v = _.trim(i.getValue());
                   const urlPattern = /^https:\/\/[^\s/$.?#].[^\s]*$/i;
                   if (_.isEmpty(v) || urlPattern.test(v)) {
                     GM_setValue2("apiproxy", v);
@@ -7071,13 +7102,13 @@
         this.__topGroup.after(this._fsu.box);
       }
     };
-    events.playerGetLimits = async (i2) => {
+    events.playerGetLimits = async (i) => {
       return new Promise((resolve) => {
-        if (i2.hasPriceLimits()) {
+        if (i.hasPriceLimits()) {
           resolve();
           return;
         }
-        services2.Item.requestMarketData(i2).observe(
+        services2.Item.requestMarketData(i).observe(
           this,
           async function(_sender, _response) {
             resolve();
@@ -7193,8 +7224,8 @@
                 p.unobserve(cntlr2.current());
                 if (t.success) {
                   let defIds = _.map(e3._fsuItem, "definitionId");
-                  debug2.log(_.filter(t.response.items, (i2) => _.includes(defIds, i2.definitionId)));
-                  setUnassignedToClub(_.filter(t.response.items, (i2) => _.includes(defIds, i2.definitionId)));
+                  debug2.log(_.filter(t.response.items, (i) => _.includes(defIds, i.definitionId)));
+                  setUnassignedToClub(_.filter(t.response.items, (i) => _.includes(defIds, i.definitionId)));
                 } else {
                   events.notice("uatoclub.error", 2);
                 }
@@ -7269,13 +7300,13 @@
           if (SBCSetEntity.hidden) {
             r = t.data.challenges[0], services2.SBC.loadChallenge(r).observe(controller, (ee, tt) => {
               if (ee.unobserve(controller), tt.success) {
-                var i2 = controller.getNavigationController();
-                if (i2) {
+                var i = controller.getNavigationController();
+                if (i) {
                   if (!SBCSetEntity.getChallenge(r.id).squad) {
                     SBCSetEntity.getChallenge(r.id).update(r);
                   }
                   var o = isPhone2() ? new UTSBCSquadOverviewViewController() : new UTSBCSquadSplitViewController();
-                  o.initWithSBCSet(SBCSetEntity, r.id), i2.pushViewController(o);
+                  o.initWithSBCSet(SBCSetEntity, r.id), i.pushViewController(o);
                 }
               } else {
                 let n = ee.error && tt.error.code === UtasErrorCode.SERVICE_IS_DISABLED ? "sbc.notification.disabled" : "notification.sbcChallenges.failedToLoad";
@@ -7284,11 +7315,11 @@
               view.setInteractionState(true);
             });
           } else {
-            let i2 = controller.getNavigationController();
-            if (i2) {
+            let i = controller.getNavigationController();
+            if (i) {
               let o = isPhone2() ? new UTSBCChallengesViewController() : new UTSBCGroupChallengeSplitViewController();
-              o.initWithSBCSet(SBCSetEntity), i2.pushViewController(o, true);
-              i2.setNavigationTitle(SBCSetEntity.name);
+              o.initWithSBCSet(SBCSetEntity), i.pushViewController(o, true);
+              i.setNavigationTitle(SBCSetEntity.name);
             }
             view.setInteractionState(true);
           }
@@ -7305,7 +7336,7 @@
         packTile.setInteractionState(0);
         packTile.setDescription(fy2("douagain.packtile.text"));
       } else {
-        let pack = services2.Store.storeDao.storeRepo.myPacks.values().filter((i2) => i2.id == info.douagain.pack);
+        let pack = services2.Store.storeDao.storeRepo.myPacks.values().filter((i) => i.id == info.douagain.pack);
         if (pack.length) {
           packTile.setInteractionState(1);
           packTile.setDescription(`${services2.Localization.localize(pack[0].packName)} (${pack.length})`);
@@ -7412,7 +7443,7 @@
         }
       }
       if (controllerType == 2 && !tryAgainBtn) {
-        const allArePlayers = _.every(repositories2.Item.getUnassignedItems(), (i2) => i2.type === ItemType.PLAYER);
+        const allArePlayers = _.every(repositories2.Item.getUnassignedItems(), (i) => i.type === ItemType.PLAYER);
         if (allArePlayers) {
           const duplicateIds = _.map(repositories2.Item.getUnassignedItems(), "duplicateId");
           const clubIds = events.getItemBy(1, { "id": duplicateIds });
@@ -7449,145 +7480,404 @@
     };
   }
 
-  // src/fsu/patches/sbc-fast.js
-  function registerFastSbcEvents(deps) {
-    const { events, cntlr: cntlr2, info, debug: debug2, repositories: repositories2, services: services2 } = deps;
-    events.isSBCCache = (id, cId) => {
-      let SBCSetEntity = services2.SBC.repository.getSetById(id);
-      if (SBCSetEntity) {
-        events.fastSBC(id, cId);
-      } else {
-        debug2.log("执行任务的是否发现没有SBC数据！");
-        services2.SBC.requestSets().observe(cntlr2.current(), function(e2, t) {
-          if (e2.unobserve(cntlr2.current()), t.success && JSUtils.isObject(t.data)) {
-            events.fastSBC(id, cId);
-          } else {
-            var r = t.error ? t.error.code : t.status;
-            NetworkErrorManager.checkCriticalStatus(r) ? NetworkErrorManager.handleStatus(r) : r === UtasErrorCode.SERVICE_IS_DISABLED && services2.Configuration.setFeatureEnabled(UTServerSettingsRepository.KEY.SBC_ENABLED, false);
-          }
-        });
+  // src/fsu/domain/FastSbcPlannerService.js
+  var MAX_BATCH_SBC = 15;
+  var DAILY_SOFT_LIMIT = 90;
+  var FastSbcPlannerService = class {
+    getSafeUnassignedPool(repositories2, info) {
+      return repositories2.Item.getUnassignedItems().filter((item) => {
+        if (!item.isPlayer() || item.loans !== -1 || item.endTime !== -1) {
+          return false;
+        }
+        if (!item.duplicateId || !item.untradeableCount) {
+          return false;
+        }
+        if (item.isEnrolledInAcademy()) {
+          return false;
+        }
+        if (info.lock.includes(item.id)) {
+          return false;
+        }
+        if (item.isGoldRating() && item.rating > info.set.goldenrange) {
+          return false;
+        }
+        return true;
+      });
+    }
+    isPlayerSafe(player, helpers) {
+      const { info, isPrecious, getCachePrice } = helpers;
+      if (!player?.isPlayer?.()) {
+        return false;
       }
+      if (info.lock.includes(player.id)) {
+        return false;
+      }
+      if (info.squad.includes(player.id)) {
+        return false;
+      }
+      if (player.isGoldRating() && player.rating > info.set.goldenrange) {
+        return false;
+      }
+      const price = getCachePrice(player.definitionId, 1).num;
+      if (isPrecious(player.rating, player.rareflag, price, 0)) {
+        return false;
+      }
+      return true;
+    }
+    getRequiredPlayerCount(oneFillNeed, helpers) {
+      const { build, isEligibleForOneFill } = helpers;
+      if (!build.strictlypcik && isEligibleForOneFill(oneFillNeed)) {
+        return oneFillNeed[0].c + oneFillNeed[1].c;
+      }
+      return oneFillNeed.reduce((sum, entry) => sum + entry.c, 0);
+    }
+    resolveFillPlayers(oneFillNeed, playerPool, helpers) {
+      const { getItemBy, ignorePlayerToCriteria, build, isEligibleForOneFill } = helpers;
+      const required = this.getRequiredPlayerCount(oneFillNeed, helpers);
+      let fillPlayers = [];
+      if (!build.strictlypcik && isEligibleForOneFill(oneFillNeed)) {
+        const criteriaNumber = oneFillNeed[0].c + oneFillNeed[1].c;
+        let tempFillNeed = { rs: JSON.parse(JSON.stringify(oneFillNeed[0].t.rs)) };
+        tempFillNeed = ignorePlayerToCriteria(tempFillNeed);
+        tempFillNeed.lock = false;
+        fillPlayers = getItemBy(2, tempFillNeed, false, playerPool).slice(0, criteriaNumber);
+      } else {
+        const excludeId = [];
+        for (const entry of oneFillNeed) {
+          let searchCriteria = JSON.parse(JSON.stringify(entry.t));
+          searchCriteria = ignorePlayerToCriteria(searchCriteria);
+          if (excludeId.length) {
+            searchCriteria.NEdatabaseId = excludeId;
+          }
+          searchCriteria.lock = false;
+          const searchResults = getItemBy(2, searchCriteria, false, playerPool).slice(0, entry.c);
+          excludeId.push(...searchResults.map((player) => player.databaseId));
+          fillPlayers = fillPlayers.concat(searchResults);
+        }
+      }
+      fillPlayers = fillPlayers.filter((player) => this.isPlayerSafe(player, helpers));
+      if (fillPlayers.length !== required) {
+        return null;
+      }
+      return fillPlayers;
+    }
+    consumePlayersFromPool(playerPool, usedPlayers) {
+      const usedIds = new Set(usedPlayers.map((player) => player.id));
+      return playerPool.filter((player) => !usedIds.has(player.id));
+    }
+    planBatch(deps) {
+      const { info, services: services2, repositories: repositories2, helpers } = deps;
+      const entries = [];
+      const skipped = [];
+      let playerPool = this.getSafeUnassignedPool(repositories2, info);
+      const remainingBudget = Math.max(0, DAILY_SOFT_LIMIT - (info.SBCCount?.count ?? 0));
+      for (const key of Object.keys(info.base.fastsbc)) {
+        if (entries.length >= MAX_BATCH_SBC) {
+          skipped.push({ key, reason: "batch_limit" });
+          continue;
+        }
+        if (entries.length >= remainingBudget) {
+          skipped.push({ key, reason: "daily_limit" });
+          continue;
+        }
+        const oneFillNeed = info.base.fastsbc[key];
+        if (!oneFillNeed || !Object.keys(oneFillNeed).length) {
+          skipped.push({ key, reason: "no_config" });
+          continue;
+        }
+        const [cId, sId] = key.split("#").map((part) => parseInt(part, 10));
+        const set = services2.SBC.repository.getSetById(sId);
+        if (!set || set.isComplete() || set.challengesCount !== 1) {
+          skipped.push({ key, reason: "set_unavailable" });
+          continue;
+        }
+        const challenge = set.getChallenge(cId);
+        if (challenge?.isCompleted?.()) {
+          skipped.push({ key, reason: "already_done" });
+          continue;
+        }
+        const fillPlayers = this.resolveFillPlayers(oneFillNeed, playerPool, helpers);
+        if (!fillPlayers) {
+          skipped.push({ key, reason: "unsafe_or_insufficient", name: set.name });
+          continue;
+        }
+        entries.push({
+          key,
+          sId,
+          cId,
+          name: set.name,
+          fillPlayers
+        });
+        playerPool = this.consumePlayersFromPool(playerPool, fillPlayers);
+      }
+      return {
+        entries,
+        skipped,
+        maxBatch: MAX_BATCH_SBC,
+        dailyBudget: remainingBudget
+      };
+    }
+  };
+
+  // src/fsu/patches/sbc-fast.js
+  function createFastSbcHelpers(deps) {
+    const { events, info } = deps;
+    return {
+      info,
+      getItemBy: (...args) => events.getItemBy(...args),
+      ignorePlayerToCriteria: (...args) => events.ignorePlayerToCriteria(...args),
+      isEligibleForOneFill: (...args) => events.isEligibleForOneFill(...args),
+      isPrecious: (...args) => events.isPrecious(...args),
+      getCachePrice: (...args) => events.getCachePrice(...args),
+      build: info.build
     };
-    events.fastSBC = async (id, cId) => {
-      let controller = events.getCurrent(), view = controller.getView(), SBCSetEntity = services2.SBC.repository.getSetById(id), challenge;
-      events.showLoader();
-      view.setInteractionState(false);
-      services2.SBC.requestChallengesForSet(SBCSetEntity).observe(controller, (e2, t) => {
-        if (e2.unobserve(controller), t.success && 0 < t.data.challenges.length) {
-          challenge = t.data.challenges.find((challenge2) => challenge2.id === cId), services2.SBC.loadChallenge(challenge).observe(controller, async (ee, tt) => {
-            if (ee.unobserve(controller), tt.success) {
-              if (!SBCSetEntity.getChallenge(cId).squad) {
-                SBCSetEntity.getChallenge(cId).update(challenge);
-              }
-              debug2.log(SBCSetEntity);
-              let oneFillNeed = info.base.fastsbc[`${cId}#${id}`];
-              if (oneFillNeed && Object.keys(oneFillNeed).length) {
-                let fillPlayers = [];
-                if (!info.build.strictlypcik && events.isEligibleForOneFill(oneFillNeed)) {
-                  let criteriaNumber = oneFillNeed[0].c + oneFillNeed[1].c;
-                  let tempFillNeed = { rs: JSON.parse(JSON.stringify(oneFillNeed[0].t.rs)) };
-                  tempFillNeed = events.ignorePlayerToCriteria(tempFillNeed);
-                  tempFillNeed["lock"] = false;
-                  fillPlayers = events.getItemBy(2, tempFillNeed, repositories2.Item.getUnassignedItems()).slice(0, criteriaNumber);
-                } else {
-                  let excludeId = [];
-                  for (let i2 of oneFillNeed) {
-                    let searchCriteria = JSON.parse(JSON.stringify(i2.t));
-                    searchCriteria = events.ignorePlayerToCriteria(searchCriteria);
-                    if (excludeId.length) {
-                      searchCriteria["NEdatabaseId"] = excludeId;
-                    }
-                    searchCriteria["lock"] = false;
-                    let searchResults = events.getItemBy(2, searchCriteria, repositories2.Item.getUnassignedItems()).slice(0, i2.c);
-                    debug2.log(_.map(searchResults, (i3) => {
-                      return i3._staticData.name + `_` + i3.rating;
-                    }));
-                    excludeId = excludeId.concat(searchResults.map((i3) => {
-                      return i3.databaseId;
-                    }));
-                    fillPlayers = fillPlayers.concat(searchResults);
-                  }
-                }
-                if (fillPlayers.length == challenge.squad.getNumOfRequiredPlayers()) {
-                  events.playerListFillSquad(challenge, fillPlayers, 1);
-                  if (challenge.canSubmit()) {
-                    if (!services2.Configuration.getFeatureSetting(UTServerSettingsRepository.KEY.SBC_ALLOW_UNTRADEABLE) && challenge.hasUntradeableItems()) {
-                      utils.PopupManager.showAlert(utils.PopupManager.Alerts.SBC_UNTRADEABLE_NOT_ALLOWED);
-                    } else if (JSUtils.isValid(SBCSetEntity)) {
-                      TelemetryManager.trackEvent(TelemetryManager.Sections.SBC, TelemetryManager.Categories.BUTTON_PRESS, "SBC - Submit Challenge");
-                      let t2 = services2.UserSettings.getSBCValidationSkip();
-                      services2.SBC.submitChallenge(challenge, SBCSetEntity, t2, services2.Chemistry.isFeatureEnabled()).observe(controller, (eee, ttt) => {
-                        eee.unobserve(controller);
-                        let newChallenge = SBCSetEntity.getChallenge(challenge.id);
-                        if (ttt.success && newChallenge) {
-                          if (0 < newChallenge.awards.length) {
-                            var challengeRewards = new UTGameRewardsViewController(newChallenge.awards);
-                            challengeRewards.init(), challengeRewards.modalDisplayDimensions.width = "24em", challengeRewards.getView().setSbcChallenge(newChallenge), gPopupClickShield.setActivePopup(challengeRewards), challengeRewards.onExit.observe(controller, function(e3) {
-                              e3.unobserve(controller), events.showRewardsView(SBCSetEntity);
-                            });
-                          } else {
-                            ttt.data.setCompleted && events.showRewardsView(SBCSetEntity);
-                          }
-                          services2.PIN.sendData(PINEventType.PAGE_VIEW, {
-                            type: PIN_PAGEVIEW_EVT_TYPE,
-                            pgid: "SBC - Rewards Overlay"
-                          });
-                          if (_.includes(controller.className, "UTUnassignedItems")) {
-                            controller._fsuRefreshBtn._tapDetected();
-                          }
-                          if (_.includes(controller.className, "UTSBCSquad")) {
-                            controller.getNavigationController().popViewController();
-                          }
-                          if (_.includes(controller.className, "UTSBCHub")) {
-                            if (controller.getView()._interactionState == false) {
-                              debug2.log(`SBC页面状态卡死，给予纠正。`);
-                              controller.getView().setInteractionState(true);
-                            }
-                            controller._requestSBCData();
-                          }
-                          if (_.includes(controller.className, "UTSBCChallenges")) {
-                            controller.getView().setSBCSet(controller.sbcViewModel.sbcSet);
-                            events.sbcSubPrice(controller.sbcViewModel.sbcSet.id, controller.getView());
-                          }
-                          events.SBCListInsertToFront(SBCSetEntity.id, 1);
-                          events.notice("fastsbc.success", 0);
-                        } else {
-                          if (ttt.status == 521) {
-                            events.notice("fastsbc.error_5", 2);
-                          } else {
-                            services2.Notification.queue([services2.Localization.localize("notification.sbcChallenges.failedToSubmit"), UINotificationType.NEGATIVE]);
-                          }
-                        }
-                      });
-                    }
-                  } else {
-                    utils.PopupManager.showAlert(utils.PopupManager.Alerts.SBC_INELIGIBLE_SQUAD);
-                  }
-                } else {
-                  events.notice("fastsbc.error_3", 2);
-                }
-              } else {
-                events.notice("fastsbc.error_1", 2);
-              }
-            } else {
-              let errorCode = 1;
-              if (!SBCSetEntity.isComplete() && SBCSetEntity.challengesCount > 1 && challenge.isCompleted()) {
-                errorCode == 2;
-              }
-              events.notice(`fastsbc.error_${errorCode}`, 2);
-            }
+  }
+  function runFastSbcSubmit(deps, controller, challenge, SBCSetEntity, fillPlayers, onDone) {
+    const { events, services: services2 } = deps;
+    events.playerListFillSquad(challenge, fillPlayers, 1);
+    if (!challenge.canSubmit()) {
+      utils.PopupManager.showAlert(utils.PopupManager.Alerts.SBC_INELIGIBLE_SQUAD);
+      onDone?.({ success: false, errorCode: 3 });
+      return;
+    }
+    if (!services2.Configuration.getFeatureSetting(UTServerSettingsRepository.KEY.SBC_ALLOW_UNTRADEABLE) && challenge.hasUntradeableItems()) {
+      utils.PopupManager.showAlert(utils.PopupManager.Alerts.SBC_UNTRADEABLE_NOT_ALLOWED);
+      onDone?.({ success: false, errorCode: 3 });
+      return;
+    }
+    if (!JSUtils.isValid(SBCSetEntity)) {
+      onDone?.({ success: false, errorCode: 1 });
+      return;
+    }
+    TelemetryManager.trackEvent(
+      TelemetryManager.Sections.SBC,
+      TelemetryManager.Categories.BUTTON_PRESS,
+      "SBC - Submit Challenge"
+    );
+    const skipValidation = services2.UserSettings.getSBCValidationSkip();
+    services2.SBC.submitChallenge(
+      challenge,
+      SBCSetEntity,
+      skipValidation,
+      services2.Chemistry.isFeatureEnabled()
+    ).observe(controller, (observer, response) => {
+      observer.unobserve(controller);
+      const newChallenge = SBCSetEntity.getChallenge(challenge.id);
+      if (response.success && newChallenge) {
+        if (newChallenge.awards.length > 0) {
+          const challengeRewards = new UTGameRewardsViewController(newChallenge.awards);
+          challengeRewards.init();
+          challengeRewards.modalDisplayDimensions.width = "24em";
+          challengeRewards.getView().setSbcChallenge(newChallenge);
+          gPopupClickShield.setActivePopup(challengeRewards);
+          challengeRewards.onExit.observe(controller, (exitObserver) => {
+            exitObserver.unobserve(controller);
+            events.showRewardsView(SBCSetEntity);
           });
-          events.hideLoader();
-        } else if (NetworkErrorManager.checkCriticalStatus(t.status)) {
-          NetworkErrorManager.handleStatus(t.status);
-          events.hideLoader();
+        } else if (response.data?.setCompleted) {
+          events.showRewardsView(SBCSetEntity);
+        }
+        services2.PIN.sendData(PINEventType.PAGE_VIEW, {
+          type: PIN_PAGEVIEW_EVT_TYPE,
+          pgid: "SBC - Rewards Overlay"
+        });
+        if (_.includes(controller.className, "UTUnassignedItems") && controller._fsuRefreshBtn) {
+          controller._fsuRefreshBtn._tapDetected();
+        }
+        if (_.includes(controller.className, "UTSBCSquad")) {
+          controller.getNavigationController().popViewController();
+        }
+        if (_.includes(controller.className, "UTSBCHub")) {
+          if (controller.getView()._interactionState === false) {
+            controller.getView().setInteractionState(true);
+          }
+          controller._requestSBCData();
+        }
+        if (_.includes(controller.className, "UTSBCChallenges")) {
+          controller.getView().setSBCSet(controller.sbcViewModel.sbcSet);
+          events.sbcSubPrice(controller.sbcViewModel.sbcSet.id, controller.getView());
+        }
+        events.SBCListInsertToFront(SBCSetEntity.id, 1);
+        events.notice("fastsbc.success", 0);
+        onDone?.({ success: true });
+        return;
+      }
+      if (response.status == 521) {
+        events.notice("fastsbc.error_5", 2);
+        onDone?.({ success: false, errorCode: 5, fatal: true });
+        return;
+      }
+      services2.Notification.queue([
+        services2.Localization.localize("notification.sbcChallenges.failedToSubmit"),
+        UINotificationType.NEGATIVE
+      ]);
+      onDone?.({ success: false, errorCode: 1 });
+    });
+  }
+  function registerFastSbcEvents(deps) {
+    const {
+      events,
+      cntlr: cntlr2,
+      info,
+      debug: debug2,
+      repositories: repositories2,
+      services: services2,
+      fy: fy2,
+      fastSbcPlannerService
+    } = deps;
+    const plannerHelpers = () => createFastSbcHelpers(deps);
+    events.isSBCCache = (id, cId, onDone, fillPlayers) => {
+      const SBCSetEntity = services2.SBC.repository.getSetById(id);
+      if (SBCSetEntity) {
+        events.fastSBC(id, cId, { onDone, fillPlayers });
+        return;
+      }
+      debug2.log("执行任务的是否发现没有SBC数据！");
+      services2.SBC.requestSets().observe(cntlr2.current(), function(observer, response) {
+        observer.unobserve(cntlr2.current());
+        if (response.success && JSUtils.isObject(response.data)) {
+          events.fastSBC(id, cId, { onDone, fillPlayers });
         } else {
-          var a = (null === (i = t.error) || void 0 === i ? void 0 : i.code) === UtasErrorCode.SERVICE_IS_DISABLED ? "sbc.notification.disabled" : "notification.sbcChallenges.failedToLoad";
-          l.setInteractionState(true), services2.Notification.queue([services2.Localization.localize(a), UINotificationType.NEGATIVE]);
-          events.hideLoader();
+          const errorCode = response.error ? response.error.code : response.status;
+          if (NetworkErrorManager.checkCriticalStatus(errorCode)) {
+            NetworkErrorManager.handleStatus(errorCode);
+          } else if (errorCode === UtasErrorCode.SERVICE_IS_DISABLED) {
+            services2.Configuration.setFeatureEnabled(UTServerSettingsRepository.KEY.SBC_ENABLED, false);
+          }
+          onDone?.({ success: false, errorCode: 1 });
         }
       });
-      view.setInteractionState(true);
+    };
+    events.fastSBC = async (id, cId, options = {}) => {
+      const controller = events.getCurrent();
+      const view = controller.getView();
+      const SBCSetEntity = services2.SBC.repository.getSetById(id);
+      const helpers = plannerHelpers();
+      events.showLoader();
+      view.setInteractionState(false);
+      services2.SBC.requestChallengesForSet(SBCSetEntity).observe(controller, (observer, response) => {
+        observer.unobserve(controller);
+        if (!(response.success && response.data.challenges.length > 0)) {
+          if (NetworkErrorManager.checkCriticalStatus(response.status)) {
+            NetworkErrorManager.handleStatus(response.status);
+          } else {
+            const messageKey = response.error?.code === UtasErrorCode.SERVICE_IS_DISABLED ? "sbc.notification.disabled" : "notification.sbcChallenges.failedToLoad";
+            services2.Notification.queue([
+              services2.Localization.localize(messageKey),
+              UINotificationType.NEGATIVE
+            ]);
+          }
+          events.hideLoader();
+          view.setInteractionState(true);
+          options.onDone?.({ success: false, errorCode: 1 });
+          return;
+        }
+        const challenge = response.data.challenges.find((entry) => entry.id === cId);
+        services2.SBC.loadChallenge(challenge).observe(controller, (loadObserver, loadResponse) => {
+          loadObserver.unobserve(controller);
+          if (!loadResponse.success) {
+            let errorCode = 1;
+            if (!SBCSetEntity.isComplete() && SBCSetEntity.challengesCount > 1 && challenge.isCompleted()) {
+              errorCode = 2;
+            }
+            events.notice(`fastsbc.error_${errorCode}`, 2);
+            events.hideLoader();
+            view.setInteractionState(true);
+            options.onDone?.({ success: false, errorCode });
+            return;
+          }
+          if (!SBCSetEntity.getChallenge(cId).squad) {
+            SBCSetEntity.getChallenge(cId).update(challenge);
+          }
+          const oneFillNeed = info.base.fastsbc[`${cId}#${id}`];
+          if (!oneFillNeed || !Object.keys(oneFillNeed).length) {
+            events.notice("fastsbc.error_1", 2);
+            events.hideLoader();
+            view.setInteractionState(true);
+            options.onDone?.({ success: false, errorCode: 1 });
+            return;
+          }
+          const playerPool = options.playerPool ?? fastSbcPlannerService.getSafeUnassignedPool(repositories2, info);
+          const fillPlayers = options.fillPlayers ?? fastSbcPlannerService.resolveFillPlayers(oneFillNeed, playerPool, helpers);
+          if (!fillPlayers || fillPlayers.length !== challenge.squad.getNumOfRequiredPlayers()) {
+            events.notice("fastsbc.error_3", 2);
+            events.hideLoader();
+            view.setInteractionState(true);
+            options.onDone?.({ success: false, errorCode: 3 });
+            return;
+          }
+          runFastSbcSubmit(deps, controller, challenge, SBCSetEntity, fillPlayers, (result) => {
+            events.hideLoader();
+            view.setInteractionState(true);
+            options.onDone?.(result);
+          });
+        });
+      });
+    };
+    events.getSafeUnassignedPool = () => fastSbcPlannerService.getSafeUnassignedPool(repositories2, info);
+    events.planAllFastSbcs = () => fastSbcPlannerService.planBatch({
+      info,
+      services: services2,
+      repositories: repositories2,
+      helpers: plannerHelpers()
+    });
+    events.solveAllFastSbcs = () => {
+      const plan = events.planAllFastSbcs();
+      if (!plan.entries.length) {
+        events.notice("fastsbc.batch.none", 2);
+        return;
+      }
+      const names = plan.entries.map((entry) => entry.name).join("<br/>");
+      const skippedCount = plan.skipped.length;
+      events.popup(
+        fy2("fastsbc.batch.popupt"),
+        `${fy2(["fastsbc.batch.popupm", plan.entries.length, skippedCount])}<br/><br/>${names}`,
+        (choice) => {
+          if (choice !== 2) {
+            return;
+          }
+          if (!info.base.fastsbctips) {
+            events.popup(fy2("fastsbc.popupt"), fy2("fastsbc.popupm"), (tipChoice) => {
+              if (tipChoice === 2) {
+                info.base.fastsbctips = true;
+                events.runFastSbcBatch(plan.entries);
+              }
+            });
+            return;
+          }
+          events.runFastSbcBatch(plan.entries);
+        }
+      );
+    };
+    events.runFastSbcBatch = (entries, index = 0, successCount = 0) => {
+      if (index >= entries.length) {
+        events.hideLoader();
+        events.notice(["fastsbc.batch.done", successCount, entries.length - successCount], 0);
+        return;
+      }
+      if (index === 0) {
+        events.showLoader();
+      }
+      if ((info.SBCCount?.count ?? 0) >= DAILY_SOFT_LIMIT) {
+        events.hideLoader();
+        events.notice("fastsbc.batch.stopped.daily_limit", 2);
+        events.notice(["fastsbc.batch.done", successCount, entries.length - index], 0);
+        return;
+      }
+      const entry = entries[index];
+      events.changeLoadingText("fastsbc.batch.running", entry.name);
+      events.isSBCCache(entry.sId, entry.cId, (result) => {
+        if (result?.fatal) {
+          events.hideLoader();
+          events.notice("fastsbc.batch.stopped.ban", 2);
+          events.notice(["fastsbc.batch.done", successCount, entries.length - index], 0);
+          return;
+        }
+        const nextSuccess = successCount + (result?.success ? 1 : 0);
+        setTimeout(() => {
+          events.runFastSbcBatch(entries, index + 1, nextSuccess);
+        }, 800);
+      }, entry.fillPlayers);
     };
   }
 
@@ -7611,8 +7901,8 @@
               if (type > 3 && type % 2 == 0) {
                 method = false;
                 let repository = new UTItemRepository();
-                for (const i2 of players) {
-                  repository.set(i2.id, i2);
+                for (const i of players) {
+                  repository.set(i.id, i);
                 }
                 resultPlayers = repository.search(this.searchCriteria);
               } else if (type % 2 == 1 && type > 1) {
@@ -7642,13 +7932,13 @@
       if (this?.squad?.isSBC() === true) {
         const baseIds = _.map(this.squad.getPlayers(), "item.databaseId");
         showItems = showItems.filter(
-          (i2) => !baseIds.includes(i2.databaseId)
+          (i) => !baseIds.includes(i.databaseId)
         );
         if (showItems.length) {
           this._fsu ??= {};
           this._fsu.Players = showItems;
-          const items = _.map(this.squad.getFieldPlayers(), (i2) => {
-            return i2.inPossiblePosition ? i2.item : { teamId: -1, leagueId: -1, nationId: -1 };
+          const items = _.map(this.squad.getFieldPlayers(), (i) => {
+            return i.inPossiblePosition ? i.item : { teamId: -1, leagueId: -1, nationId: -1 };
           });
           ;
           this._fsu.chemistry = {};
@@ -7731,19 +8021,19 @@
           let hasBasicQuality = false;
           let hasOtherQuality = false;
           let hasStorage = false;
-          for (const i2 of showItems) {
-            const match = i2.possiblePositions.includes(currentPosition.typeId);
+          for (const i of showItems) {
+            const match = i.possiblePositions.includes(currentPosition.typeId);
             if (match) {
               hasCurrentPosition = true;
             } else {
               hasOtherPosition = true;
             }
-            if ([0, 1].includes(i2.rareflag)) {
+            if ([0, 1].includes(i.rareflag)) {
               hasBasicQuality = true;
             } else {
               hasOtherQuality = true;
             }
-            if (i2.pile === ItemPile.STORAGE) {
+            if (i.pile === ItemPile.STORAGE) {
               hasStorage = true;
             }
             if (hasCurrentPosition && hasOtherPosition && hasBasicQuality && hasOtherQuality && hasStorage) {
@@ -8117,8 +8407,8 @@
         const acceleResultsHtml = [];
         _.forEach(acceleResults, (value, key) => {
           let resultsHtml = `<div style="display: flex; align-items: center; justify-content: flex-start; gap: 0px 10px; flex-flow: row wrap;"><div class="color: white;">${fy2(`accelerate.type.${key}`)} : </div>`;
-          _.forEach(value, (i2) => {
-            resultsHtml += `<div class="item" style="display: flex; align-items: center;"><div class="playStyle chemstyle${i2}" style="font-size: 18px; margin-right: 6px;"></div><div>${services2.Localization.localize(`playstyles.playstyle${i2}`)}</div></div>`;
+          _.forEach(value, (i) => {
+            resultsHtml += `<div class="item" style="display: flex; align-items: center;"><div class="playStyle chemstyle${i}" style="font-size: 18px; margin-right: 6px;"></div><div>${services2.Localization.localize(`playstyles.playstyle${i}`)}</div></div>`;
           });
           resultsHtml += `</div>`;
           acceleResultsHtml.push(resultsHtml);
@@ -8151,24 +8441,24 @@
         void 0 === r && (r = false);
         var e2 = this.getView().getSubTypesDropDown(), t = new UTSearchCriteriaDTO();
         t.update(this.searchCriteria), 0 < e2.length && (t.subtypes = [e2.id]), services2.Club.search(t).observe(this, function(e3, t2) {
-          var i2;
+          var i;
           if (e3.unobserve(s2), s2.clubViewModel && t2.success && JSUtils.isObject(t2.response)) {
-            var o = s2.clubViewModel.getIndex(), n = s2.searchCriteria.sortBy === SearchSortType.RECENCY, p = t2.response.items.filter((i3) => info.lock.includes(i3.id));
+            var o = s2.clubViewModel.getIndex(), n = s2.searchCriteria.sortBy === SearchSortType.RECENCY, p = t2.response.items.filter((i2) => info.lock.includes(i2.id));
             s2.clubViewModel.sortByRecency = n, s2.clubViewModel.sort = s2.searchCriteria.sort, s2.clubViewModel.sortType = s2.searchCriteria.sortBy, s2.clubViewModel.removeArray(t2.response.items), s2.clubViewModel.addArray(p), s2.clubViewModel.isFull = t2.response.retrievedAll, s2.clubViewModel.setIndex(o), s2.updateItemList(s2.clubViewModel.getPageItems(), !r);
           } else
-            services2.Notification.queue([services2.Localization.localize("notification.club.failedToLoad"), UINotificationType.NEGATIVE]), null === (i2 = s2.getNavigationController()) || void 0 === i2 || i2.popViewController(true);
+            services2.Notification.queue([services2.Localization.localize("notification.club.failedToLoad"), UINotificationType.NEGATIVE]), null === (i = s2.getNavigationController()) || void 0 === i || i.popViewController(true);
         });
       } else if ("_fsuStorage" in this && this._fsuStorage) {
         var s2 = this;
         void 0 === r && (r = false);
         var e2 = this.getView().getSubTypesDropDown(), t = new UTSearchCriteriaDTO();
         t.update(this.searchCriteria), 0 < e2.length && (t.subtypes = [e2.id]), services2.Item.searchStorageItems(t).observe(this, function(e3, t2) {
-          var i2;
+          var i;
           if (e3.unobserve(s2), s2.clubViewModel && t2.success && JSUtils.isObject(t2.response)) {
             var o = s2.clubViewModel.getIndex(), n = s2.searchCriteria.sortBy === SearchSortType.RECENCY;
             s2.clubViewModel.sortByRecency = n, s2.clubViewModel.sort = s2.searchCriteria.sort, s2.clubViewModel.sortType = s2.searchCriteria.sortBy, s2.clubViewModel.removeArray(t2.response.items), s2.clubViewModel.addArray(t2.response.items), s2.clubViewModel.isFull = t2.response.retrievedAll, s2.clubViewModel.setIndex(o), s2.updateItemList(s2.clubViewModel.getPageItems(), !r);
           } else
-            services2.Notification.queue([services2.Localization.localize("notification.club.failedToLoad"), UINotificationType.NEGATIVE]), null === (i2 = s2.getNavigationController()) || void 0 === i2 || i2.popViewController(true);
+            services2.Notification.queue([services2.Localization.localize("notification.club.failedToLoad"), UINotificationType.NEGATIVE]), null === (i = s2.getNavigationController()) || void 0 === i || i.popViewController(true);
         });
       } else if ("_fsuInPacks" in this && this._fsuInPacks) {
         events.showLoader();
@@ -8192,8 +8482,8 @@
       }
       if ("_fsuStorage" in this && this._fsuStorage) {
         this.getNavigationController().setNavigationTitle(fy2("storage.navtilte"));
-        let sendClubPlayers = _.filter(repositories2.Item.storage.values(), (i2) => {
-          let clubPlayers = events.getItemBy(1, { "definitionId": i2.definitionId, "upgrades": null }, false, repositories2.Item.club.items.values());
+        let sendClubPlayers = _.filter(repositories2.Item.storage.values(), (i) => {
+          let clubPlayers = events.getItemBy(1, { "definitionId": i.definitionId, "upgrades": null }, false, repositories2.Item.club.items.values());
           return clubPlayers.length == 0;
         });
         if (sendClubPlayers.length) {
@@ -8331,10 +8621,10 @@
     UTRewardSelectionChoiceViewController.prototype.viewDidAppear = function() {
       call.other.rewards.choice.call(this);
       let target = this.getView().__rewardTiles.querySelectorAll(".ut-reward-selection");
-      _.map(this.rewardSets, (s2, i2) => {
+      _.map(this.rewardSets, (s2, i) => {
         let sum = 0;
         _.map(s2.rewards, (r, z) => {
-          sum += events.setRewardOddo(z == 0 ? target[i2] : false, r, 2);
+          sum += events.setRewardOddo(z == 0 ? target[i] : false, r, 2);
         });
         if (s2.rewards.length > 1) {
           let sumBox = events.createElementWithConfig("span", {
@@ -8351,7 +8641,7 @@
           });
           sumBox.appendChild(sumText);
           sumBox.appendChild(document.createTextNode(")"));
-          target[i2].querySelector(".selection-title-landscape").appendChild(sumBox);
+          target[i].querySelector(".selection-title-landscape").appendChild(sumBox);
         }
       });
     };
@@ -8359,8 +8649,8 @@
       call.other.rewards.choiceSet.call(this, e2, t);
       let target = this.__expandedReward.querySelectorAll(".reward");
       let sum = 0;
-      _.map(t.rewards, (r, i2) => {
-        sum += events.setRewardOddo(target[i2], r, 2);
+      _.map(t.rewards, (r, i) => {
+        sum += events.setRewardOddo(target[i], r, 2);
       });
       if (t.rewards.length > 1) {
         let sumBox = events.createElementWithConfig("span", {
@@ -8380,8 +8670,8 @@
         this.__title.appendChild(sumBox);
       }
     };
-    UTGameRewardsViewController.prototype.onButtonTapped = function(e2, t, i2) {
-      call.other.rewards.popupTapped.call(this, e2, t, i2);
+    UTGameRewardsViewController.prototype.onButtonTapped = function(e2, t, i) {
+      call.other.rewards.popupTapped.call(this, e2, t, i);
       if (this.hasPackReward && cntlr2.current().className == "UTStorePackViewController") {
         cntlr2.current().getStorePacks();
         if (repositories2.Store.myPacks.length == 0) {
@@ -8686,8 +8976,8 @@
         const acceleResultsHtml = [];
         _.forEach(acceleResults, (value, key) => {
           let resultsHtml = `<div style="display: flex; align-items: center; justify-content: flex-start; gap: 0px 10px; flex-flow: row wrap;"><div class="color: white;">${fy2(`accelerate.type.${key}`)} : </div>`;
-          _.forEach(value, (i2) => {
-            resultsHtml += `<div class="item" style="display: flex; align-items: center;"><div class="playStyle chemstyle${i2}" style="font-size: 18px; margin-right: 6px;"></div><div>${services2.Localization.localize(`playstyles.playstyle${i2}`)}</div></div>`;
+          _.forEach(value, (i) => {
+            resultsHtml += `<div class="item" style="display: flex; align-items: center;"><div class="playStyle chemstyle${i}" style="font-size: 18px; margin-right: 6px;"></div><div>${services2.Localization.localize(`playstyles.playstyle${i}`)}</div></div>`;
           });
           resultsHtml += `</div>`;
           acceleResultsHtml.push(resultsHtml);
@@ -8721,11 +9011,11 @@
   // src/fsu/patches/player-meta.js
   function installLocalizationPatch(deps) {
     const { call } = deps;
-    EALocalizationService.prototype.localize = function(t, e2, i2) {
+    EALocalizationService.prototype.localize = function(t, e2, i) {
       if (t == "timespan.second") {
         t = "timespan.seconds";
       }
-      let text = call.other.localize.call(this, t, e2, i2);
+      let text = call.other.localize.call(this, t, e2, i);
       return text;
     };
   }
@@ -8760,29 +9050,29 @@
         let tacticRoles = services2.Squad.getTacticRoles().map(function(z) {
           return z.type;
         });
-        let tempRole = _.map(p.possiblePositions, (i2) => {
-          return UTPlayerRoleVO.getRolesForPositionId(i2);
+        let tempRole = _.map(p.possiblePositions, (i) => {
+          return UTPlayerRoleVO.getRolesForPositionId(i);
         });
         let role = _.sortBy(_.uniq(_.intersection(_.flatten(tempRole), tacticRoles)));
-        let plus = _.map(p.basePlusRoles, (i2) => {
-          return i2.type;
+        let plus = _.map(p.basePlusRoles, (i) => {
+          return i.type;
         });
         plus = _.uniq(plus);
-        let plusPlus = _.map(p.basePlusPlusRoles, (i2) => {
-          return i2.type;
+        let plusPlus = _.map(p.basePlusPlusRoles, (i) => {
+          return i.type;
         });
         plusPlus = _.uniq(plusPlus);
         let base = 0;
         let rankText = ["S", "A", "B", "C", "D"];
         let rankBgColor = ["rgba(220,38,38,0.8)", "rgba(251,146,60,0.8)", "rgba(168,85,247,0.8)", "rgba(6,182,212,0.8)", "rgba(34,197,94,0.8)"];
         let eioNames = ["none", "goalkeeper", "sweeper_keeper", "fullback", "wingback", "falseback", "attacking_wingback", "defender", "stopper", "ball_playing_defender", "centre_half", "holding", "deep_lying_playmaker", "box_to_box", "playmaker", "half_winger", "winger", "wide_playmaker", "wide_midfielder", "inside_forward", "shadow_striker", "target_forward", "false_nine", "poacher", "advanced_forward"];
-        _.forEach(role, (r, i2) => {
-          if (_.has(m.meta, i2)) {
+        _.forEach(role, (r, i) => {
+          if (_.has(m.meta, i)) {
             let rm = {};
             rm["name"] = UTLocalizationUtil.mapTacticRoleToLocString(r);
             rm["id"] = r;
-            rm["rating"] = m.meta[i2][0];
-            rm["chemstyle"] = m.meta[i2][1] + 250;
+            rm["rating"] = m.meta[i][0];
+            rm["chemstyle"] = m.meta[i][1] + 250;
             let customSortedIndex = _.findIndex(info.meta.rank[r], (value) => value <= rm["rating"]);
             let rankIndex = customSortedIndex === -1 ? info.meta.rank[r].length : customSortedIndex;
             rm["rank"] = rankText[rankIndex];
@@ -8804,7 +9094,7 @@
         if (_.size(mt)) {
           if (_.has(mt, "base")) {
             let namePlus = "";
-            for (let i2 = 0; i2 < mt["base"].plus; i2++) {
+            for (let i = 0; i < mt["base"].plus; i++) {
               namePlus += "+";
             }
             mt["base"].name += namePlus;
@@ -8901,28 +9191,28 @@
         "untradeable": true,
         "weakfootabilitytypecode": 0
       };
-      const items = _.map(json.packItem.items, (i2) => _.assign({}, baseItem, {
-        assetId: i2.id,
-        resourceId: i2.id,
-        rating: i2.rating,
-        preferredPosition: _.get(_.find(i2.positions, { isPreferred: true }), "name", ""),
-        teamid: _.get(i2, "club.id", 0),
-        leagueId: _.get(i2, "league.id", 0),
-        nation: _.get(i2, "nation.id", 0),
-        attributeArray: _.values(i2.attributes || {}),
-        skillmoves: (i2.skills || 1) - 1,
-        weakfootabilitytypecode: i2.weekFoot ?? 0,
-        preferredfoot: i2.foot ?? 1,
-        possiblePositions: _.map(i2.positions, "name"),
-        baseTraits: _.map(_.filter(i2.traits, { isIcon: false }), "id"),
-        iconTraits: _.map(_.filter(i2.traits, { isIcon: true }), "id"),
-        rareflag: _.get(i2, "rarity.id", 0),
+      const items = _.map(json.packItem.items, (i) => _.assign({}, baseItem, {
+        assetId: i.id,
+        resourceId: i.id,
+        rating: i.rating,
+        preferredPosition: _.get(_.find(i.positions, { isPreferred: true }), "name", ""),
+        teamid: _.get(i, "club.id", 0),
+        leagueId: _.get(i, "league.id", 0),
+        nation: _.get(i, "nation.id", 0),
+        attributeArray: _.values(i.attributes || {}),
+        skillmoves: (i.skills || 1) - 1,
+        weakfootabilitytypecode: i.weekFoot ?? 0,
+        preferredfoot: i.foot ?? 1,
+        possiblePositions: _.map(i.positions, "name"),
+        baseTraits: _.map(_.filter(i.traits, { isIcon: false }), "id"),
+        iconTraits: _.map(_.filter(i.traits, { isIcon: true }), "id"),
+        rareflag: _.get(i, "rarity.id", 0),
         untradeable: isUntradeable
       }));
       let itemFactory = new UTItemEntityFactory();
       if (items && items.length) {
-        return _.map(items, (i2) => {
-          return itemFactory.createItem(i2);
+        return _.map(items, (i) => {
+          return itemFactory.createItem(i);
         });
       } else {
         return false;
@@ -9161,8 +9451,8 @@
             const value = UTAcademyUtils.getPlayerFinalStatValue(player, a);
             const state = e2.levels[a.level - 1].status;
             let addedText = "no";
-            const sub = _.find(this.panel.upgradeList, (i2) => {
-              return i2.__title?.innerText == titleText && !i2.__deltaValue.hasAttribute("data-up");
+            const sub = _.find(this.panel.upgradeList, (i) => {
+              return i.__title?.innerText == titleText && !i.__deltaValue.hasAttribute("data-up");
             });
             if (sub) {
               let subText = "";
@@ -9260,12 +9550,12 @@
         league: () => fy2([`builder.league.short`, info.set.shield_league.length]),
         flag: () => fy2([`builder.flag.short`, info.set.shield_flag.length]),
         comprange: () => fy2([`builder.comprange.short`, info.set.goldenrange]),
-        default: (i2) => fy2(`builder.${i2}.short`)
+        default: (i) => fy2(`builder.${i}.short`)
       };
-      _.forEach(options, (i2) => {
-        if (info.build[i2]) {
-          const textFunc = optionsTextMap[i2] || optionsTextMap.default;
-          ignoreTextArray.push(textFunc(i2));
+      _.forEach(options, (i) => {
+        if (info.build[i]) {
+          const textFunc = optionsTextMap[i] || optionsTextMap.default;
+          ignoreTextArray.push(textFunc(i));
         }
       });
       return ignoreTextArray.join("、");
@@ -9414,9 +9704,9 @@
                 events.popup(
                   fy2("consult.popupt"),
                   fy2("consult.popupm"),
-                  (t, i2) => {
+                  (t, i) => {
                     if (t === 2) {
-                      let v = i2.getValue();
+                      let v = i.getValue();
                       if (v == "") {
                         events.getTemplate(e2, 1);
                       } else {
@@ -9531,18 +9821,18 @@
                   getCriteria = events.ignorePlayerToCriteria(getCriteria);
                   playerList = events.getItemBy(2, getCriteria, repositories2.Item.getUnassignedItems()).slice(0, criteriaNumber);
                 } else {
-                  for (let i2 of oneFillCriteria) {
-                    let getCriteria = JSON.parse(JSON.stringify(i2.t));
+                  for (let i of oneFillCriteria) {
+                    let getCriteria = JSON.parse(JSON.stringify(i.t));
                     getCriteria = events.ignorePlayerToCriteria(getCriteria);
                     if (removeIds.length) {
                       getCriteria["NEdatabaseId"] = removeIds;
                     }
                     getCriteria["lock"] = false;
                     let result = events.getItemBy(2, getCriteria, repositories2.Item.getUnassignedItems());
-                    let cropping = result.slice(0, i2.c);
+                    let cropping = result.slice(0, i.c);
                     debug2.log(cropping, _.map(cropping, "rating"));
-                    removeIds = removeIds.concat(cropping.map((i3) => {
-                      return i3.databaseId;
+                    removeIds = removeIds.concat(cropping.map((i2) => {
+                      return i2.databaseId;
                     }));
                     playerList = playerList.concat(cropping);
                   }
@@ -9585,8 +9875,8 @@
               criteria = events.ignorePlayerToCriteria(criteria);
               let playerlist = events.getItemBy(2, criteria);
               if (playerlist.length) {
-                if (repositories2.Item.getUnassignedItems().filter((i2) => {
-                  return i2.duplicateId;
+                if (repositories2.Item.getUnassignedItems().filter((i) => {
+                  return i.duplicateId;
                 }).length > playerlist.length) {
                   events.notice("notice.dupfilldiff", 1);
                 }
@@ -9606,7 +9896,7 @@
             fy2("squadcmpl.btntext"),
             (_e) => {
               debug2.log(thisController._challenge);
-              let va = thisController._squad.getNumOfRequiredPlayers() - thisController._squad.getFieldPlayers().filter((i2) => i2.isValid()).length, fillRating = events.needRatingsCount(hasRating, thisController._squad), inputText = fy2(va ? "squadcmpl.placeholder" : "squadcmpl.placeholder_zero");
+              let va = thisController._squad.getNumOfRequiredPlayers() - thisController._squad.getFieldPlayers().filter((i) => i.isValid()).length, fillRating = events.needRatingsCount(hasRating, thisController._squad), inputText = fy2(va ? "squadcmpl.placeholder" : "squadcmpl.placeholder_zero");
               if (fillRating.length && fillRating[0].lackRatings.length == 0 && fillRating[0].ratings.length && hasRating) {
                 inputText = [fy2("squadcmpl.placeholder"), fillRating.length == "0" && va == 0 ? "" : fillRating[0].ratings.join(`,`)];
               }
@@ -9617,9 +9907,9 @@
               events.popup(
                 fy2("squadcmpl.popupt"),
                 fy2("squadcmpl.popupm"),
-                (t, i2) => {
+                (t, i) => {
                   if (t === 2) {
-                    const value = i2.getValue(), reg = /^\d{2}([+\-]|-\d{2})?(,\d{2}([+\-]|-\d{2})?)*$/, isValid = reg.test(value);
+                    const value = i.getValue(), reg = /^\d{2}([+\-]|-\d{2})?(,\d{2}([+\-]|-\d{2})?)*$/, isValid = reg.test(value);
                     if (isValid || value === "") {
                       const ratings = isValid ? value.split(",") : [];
                       events.showLoader();
@@ -9710,8 +10000,8 @@
   function installPlayerBioPatches(deps) {
     const { events, cntlr: cntlr2, services: services2, debug: debug2, fy: fy2, repositories: repositories2 } = deps;
     const UTPlayerBioView_render = UTPlayerBioView.prototype.render;
-    UTPlayerBioView.prototype.render = function(t, e2, i2) {
-      UTPlayerBioView_render.call(this, t, e2, i2);
+    UTPlayerBioView.prototype.render = function(t, e2, i) {
+      UTPlayerBioView_render.call(this, t, e2, i);
       if (_.some(cntlr2.current().getNavigationController()._childViewControllers, { className: "UTAcademySlotItemDetailsViewController" })) {
         this.fsuAcademy = true;
       }
@@ -9840,11 +10130,11 @@
           if (roleChange.length) {
             this.fsuAcademyChange[PlayerBioDisplayGroup.ROLES] = roleChange;
           }
-          _.map(this._navigation.items, (i3) => {
-            if (_.has(this.fsuAcademyChange, i3.id)) {
-              let count = _.size(_.filter(this.fsuAcademyChange[i3.id], { "count": true }));
+          _.map(this._navigation.items, (i2) => {
+            if (_.has(this.fsuAcademyChange, i2.id)) {
+              let count = _.size(_.filter(this.fsuAcademyChange[i2.id], { "count": true }));
               if (count) {
-                i3.addNotificationBubble(count);
+                i2.addNotificationBubble(count);
               }
             }
           });
@@ -9958,7 +10248,7 @@
     };
     UTRewardSelectionChoiceView.prototype.expandRewardSet = function(e2, t) {
       call.panel.reward.call(this, e2, t);
-      let reward = t.rewards.find((i2) => i2.count), tn = this._rewardsCarousel._tnsCarousel.__root;
+      let reward = t.rewards.find((i) => i.count), tn = this._rewardsCarousel._tnsCarousel.__root;
       if (reward.isItem && reward.item.isPlayer() && info.set.player_futbin && tn.classList.length === 2 && tn.classList.contains("slider") && tn.classList.contains("rewards-slider-container")) {
         let player = reward.item;
         this._fsuPlayer = events.createButton(
@@ -10161,7 +10451,18 @@
           "SBCEligibilityKey"
         )
       );
-      registerFastSbcEvents(c.pick("events", "cntlr", "info", "debug", "repositories", "services"));
+      registerFastSbcEvents(
+        c.pick(
+          "events",
+          "cntlr",
+          "info",
+          "debug",
+          "repositories",
+          "services",
+          "fy",
+          "fastSbcPlannerService"
+        )
+      );
     }
     installClubAndUi() {
       const c = this.ctx;
@@ -10298,12 +10599,12 @@
         delete queryOptions.os;
       }
       if (!("unlimited" in queryOptions) || "unlimited" in queryOptions && !queryOptions.unlimited) {
-        players = players.filter((i2) => {
-          return i2.isPlayer() && i2.loans === -1 && !i2.isEnrolledInAcademy() && i2.endTime == -1;
+        players = players.filter((i) => {
+          return i.isPlayer() && i.loans === -1 && !i.isEnrolledInAcademy() && i.endTime == -1;
         });
       } else {
-        players = players.filter((i2) => {
-          return i2.isPlayer();
+        players = players.filter((i) => {
+          return i.isPlayer();
         });
       }
       delete queryOptions.unlimited;
@@ -10318,93 +10619,93 @@
         }
       }
       for (let [k, v] of Object.entries(queryOptions)) {
-        players = players.filter((i2) => {
+        players = players.filter((i) => {
           switch (k) {
             case "rs":
               switch (v) {
                 case 0:
-                  return i2.rating >= 0 && i2.rating <= 64 && (!i2.isSpecial() || i2.leagueId == 1003 || i2.leagueId == 1014);
+                  return i.rating >= 0 && i.rating <= 64 && (!i.isSpecial() || i.leagueId == 1003 || i.leagueId == 1014);
                 case 1:
-                  return i2.rating >= 65 && i2.rating <= 74 && (!i2.isSpecial() || i2.leagueId == 1003 || i2.leagueId == 1014);
+                  return i.rating >= 65 && i.rating <= 74 && (!i.isSpecial() || i.leagueId == 1003 || i.leagueId == 1014);
                 case 2:
-                  return i2.rating >= 75 && i2.rating <= info.set.goldenrange && (!i2.isSpecial() || i2.leagueId == 1003 || i2.leagueId == 1014);
+                  return i.rating >= 75 && i.rating <= info.set.goldenrange && (!i.isSpecial() || i.leagueId == 1003 || i.leagueId == 1014);
                 case 9:
-                  return !i2.isSpecial() || i2.leagueId == 1003 || i2.leagueId == 1014;
+                  return !i.isSpecial() || i.leagueId == 1003 || i.leagueId == 1014;
                 default:
-                  return i2.rating >= 0 && i2.rating <= 99;
+                  return i.rating >= 0 && i.rating <= 99;
               }
             case "gs":
-              return i2.groups.includes(4) === v;
+              return i.groups.includes(4) === v;
             case "levelId":
               switch (v) {
                 case 3:
-                  return i2.isSpecial();
+                  return i.isSpecial();
                 case 0:
-                  return i2.isBronzeRating() && !i2.isSpecial();
+                  return i.isBronzeRating() && !i.isSpecial();
                 case 1:
-                  return i2.isSilverRating() && !i2.isSpecial();
+                  return i.isSilverRating() && !i.isSpecial();
                 case 2:
-                  return i2.isGoldRating() && !i2.isSpecial();
+                  return i.isGoldRating() && !i.isSpecial();
               }
             case "BTWrating":
               if (v[0] > v[1]) {
                 ratingOrder = "desc";
-                return i2.rating >= v[1] && i2.rating <= v[0];
+                return i.rating >= v[1] && i.rating <= v[0];
               } else {
-                return i2.rating >= v[0] && i2.rating <= v[1];
+                return i.rating >= v[0] && i.rating <= v[1];
               }
             case "bepos":
-              return i2.basePossiblePositions.includes(v);
+              return i.basePossiblePositions.includes(v);
             case "includePos":
-              return Array.isArray(v) ? v.some((x) => i2.possiblePositions.includes(x)) : i2.possiblePositions.includes(v);
+              return Array.isArray(v) ? v.some((x) => i.possiblePositions.includes(x)) : i.possiblePositions.includes(v);
             case "excludePos":
-              return Array.isArray(v) ? !v.some((x) => i2.possiblePositions.includes(x)) : !i2.possiblePositions.includes(v);
+              return Array.isArray(v) ? !v.some((x) => i.possiblePositions.includes(x)) : !i.possiblePositions.includes(v);
             case "maxNumPos":
-              return i2.possiblePositions.length <= Array.isArray(v) ? v[0] : v;
+              return i.possiblePositions.length <= Array.isArray(v) ? v[0] : v;
             case "maxNumBasicPlayStyles":
-              return i2.getNumBasicPlayStyles() <= Array.isArray(v) ? v[0] : v;
+              return i.getNumBasicPlayStyles() <= Array.isArray(v) ? v[0] : v;
             case "maxNumPlusPlayStyles":
-              return i2.getNumPlusPlayStyles() <= Array.isArray(v) ? v[0] : v;
+              return i.getNumPlusPlayStyles() <= Array.isArray(v) ? v[0] : v;
             case "lock":
               if (v) {
-                return info.lock.includes(i2.id);
+                return info.lock.includes(i.id);
               } else {
-                return !info.lock.includes(i2.id);
+                return !info.lock.includes(i.id);
               }
             case "quality":
               switch (v) {
                 case "<=1":
-                  return i2.isBronzeRating();
+                  return i.isBronzeRating();
                 case "=2":
-                  return i2.isSilverRating();
+                  return i.isSilverRating();
                 case ">=3":
-                  return i2.isGoldRating();
+                  return i.isGoldRating();
                 case "<=3":
                   return true;
                 case ">=2":
-                  return i2.isSilverRating() || i2.isGoldRating();
+                  return i.isSilverRating() || i.isGoldRating();
                 case "<=2":
-                  return i2.isSilverRating() || i2.isBronzeRating();
+                  return i.isSilverRating() || i.isBronzeRating();
                 default:
                   return true;
               }
             case "removeSquad":
-              return !_.includes(info.squad, i2.id);
+              return !_.includes(info.squad, i.id);
             default:
               if (/NE/.test(k)) {
                 let rk = k.replace(/NE/, "");
-                return _.isArray(v) ? !v.includes(i2[rk]) : i2[rk] !== v;
+                return _.isArray(v) ? !v.includes(i[rk]) : i[rk] !== v;
               } else if (/GT/.test(k)) {
                 let rk = k.replace(/GT/, "");
-                return _.isArray(v) ? i2[rk] >= Math.max(...v) : i2[rk] >= v;
+                return _.isArray(v) ? i[rk] >= Math.max(...v) : i[rk] >= v;
               } else if (/LT/.test(k)) {
                 let rk = k.replace(/LT/, "");
-                return _.isArray(v) ? i2[rk] <= Math.min(...v) : i2[rk] <= v;
+                return _.isArray(v) ? i[rk] <= Math.min(...v) : i[rk] <= v;
               } else {
-                if (_.isArray(i2[k])) {
-                  return _.isArray(v) ? _.intersection(i2[k], v).length === v.length : _.includes(i2[k], v);
+                if (_.isArray(i[k])) {
+                  return _.isArray(v) ? _.intersection(i[k], v).length === v.length : _.includes(i[k], v);
                 } else {
-                  return _.isArray(v) ? v.includes(i2[k]) : i2[k] === v;
+                  return _.isArray(v) ? v.includes(i[k]) : i[k] === v;
                 }
               }
           }
@@ -10420,9 +10721,9 @@
           if (ratingOrder == "desc") {
             tempPlayers = _.reverse(tempPlayers);
           }
-          _.forEach(tempPlayers, (i2) => {
+          _.forEach(tempPlayers, (i) => {
             let tempResult = [], special = [], normal = [];
-            _.forEach(i2, (si) => {
+            _.forEach(i, (si) => {
               if (!si.isSpecial() || si.leagueId == 1003 || si.leagueId == 1014) {
                 normal.push(si);
               } else {
@@ -10448,15 +10749,15 @@
           if (ratingOrder == "desc") {
             tempPlayers = _.reverse(tempPlayers);
           }
-          _.forEach(tempPlayers, (i2) => {
+          _.forEach(tempPlayers, (i) => {
             let tempResult = [];
-            if (i2[0].rating >= 75 && i2[0].rating <= info.set.goldenrange) {
-              tempResult = _.sortBy(i2, customSort);
+            if (i[0].rating >= 75 && i[0].rating <= info.set.goldenrange) {
+              tempResult = _.sortBy(i, customSort);
               if (!_.includes(specialOrder, 1)) {
                 tempResult = _.orderBy(tempResult, "untradeableCount", "desc");
               }
             } else {
-              tempResult = i2;
+              tempResult = i;
             }
             resultPlayers = _.concat(resultPlayers, tempResult);
           });
@@ -10477,8 +10778,8 @@
       }
       if (insertData && !replaceData) {
         debug2.log("查询球员时有插入数据");
-        let insertPlayerIds = _.map(_.filter(insertData, (i2) => {
-          return !i2.isLimitedUse() && i2.isPlayer() && i2.isDuplicate();
+        let insertPlayerIds = _.map(_.filter(insertData, (i) => {
+          return !i.isLimitedUse() && i.isPlayer() && i.isDuplicate();
         }), "duplicateId");
         players = _.orderBy(players, [
           (player) => {
@@ -10579,13 +10880,13 @@
 
   // src/fsu/domain/MarketActionService.js
   var MarketActionService = class {
-    _getAuctionPrice(i2, p, helpers) {
+    _getAuctionPrice(i, p, helpers) {
       const { getInfo, notice, xmlHttpRequest } = helpers;
       const info = getInfo();
       return new Promise((res) => {
         xmlHttpRequest({
           method: "GET",
-          url: `https://utas.mob.v5.prd.futc-ext.gcp.ea.com/ut/game/fc26/transfermarket?num=21&start=0&type=player&maskedDefId=${i2}&maxb=${p}`,
+          url: `https://utas.mob.v5.prd.futc-ext.gcp.ea.com/ut/game/fc26/transfermarket?num=21&start=0&type=player&maskedDefId=${i}&maxb=${p}`,
           headers: {
             "Content-type": "application/json",
             "X-UT-SID": info.base.sId
@@ -10625,26 +10926,26 @@
       }
       let price = getCachePrice(defId, 1).num;
       let result = await this._getAuctionPrice(defId, price, helpers);
-      let priceList = result.map((i2) => i2.buyNowPrice) || [];
+      let priceList = result.map((i) => i.buyNowPrice) || [];
       if (result.length == 0) {
-        for (let i2 = 0; i2 < 5; i2++) {
+        for (let i = 0; i < 5; i++) {
           price = UTCurrencyInputControl.getIncrementAboveVal(price);
-          debug2.log(`升价第${i2}次循环，当前查询价格${price}`);
+          debug2.log(`升价第${i}次循环，当前查询价格${price}`);
           let tempResult = await this._getAuctionPrice(defId, price, helpers);
-          tempResult.map((i3) => {
-            priceList.push(i3.buyNowPrice);
+          tempResult.map((i2) => {
+            priceList.push(i2.buyNowPrice);
           });
           if (tempResult.length > 0) {
             break;
           }
         }
       } else if (result.length == 21) {
-        for (let i2 = 0; i2 < 5; i2++) {
+        for (let i = 0; i < 5; i++) {
           price = UTCurrencyInputControl.getIncrementBelowVal(price);
-          debug2.log(`降价第${i2}次循环，当前查询价格${price}`);
+          debug2.log(`降价第${i}次循环，当前查询价格${price}`);
           let tempResult = await this._getAuctionPrice(defId, price, helpers);
-          tempResult.map((i3) => {
-            priceList.push(i3.buyNowPrice);
+          tempResult.map((i2) => {
+            priceList.push(i2.buyNowPrice);
           });
           if (tempResult.length < 21) {
             break;
@@ -10985,10 +11286,10 @@
       const { notice, isPhone: isPhone2 } = helpers;
       services.Item.move(list, ItemPile.CLUB).observe(controller, (e2, t) => {
         if (e2.unobserve(controller), t.success) {
-          let i2 = t.data.itemIds.length, o = 1 < i2 ? services.Localization.localize("notification.item.allToClub", [i2]) : services.Localization.localize("notification.item.oneToClub");
+          let i = t.data.itemIds.length, o = 1 < i ? services.Localization.localize("notification.item.allToClub", [i]) : services.Localization.localize("notification.item.oneToClub");
           services.Notification.queue([o, UINotificationType.NEUTRAL]);
-          if (i2 < list.length) {
-            notice(["transfertoclub.unable", list.length - i2], 2);
+          if (i < list.length) {
+            notice(["transfertoclub.unable", list.length - i], 2);
           }
           if (isPhone2()) {
             controller.refreshList();
@@ -11007,33 +11308,33 @@
     async playerToAuction(d, p, time, helpers) {
       const { futbinId: futbinId2, getInfo, getCachePrice, notice, playerGetLimits, getCurrentController } = helpers;
       const info = getInfo();
-      let i2 = repositories.Item.transfer.get(d) || repositories.Item.unassigned.get(d) || repositories.Item.club.items.get(d);
+      let i = repositories.Item.transfer.get(d) || repositories.Item.unassigned.get(d) || repositories.Item.club.items.get(d);
       let t = repositories.Item.transfer._collection.hasOwnProperty(d);
-      if (i2) {
+      if (i) {
         try {
-          if (_.has(info.futbinId, i2.definitionId)) {
-            await futbinId2.getPrice(i2.definitionId, info.futbinId[i2.definitionId]);
+          if (_.has(info.futbinId, i.definitionId)) {
+            await futbinId2.getPrice(i.definitionId, info.futbinId[i.definitionId]);
           } else {
-            await futbinId2.getId(i2);
+            await futbinId2.getId(i);
           }
         } catch {
           return;
         }
-        const price = getCachePrice(i2.definitionId, 1).num;
+        const price = getCachePrice(i.definitionId, 1).num;
         if ((repositories.Item.getPileSize(ItemPile.TRANSFER) - repositories.Item.numItemsInCache(ItemPile.TRANSFER) > 0 || t) && price) {
-          await playerGetLimits(i2);
-          if (i2.hasPriceLimits()) {
-            if (p < i2._itemPriceLimits.minimum || p > i2._itemPriceLimits.maximum) {
-              notice(["notice.auctionlimits", i2._staticData.name], 2);
+          await playerGetLimits(i);
+          if (i.hasPriceLimits()) {
+            if (p < i._itemPriceLimits.minimum || p > i._itemPriceLimits.maximum) {
+              notice(["notice.auctionlimits", i._staticData.name], 2);
               return;
             }
           }
           let lp = UTCurrencyInputControl.getIncrementBelowVal(price);
-          await services.Item.list(i2, lp, price, time * 3600).observe(
+          await services.Item.list(i, lp, price, time * 3600).observe(
             getCurrentController(),
             async (e2, t2) => {
               if (e2.unobserve(getCurrentController()), t2.success) {
-                notice(["notice.auctionsuccess", i2._staticData.name, price], 0);
+                notice(["notice.auctionsuccess", i._staticData.name, price], 0);
               } else {
                 let ix = t2.error ? t2.error.code : t2.status;
                 if (NetworkErrorManager.checkCriticalStatus(ix)) NetworkErrorManager.handleStatus(ix);
@@ -11425,14 +11726,14 @@
         const base = player.getSubAttribute(id)?.rating || 0;
         return _.min([99, Math.floor(base * (1 + ratio) + 0.501)]);
       });
-      const calcFace = (subs) => _.sum(_.map(subs, (v, i2) => v * weight[i2]));
+      const calcFace = (subs) => _.sum(_.map(subs, (v, i) => v * weight[i]));
       let currentCalcFace = calcFace(updatedSubs);
       let safe = 0;
       while (Math.floor(currentCalcFace + 0.501) < targetFace && safe < 500) {
         safe++;
-        for (let i2 = 0; i2 < updatedSubs.length; i2++) {
-          if (updatedSubs[i2] < 99) {
-            updatedSubs[i2]++;
+        for (let i = 0; i < updatedSubs.length; i++) {
+          if (updatedSubs[i] < 99) {
+            updatedSubs[i]++;
             currentCalcFace = calcFace(updatedSubs);
             if (Math.floor(currentCalcFace + 0.501) >= targetFace) break;
           }
@@ -11523,11 +11824,11 @@
         const composureConfig = info.fgconfig.attribute[29];
         const basicHasTBLZ = basicPlayStyles.includes(PlayerTrait.TRAILBLAZING);
         const plusHasTBLZ = plusPlayStyles.includes(PlayerTrait.TRAILBLAZING);
-        const plusRoles = _.map(newPlayer.getPlusRoles(), (i2) => {
-          return `${i2.position}_${i2.type}`;
+        const plusRoles = _.map(newPlayer.getPlusRoles(), (i) => {
+          return `${i.position}_${i.type}`;
         });
-        const plusPlusRoles = _.map(newPlayer.getPlusPlusRoles(), (i2) => {
-          return `${i2.position}_${i2.type}`;
+        const plusPlusRoles = _.map(newPlayer.getPlusPlusRoles(), (i) => {
+          return `${i.position}_${i.type}`;
         });
         const isLegend = 2118 === newPlayer.leagueId;
         const isGK = 0 === newPlayer.preferredPosition;
@@ -11616,7 +11917,7 @@
               }
               if (score > 0) {
                 score = this.fgScoreToTargetRange(score, helpers).toFixed(1);
-                let gradesIndex = /* @__PURE__ */ ((i2) => i2 === -1 ? 5 : i2)(
+                let gradesIndex = /* @__PURE__ */ ((i) => i === -1 ? 5 : i)(
                   _.findIndex(info.GGRRAR.rank[role.posId], (value) => value <= score)
                 );
                 ;
@@ -11677,14 +11978,14 @@
       newPlayer.setMetaData(player.getMetaData());
       newPlayer.upgrades = _.cloneDeep(player.upgrades) ?? new UTItemAcademyStatEntity({});
       const attrConfig = newPlayer.isGK() ? info.attributesGK : info.attributes;
-      const calcFace = (subs, weight) => _.sum(_.map(subs, (v, i2) => v.value * weight[i2]));
+      const calcFace = (subs, weight) => _.sum(_.map(subs, (v, i) => v.value * weight[i]));
       _.forEach(attrConfig, (value, _key) => {
         const { list, weight, id } = value;
         const targetFace = newPlayer.getAttribute(id);
-        let subs = _.map(list, (i2) => {
+        let subs = _.map(list, (i) => {
           return {
-            value: newPlayer.getSubAttribute(i2).rating,
-            fixed: newPlayer.upgrades.getSubAttributeOverride(i2) instanceof UTPlayerSubAttributeVO
+            value: newPlayer.getSubAttribute(i).rating,
+            fixed: newPlayer.upgrades.getSubAttributeOverride(i) instanceof UTPlayerSubAttributeVO
           };
         });
         const currentFace = calcFace(subs, weight);
@@ -11700,17 +12001,17 @@
           let safe = 0;
           while (Math.floor(currentCalcFace + 0.501) < targetFace && safe < 500) {
             safe++;
-            for (let i2 = 0; i2 < newSubs.length; i2++) {
-              if (!newSubs[i2].fixed && newSubs[i2].value < 99) {
-                newSubs[i2].value++;
+            for (let i = 0; i < newSubs.length; i++) {
+              if (!newSubs[i].fixed && newSubs[i].value < 99) {
+                newSubs[i].value++;
                 currentCalcFace = calcFace(newSubs, weight);
                 if (Math.floor(currentCalcFace + 0.501) >= targetFace) break;
               }
             }
           }
-          _.forEach(newSubs, (v, i2) => {
+          _.forEach(newSubs, (v, i) => {
             if (!v.fixed) {
-              newPlayer.upgrades.subattributes.push(new UTPlayerSubAttributeVO(list[i2], v.value));
+              newPlayer.upgrades.subattributes.push(new UTPlayerSubAttributeVO(list[i], v.value));
             }
           });
         }
@@ -11769,9 +12070,9 @@
           e2.unobserve(mp);
         });
         gPopupClickShield.setActivePopup(mp);
-        _.flatMap(mp.getView().dialogOptions, (v, i2) => {
+        _.flatMap(mp.getView().dialogOptions, (v, i) => {
           if (v.__text.innerHTML == "*") {
-            v.setText(fy2(`popupButtonsText.${mp.options[i2].labelEnum}`));
+            v.setText(fy2(`popupButtonsText.${mp.options[i].labelEnum}`));
           }
         });
         mp.getView().__msg.style.padding = "1rem";
@@ -11793,10 +12094,10 @@
         });
         let thead = document.createElement("thead");
         let theadTr = document.createElement("tr");
-        _.range(1, 6).forEach((i2) => {
+        _.range(1, 6).forEach((i) => {
           theadTr.appendChild(
             createElementWithConfig2("th", {
-              textContent: fy2(`fgrating.popup.title${i2}`),
+              textContent: fy2(`fgrating.popup.title${i}`),
               style: {
                 padding: "0.5rem",
                 position: "sticky",
@@ -11934,12 +12235,12 @@
       let ratingId = [];
       if (squad) {
         existingRatings = _.map(
-          _.filter(squad.getFieldPlayers(), (i2) => i2.item.isValid()),
+          _.filter(squad.getFieldPlayers(), (i) => i.item.isValid()),
           "item.rating"
         );
         brickCount = squad.getAllBrickIndices().length;
         ratingId = _.map(
-          _.filter(squad.getFieldPlayers(), (i2) => i2.item.isValid()),
+          _.filter(squad.getFieldPlayers(), (i) => i.item.isValid()),
           "item.databaseId"
         );
       }
@@ -11989,7 +12290,7 @@
       let fillNumber = 5;
       const lackSimulation = Array.from(
         { length: haveRatings.length },
-        (_e, i2) => Array.from({ length: lackNumber }, () => haveRatings[i2])
+        (_e, i) => Array.from({ length: lackNumber }, () => haveRatings[i])
       );
       if (lackNumber <= 3) {
         fillNumber = 9;
@@ -12001,9 +12302,9 @@
         fillNumber = 6;
       }
       const fillOffset = Math.floor(fillNumber / 2) - 1;
-      _.flatMap(lackSimulation, (i2) => {
-        if (this.teamRatingCount(_.concat(ratings, i2)) >= target && i2.length) {
-          basisRating = i2[0];
+      _.flatMap(lackSimulation, (i) => {
+        if (this.teamRatingCount(_.concat(ratings, i)) >= target && i.length) {
+          basisRating = i[0];
         }
       });
       let sliceStart = _.indexOf(haveRatings, basisRating) - fillOffset;
@@ -12012,14 +12313,14 @@
       sliceEnd > haveRatings.length ? sliceEnd = haveRatings.length : sliceEnd;
       const simulated = _.multicombinations(_.slice(haveRatings, sliceStart, sliceEnd), lackNumber);
       const simulatedJson = [];
-      _.forEach(simulated, (i2) => {
-        const simulatedCount = this.teamRatingCount(_.concat(ratings, i2));
+      _.forEach(simulated, (i) => {
+        const simulatedCount = this.teamRatingCount(_.concat(ratings, i));
         if (simulatedCount >= target) {
           let existValue = 0;
           let lackValue = 0;
           let lackRatings = [];
           let existRatings = [];
-          _.flatMap(_.countBy(i2), (value, key) => {
+          _.flatMap(_.countBy(i), (value, key) => {
             const rating = parseInt(key);
             const ratingPrice = priceByRating[rating] || 0;
             const haveCount = squadAbsent ? value : haveRatingsCount[rating] || 0;
@@ -12031,8 +12332,8 @@
             }
           });
           simulatedJson.push({
-            ratings: i2,
-            sum: _.sum(i2),
+            ratings: i,
+            sum: _.sum(i),
             squadRating: simulatedCount,
             existValue,
             existRatings,
@@ -12125,9 +12426,9 @@
         }
       });
       gPopupClickShield.setActivePopup(mp);
-      _.flatMap(mp.getView().dialogOptions, (v, i2) => {
+      _.flatMap(mp.getView().dialogOptions, (v, i) => {
         if (v.__text.innerHTML == "*") {
-          v.setText(fy2(`popupButtonsText.${mp.options[i2].labelEnum}`));
+          v.setText(fy2(`popupButtonsText.${mp.options[i].labelEnum}`));
         }
       });
       mp.getView().__msg.style.padding = "1rem";
@@ -12199,10 +12500,10 @@
         const data = JSON.parse(futBinResponse)[type == 2 ? "squad_data" : "data"];
         if (data) {
           if (type == 2) {
-            _.map(data, (i2, k) => {
+            _.map(data, (i, k) => {
               if (_.includes(k, "cardlid")) {
-                futbinId2.set(i2.Player_Resource, i2.id);
-                futbinId2.setPrice(i2, i2.Player_Resource);
+                futbinId2.set(i.Player_Resource, i.id);
+                futbinId2.setPrice(i, i.Player_Resource);
               }
             });
           }
@@ -12246,19 +12547,19 @@
         players: [],
         rating: 0
       };
-      for (let i2 = 0; i2 < 23; i2++) {
+      for (let i = 0; i < 23; i++) {
         squadInfo.players.push({
-          index: i2,
+          index: i,
           itemData: new UTItemEntity()
         });
       }
       let brickIndices = void 0;
       if (c.squad.simpleBrickIndices.length) {
         brickIndices = [];
-        for (let i2 = 0; i2 < 11; i2++) {
+        for (let i = 0; i < 11; i++) {
           brickIndices.push({
-            index: i2,
-            playerType: c.squad.simpleBrickIndices.includes(i2) ? "BRICK" : "DEFAULT"
+            index: i,
+            playerType: c.squad.simpleBrickIndices.includes(i) ? "BRICK" : "DEFAULT"
           });
         }
       }
@@ -12272,7 +12573,7 @@
         new UTSquadChemCalculatorUtils(services.Chemistry, repositories.TeamConfig)
       );
       newSquad.setPlayers(
-        c.squad.getPlayers().map((i2) => i2.getItem()),
+        c.squad.getPlayers().map((i) => i.getItem()),
         true
       );
       newChallenge.squad = newSquad;
@@ -12285,8 +12586,8 @@
         const fsu = s2._fsu ??= {};
         fsu.oldSquad ??= [];
         fsu.oldSquadCount ??= -1;
-        const pl = s2.getPlayers().map((i2) => i2.getItem());
-        if (fsu.oldSquadCount == -1 || fsu.oldSquad[fsu.oldSquadCount].map((i2) => i2.id).join() !== pl.map((i2) => i2.id).join()) {
+        const pl = s2.getPlayers().map((i) => i.getItem());
+        if (fsu.oldSquadCount == -1 || fsu.oldSquad[fsu.oldSquadCount].map((i) => i.id).join() !== pl.map((i) => i.id).join()) {
           fsu.oldSquadCount++;
           fsu.oldSquad.push(pl);
           if (isPhone2() && getCurrentController().className == "UTSquadItemDetailsNavigationController") {
@@ -12317,18 +12618,18 @@
         return shortlist;
       };
       const buildExclusionList = (players) => {
-        return players.map((i2) => i2.item.rating && !i2.item.concept ? i2.item.databaseId : null).filter(Boolean);
+        return players.map((i) => i.item.rating && !i.item.concept ? i.item.databaseId : null).filter(Boolean);
       };
       const buildConceptConfig = (fieldPlayers) => {
         const conceptConfig2 = {};
-        _.forEach(fieldPlayers, (i2) => {
-          if (i2.item.concept) {
-            const rating = i2.item.rating;
+        _.forEach(fieldPlayers, (i) => {
+          if (i.item.concept) {
+            const rating = i.item.rating;
             if (!conceptConfig2[rating]) {
               conceptConfig2[rating] = { pos: [], index: [] };
             }
-            conceptConfig2[rating].pos.push(i2.generalPosition);
-            conceptConfig2[rating].index.push(i2.index);
+            conceptConfig2[rating].pos.push(i.generalPosition);
+            conceptConfig2[rating].index.push(i.index);
           }
         });
         return conceptConfig2;
@@ -12366,10 +12667,10 @@
           const ratingKey = k.includes("+") ? "GTrating" : k.includes("-") ? "LTrating" : "rating";
           need[ratingKey] = v.rat;
           let shortlist = getItemBy(2, need, repositories.Item.getUnassignedItems());
-          _.forEach(v.index, (i2, s2) => {
+          _.forEach(v.index, (i, s2) => {
             if (shortlist.length) {
               const pos = info.build.ignorepos ? null : v.pos[s2];
-              shortlist = assignPlayer(playerlist2, shortlist, Exclusionlist2, i2, pos);
+              shortlist = assignPlayer(playerlist2, shortlist, Exclusionlist2, i, pos);
             }
           });
         });
@@ -12384,15 +12685,15 @@
         need.rating = Number(k);
         need.NEdatabaseId = Exclusionlist;
         let shortlist = getItemBy(2, need, repositories.Item.getUnassignedItems());
-        _.forEach(v.index, (i2, s2) => {
+        _.forEach(v.index, (i, s2) => {
           if (shortlist.length) {
             const pos = info.build.ignorepos ? null : v.pos[s2];
-            shortlist = assignPlayer(playerlist, shortlist, Exclusionlist, i2, pos);
+            shortlist = assignPlayer(playerlist, shortlist, Exclusionlist, i, pos);
           }
         });
       });
       if (ratingsList.length) {
-        const squadVacancy = _.filter(squad.getPlayers(), (i2) => !i2.isValid());
+        const squadVacancy = _.filter(squad.getPlayers(), (i) => !i.isValid());
         const fillConfig = processRatings(ratingsList, squadVacancy);
         criteria.os = [info.build.comprare && 1, info.build.comprange && 2].filter(Boolean);
         if (_.size(fillConfig)) {
@@ -12406,17 +12707,17 @@
       const { getInfo, localize } = helpers;
       const info = getInfo();
       const t = [];
-      const i2 = info.league == 2 ? " " : "";
+      const i = info.league == 2 ? " " : "";
       _.map(j, (sj) => {
         let lt = `${sj.c}<span>×</span>`;
         if (_.has(sj.t, "rating")) {
-          lt += `${localize("squads.rating")}${i2}:${i2}${sj.t.rating}`;
+          lt += `${localize("squads.rating")}${i}:${i}${sj.t.rating}`;
         } else {
           if (_.has(sj.t, "gs")) {
             lt += localize(`item.raretype${sj.t.gs ? 1 : 0}`);
           }
           if (_.has(sj.t, "rs")) {
-            lt += i2 + localize(`search.cardLevels.cardLevel${sj.t.rs + 1}`);
+            lt += i + localize(`search.cardLevels.cardLevel${sj.t.rs + 1}`);
           }
         }
         t.push(lt);
@@ -12510,7 +12811,7 @@
   function createDF(t) {
     return document.createRange().createContextualFragment(t);
   }
-  function popup(deps, t, m, c, o, i2, n, s2) {
+  function popup(deps, t, m, c, o, i, n, s2) {
     const { info, fy: fy2, createDF: createDF2 } = deps;
     if (!o) {
       o = [
@@ -12533,7 +12834,7 @@
     mp.modalDisplayDimensions.minWidth = "300px";
     mp.onExit.observe(this, function(e2, z) {
       e2.unobserve(this);
-      if (i2) {
+      if (i) {
         c.call(this, z, mp._fsuInput);
       } else {
         c.call(this, z);
@@ -12549,18 +12850,18 @@
         v.addClass("primary");
       }
     });
-    if (i2) {
+    if (i) {
       const pt = new UTTextInputControl();
       pt.init();
-      if (i2.constructor == Array) {
-        if (i2.length > 0) {
-          pt.setPlaceholder(i2[0]);
+      if (i.constructor == Array) {
+        if (i.length > 0) {
+          pt.setPlaceholder(i[0]);
         }
-        if (i2.length > 1) {
-          pt.setValue(i2[1]);
+        if (i.length > 1) {
+          pt.setValue(i[1]);
         }
-      } else if (i2.constructor == String) {
-        pt.setPlaceholder(i2);
+      } else if (i.constructor == String) {
+        pt.setPlaceholder(i);
       }
       pt.__root.style.margin = ".5rem 0";
       pt.setInteractionState(n);
@@ -13395,10 +13696,10 @@
                     "Cache-Control": "max-age=31536000"
                   },
                   onload: function(res2) {
-                    _.forEach(JSON.parse(res2.responseText), (i2, k) => {
+                    _.forEach(JSON.parse(res2.responseText), (i, k) => {
                       let nowTime = Math.floor(Date.now() / 1e3);
-                      if (i2.t > nowTime) {
-                        info.base.fastsbc[k] = i2.g;
+                      if (i.t > nowTime) {
+                        info.base.fastsbc[k] = i.g;
                       }
                     });
                   }
@@ -13428,8 +13729,8 @@
                   onload: function(res2) {
                     let sbcJson = JSON.parse(res2.response);
                     info.task.sbc.stat = sbcJson;
-                    let sbcRewardArray = _.map(sbcJson.reward, (i2) => {
-                      return i2 == 1 ? fy2("task.player") : i2 == 2 ? fy2("task.pack") : "";
+                    let sbcRewardArray = _.map(sbcJson.reward, (i) => {
+                      return i == 1 ? fy2("task.player") : i == 2 ? fy2("task.pack") : "";
                     });
                     info.task.sbc.html = events.taskHtml(sbcJson.new.length, sbcRewardArray.join("、"));
                   }
@@ -13655,7 +13956,7 @@
               services2.Academy.requestSlotsByCategory(DTO).observe(getAppMain().getRootViewController(), function(ee, tt) {
                 ee.unobserve(getAppMain().getRootViewController());
                 if (tt.success && tt.data && !JSUtils.isString(tt.data)) {
-                  info.evolutions.newCount += _.filter(tt.data.slots, (i2) => info.evolutions.new.includes(i2.id)).length;
+                  info.evolutions.newCount += _.filter(tt.data.slots, (i) => info.evolutions.new.includes(i.id)).length;
                   info.evolutions.html = events.taskHtml(info.evolutions.newCount, "");
                   let academyCache = JSON.parse(GM_getValue2("academy", "{}"));
                   _.map(tt.data.slots, (s2) => {
@@ -13815,10 +14116,10 @@
     createFromRequirements(req, miss, eligibilityKeys) {
       let gf = [];
       let gfall = {};
-      _.map(req, (i2) => {
-        const fk = i2.getFirstKey();
-        const fv = i2.getFirstValue(fk);
-        const gfs = { t: {}, c: i2.count };
+      _.map(req, (i) => {
+        const fk = i.getFirstKey();
+        const fv = i.getFirstValue(fk);
+        const gfs = { t: {}, c: i.count };
         switch (fk) {
           case eligibilityKeys.PLAYER_QUALITY:
           case eligibilityKeys.PLAYER_LEVEL:
@@ -13851,24 +14152,24 @@
       }
       if (gf.length) {
         gf.sort((a, b) => b.c - a.c);
-        let ac = gf.filter((i2) => i2.c == -1).length;
+        let ac = gf.filter((i) => i.c == -1).length;
         let gc = miss;
         if (ac > 1) {
           gf = [];
         } else if (ac == 1) {
-          for (const i2 of gf) {
-            if (i2.c == -1) {
-              i2.c = gc;
+          for (const i of gf) {
+            if (i.c == -1) {
+              i.c = gc;
             } else {
-              gc = gc - i2.c;
+              gc = gc - i.c;
             }
           }
         }
         if (Object.keys(gfall).length) {
-          for (const i2 of gf) {
-            const keys = Object.keys(gfall).filter((k) => !(k in i2.t));
+          for (const i of gf) {
+            const keys = Object.keys(gfall).filter((k) => !(k in i.t));
             for (const key of keys) {
-              i2.t[key] = gfall[key];
+              i.t[key] = gfall[key];
             }
           }
         }
@@ -13885,8 +14186,8 @@
         }
       });
       if (gf.length) {
-        gf.forEach((i2) => {
-          i2.t.GTrating = i2.t.GTrating || 0;
+        gf.forEach((i) => {
+          i.t.GTrating = i.t.GTrating || 0;
         });
       }
       return gf;
@@ -14116,18 +14417,18 @@
           JSON.stringify(controller.challenge.squad.getFormation().generalPositions)
         );
         const formationMap = getFormationMap();
-        for (let i2 = 0; i2 < createSquad.length; i2++) {
-          let posIndex = i2;
+        for (let i = 0; i < createSquad.length; i++) {
+          let posIndex = i;
           if (type !== 3) {
             if (_.has(formationMap, planSquad.Formation)) {
-              posIndex = copySquadPos.lastIndexOf(formationMap[planSquad.Formation][i2]);
+              posIndex = copySquadPos.lastIndexOf(formationMap[planSquad.Formation][i]);
               copySquadPos[posIndex] = null;
             }
           }
           if (type == 3) {
-            if ("data" in planSquad && "activeGroupPositions" in planSquad.data && i2 in planSquad.data.activeGroupPositions) {
+            if ("data" in planSquad && "activeGroupPositions" in planSquad.data && i in planSquad.data.activeGroupPositions) {
               let player = new UTItemEntity();
-              player.definitionId = planSquad.data.activeGroupPositions[i2].playerEaId;
+              player.definitionId = planSquad.data.activeGroupPositions[i].playerEaId;
               player.stackCount = 1;
               const cachePlayer = getItemBy(2, { definitionId: player.definitionId })[0];
               if (cachePlayer) {
@@ -14142,7 +14443,7 @@
               createSquad[posIndex] = null;
             }
           } else {
-            const planIndex = `cardlid${11 - i2}`;
+            const planIndex = `cardlid${11 - i}`;
             const basicCriteria = ignorePlayerToCriteria({});
             if (squadPos[posIndex] !== null) {
               if (planIndex in planSquad) {
@@ -14286,6 +14587,7 @@
     return {
       sbcPlayerMatchService: new SbcPlayerMatchService(),
       fastSbcService: new FastSbcService(),
+      fastSbcPlannerService: new FastSbcPlannerService(),
       oneFillCriteriaService: new OneFillCriteriaService(),
       sbcSquadFillService: new SbcSquadFillService(),
       sbcTemplateService: new SbcTemplateService(),
