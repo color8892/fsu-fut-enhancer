@@ -21,6 +21,15 @@ function readJson(filePath) {
   return JSON.parse(fs.readFileSync(filePath, "utf8"));
 }
 
+function assertLodashVendor() {
+  const lodashPath = path.join(root, "vendor", "lodash.min.js");
+  const content = fs.readFileSync(lodashPath, "utf8");
+
+  assert.ok(fs.existsSync(lodashPath), "Missing vendor/lodash.min.js");
+  assert.ok(content.includes("4.17.21"), "vendor/lodash.min.js must be Lodash 4.17.21");
+  assert.ok(content.length > 50000, "vendor/lodash.min.js looks truncated");
+}
+
 function assertManifest() {
   const manifest = readJson(path.join(root, "manifest.json"));
 
@@ -251,6 +260,7 @@ async function assertPriceService() {
   assert.ok(service.priceLastDiff(100, 100).includes("minus"));
 }
 
+assertLodashVendor();
 assertManifest();
 assertSenderAllowlist();
 assertHeaderNormalization();

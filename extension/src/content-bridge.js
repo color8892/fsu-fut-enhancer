@@ -3,8 +3,11 @@
 
   const PAGE_SOURCE = "fsu-extension-page";
   const CONTENT_SOURCE = "fsu-extension-content";
+  const LODASH_VENDOR_PATH = "vendor/lodash.min.js";
+  const LODASH_CDN_URL =
+    "https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.21/lodash.min.js";
   const INJECTED_SCRIPTS = [
-    "vendor/lodash.min.js",
+    LODASH_VENDOR_PATH,
     "src/page-runtime.js",
     "src/userscript.js"
   ];
@@ -64,6 +67,35 @@
       });
     }
 
+    injectExternalUrl(url) {
+      return new Promise((resolve, reject) => {
+        const script = this.documentRef.createElement("script");
+        script.src = url;
+        script.async = false;
+        script.onload = () => {
+          script.remove();
+          resolve();
+        };
+        script.onerror = () => {
+          script.remove();
+          reject(new Error(`Failed to inject ${url}`));
+        };
+        this.appendScript(script);
+      });
+    }
+
+    async injectLodash() {
+      try {
+        await this.injectFile(LODASH_VENDOR_PATH);
+      } catch (error) {
+        console.warn(
+          "[FSU extension] Local lodash failed, falling back to CDN:",
+          error.message
+        );
+        await this.injectExternalUrl(LODASH_CDN_URL);
+      }
+    }
+
     waitForRuntimeReady(windowRef, timeoutMs = 5000) {
       if (!windowRef || typeof windowRef.addEventListener !== "function") {
         return Promise.reject(new Error("FSU page runtime: invalid window reference"));
@@ -99,7 +131,11 @@
       const runtimePath = paths[runtimeIndex];
 
       for (const path of beforeRuntime) {
-        await this.injectFile(path);
+        if (path === LODASH_VENDOR_PATH) {
+          await this.injectLodash();
+        } else {
+          await this.injectFile(path);
+        }
       }
 
       const readyPromise = this.waitForRuntimeReady(windowRef);
