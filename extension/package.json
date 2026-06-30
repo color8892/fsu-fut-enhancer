@@ -15,8 +15,8 @@
     "package:all": "npm run build && npm run package"
   },
   "devDependencies": {
-    "@eslint/js": "^9.28.0",
-    "esbuild": "^0.25.0",
-    "eslint": "^9.28.0"
+    "@eslint/js": "^10.0.1",
+    "esbuild": "^0.28.1",
+    "eslint": "^10.6.0"
   }
 }
