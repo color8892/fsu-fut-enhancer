@@ -1,0 +1,36 @@
+{
+  "challenges": [
+    {
+      "name": "Upgrade Challenge",
+      "priority": 1,
+      "status": "ACTIVE",
+      "setId": 6,
+      "description": "Submit a squad.",
+      "challengeId": 17,
+      "endTime": 1783651800,
+      "repeatable": true,
+      "trophyId": 0,
+      "formation": "f442",
+      "timesCompleted": 0,
+      "elgReq": [
+        {
+          "type": "PLAYER",
+          "eligibilitySlot": -1,
+          "eligibilityKey": 44,
+          "eligibilityValue": 80
+        },
+        {
+          "type": "TEAM",
+          "eligibilitySlot": -1,
+          "eligibilityKey": 9,
+          "eligibilityValue": 11
+        }
+      ],
+      "elgDesc": [],
+      "elgOperation": "AND",
+      "tutorial": 0,
+      "type": "SBC",
+      "lastCompleteTime": 0
+    }
+  ]
+}

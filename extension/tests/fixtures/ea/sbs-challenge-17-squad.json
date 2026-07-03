@@ -1,0 +1,54 @@
+{
+  "challengeId": 17,
+  "squad": {
+    "id": 123456,
+    "formation": "f442",
+    "rating": 0,
+    "chemistry": 0,
+    "manager": [
+      {
+        "id": 9001,
+        "assetId": 1,
+        "rating": 0,
+        "itemType": "manager",
+        "resourceId": 1,
+        "untradeable": true,
+        "teamid": 0,
+        "rareflag": 0,
+        "nation": 1
+      }
+    ],
+    "players": [
+      {
+        "index": 0,
+        "itemData": {
+          "id": 1001,
+          "assetId": 50563169,
+          "rating": 83,
+          "itemType": "player",
+          "resourceId": 50563169,
+          "untradeable": false,
+          "preferredPosition": "ST",
+          "teamid": 32,
+          "rareflag": 1,
+          "nation": 52
+        }
+      },
+      {
+        "index": 1,
+        "itemData": {
+          "id": 1002,
+          "assetId": 50608571,
+          "rating": 81,
+          "itemType": "player",
+          "resourceId": 50608571,
+          "untradeable": true,
+          "preferredPosition": "CM",
+          "teamid": 111456,
+          "rareflag": 0,
+          "nation": 104
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "categories": [
+    {
+      "categoryId": 1,
+      "name": "Live",
+      "priority": 10,
+      "releaseTime": 1783047000,
+      "sets": [
+        {
+          "setId": 6,
+          "name": "Upgrade",
+          "priority": 1,
+          "startTime": 1783047000,
+          "categoryId": 1,
+          "description": "Build a squad to earn a reward.",
+          "challengesCount": 1,
+          "hidden": false,
+          "tagged": 0,
+          "endTime": 1783651800,
+          "repeatable": true,
+          "repeatabilityMode": "UNLIMITED",
+          "repeats": 0,
+          "repeatRefreshInterval": 0,
+          "challengesCompletedCount": 0,
+          "awards": [],
+          "tutorial": false,
+          "timesCompleted": 0,
+          "timesCompletedInInterval": 0,
+          "taggedByProduction": false,
+          "taggedByUser": false,
+          "setImageId": "sbc_set_image_1000001",
+          "lastCompletedTime": 0,
+          "releaseTime": 1783047000
+        }
+      ]
+    }
+  ]
+}
