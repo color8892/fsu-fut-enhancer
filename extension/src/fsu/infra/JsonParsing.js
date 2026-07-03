@@ -18,3 +18,8 @@ export function safeParseJson(rawValue, fallback, options = {}) {
 export function responseText(response) {
   return response?.responseText ?? response?.response ?? "";
 }
+
+export function cloneJson(value) {
+  const serialized = JSON.stringify(value);
+  return serialized === undefined ? undefined : JSON.parse(serialized);
+}

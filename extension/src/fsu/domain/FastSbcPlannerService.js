@@ -1,3 +1,5 @@
+import { cloneJson } from "../infra/JsonParsing.js";
+
 const MAX_BATCH_SBC = 15;
 const DAILY_SOFT_LIMIT = 90;
 
@@ -64,14 +66,14 @@ export class FastSbcPlannerService {
 
     if (!build.strictlypcik && isEligibleForOneFill(oneFillNeed)) {
       const criteriaNumber = oneFillNeed[0].c + oneFillNeed[1].c;
-      let tempFillNeed = { rs: JSON.parse(JSON.stringify(oneFillNeed[0].t.rs)) };
+      let tempFillNeed = { rs: cloneJson(oneFillNeed[0].t.rs) };
       tempFillNeed = ignorePlayerToCriteria(tempFillNeed);
       tempFillNeed.lock = false;
       fillPlayers = getItemBy(2, tempFillNeed, false, playerPool).slice(0, criteriaNumber);
     } else {
       const excludeId = [];
       for (const entry of oneFillNeed) {
-        let searchCriteria = JSON.parse(JSON.stringify(entry.t));
+        let searchCriteria = cloneJson(entry.t);
         searchCriteria = ignorePlayerToCriteria(searchCriteria);
         if (excludeId.length) {
           searchCriteria.NEdatabaseId = excludeId;

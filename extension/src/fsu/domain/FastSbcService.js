@@ -1,3 +1,5 @@
+import { cloneJson } from "../infra/JsonParsing.js";
+
 export class FastSbcService {
   calculateQuantity({ clubMode, playerPool, criteria, helpers }) {
     const { getItemBy, isEligibleForOneFill, ignorePlayerToCriteria, build } = helpers;
@@ -5,7 +7,7 @@ export class FastSbcService {
 
     if (!build.strictlypcik && isEligibleForOneFill(criteria)) {
       const criteriaNumber = criteria[0].c + criteria[1].c;
-      let groupedFilter = { rs: JSON.parse(JSON.stringify(criteria[0].t.rs)) };
+      let groupedFilter = { rs: cloneJson(criteria[0].t.rs) };
       groupedFilter = ignorePlayerToCriteria(groupedFilter);
       const items = clubMode
         ? getItemBy(1, groupedFilter, playerPool)

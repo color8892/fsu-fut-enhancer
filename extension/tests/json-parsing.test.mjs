@@ -1,5 +1,5 @@
 import assert from "assert";
-import { responseText, safeParseJson } from "../src/fsu/infra/JsonParsing.js";
+import { cloneJson, responseText, safeParseJson } from "../src/fsu/infra/JsonParsing.js";
 
 export function runJsonParsingTests() {
   assert.deepStrictEqual(safeParseJson("{\"ok\":true}", {}), { ok: true });
@@ -22,4 +22,12 @@ export function runJsonParsingTests() {
   assert.strictEqual(responseText({ responseText: "a", response: "b" }), "a");
   assert.strictEqual(responseText({ response: "b" }), "b");
   assert.strictEqual(responseText(null), "");
+
+  const source = { nested: { value: 1 }, list: [1, 2] };
+  const copy = cloneJson(source);
+  copy.nested.value = 2;
+  copy.list.push(3);
+  assert.strictEqual(source.nested.value, 1);
+  assert.deepStrictEqual(source.list, [1, 2]);
+  assert.strictEqual(cloneJson(undefined), undefined);
 }

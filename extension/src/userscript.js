@@ -314,6 +314,10 @@
   function responseText(response) {
     return response?.responseText ?? response?.response ?? "";
   }
+  function cloneJson(value) {
+    const serialized = JSON.stringify(value);
+    return serialized === void 0 ? void 0 : JSON.parse(serialized);
+  }
 
   // src/fsu/domain/PriceService.js
   var PriceService = class {
@@ -5464,7 +5468,7 @@
     UTMarketSearchFiltersViewController.prototype.eSearchSelected = function(e2, t, i) {
       call.other.market.eSearch.call(this, e2, t, i);
       if (_.includes(this.className, "UTMarketSearch") && this.pinnedListRowItem == null) {
-        let criteria = JSON.parse(JSON.stringify(this.viewmodel.searchCriteria));
+        let criteria = cloneJson(this.viewmodel.searchCriteria);
         if (criteria.maskedDefId) {
           let criteriaText = JSON.stringify(Object.values(criteria));
           let repeat = 1;
@@ -6779,7 +6783,7 @@
             }
             if (w.searchCriteria) {
               if (w.getParentViewController()._fsuFillType == 0) {
-                info.criteria = JSON.parse(JSON.stringify(w.searchCriteria));
+                info.criteria = cloneJson(w.searchCriteria);
                 info.criteria.clubSearchType = w.clubSearchType;
               }
             }
@@ -7556,14 +7560,14 @@
       let fillPlayers = [];
       if (!build.strictlypcik && isEligibleForOneFill(oneFillNeed)) {
         const criteriaNumber = oneFillNeed[0].c + oneFillNeed[1].c;
-        let tempFillNeed = { rs: JSON.parse(JSON.stringify(oneFillNeed[0].t.rs)) };
+        let tempFillNeed = { rs: cloneJson(oneFillNeed[0].t.rs) };
         tempFillNeed = ignorePlayerToCriteria(tempFillNeed);
         tempFillNeed.lock = false;
         fillPlayers = getItemBy(2, tempFillNeed, false, playerPool).slice(0, criteriaNumber);
       } else {
         const excludeId = [];
         for (const entry of oneFillNeed) {
-          let searchCriteria = JSON.parse(JSON.stringify(entry.t));
+          let searchCriteria = cloneJson(entry.t);
           searchCriteria = ignorePlayerToCriteria(searchCriteria);
           if (excludeId.length) {
             searchCriteria.NEdatabaseId = excludeId;
@@ -9823,12 +9827,12 @@
                 let playerList = [], removeIds = [];
                 if (!info.build.strictlypcik && events.isEligibleForOneFill(oneFillCriteria)) {
                   let criteriaNumber = oneFillCriteria[0].c + oneFillCriteria[1].c;
-                  let getCriteria = { rs: JSON.parse(JSON.stringify(oneFillCriteria[0].t.rs)) };
+                  let getCriteria = { rs: cloneJson(oneFillCriteria[0].t.rs) };
                   getCriteria = events.ignorePlayerToCriteria(getCriteria);
                   playerList = events.getItemBy(2, getCriteria, repositories2.Item.getUnassignedItems()).slice(0, criteriaNumber);
                 } else {
                   for (let i of oneFillCriteria) {
-                    let getCriteria = JSON.parse(JSON.stringify(i.t));
+                    let getCriteria = cloneJson(i.t);
                     getCriteria = events.ignorePlayerToCriteria(getCriteria);
                     if (removeIds.length) {
                       getCriteria["NEdatabaseId"] = removeIds;
@@ -10872,7 +10876,8 @@
   // src/fsu/domain/MarketActionService.js
   var MarketActionService = class {
     _getAuctionPrice(i, p, helpers) {
-      const { getInfo, notice, xmlHttpRequest } = helpers;
+      const { debug: debug2 = { log: () => {
+      } }, getInfo, notice, xmlHttpRequest } = helpers;
       const info = getInfo();
       return new Promise((res) => {
         xmlHttpRequest({
@@ -10887,7 +10892,11 @@
               info.base.sId = services.Authentication.utasSession.id;
               notice("notice.loaderror", 2);
             } else {
-              res(JSON.parse(response.response).auctionInfo);
+              const transferMarketResponse = safeParseJson(responseText(response), { auctionInfo: [] }, {
+                label: "transfer-market-auctions",
+                onError: (error, context) => debug2.log(`${context.label} parse failed`, error)
+              });
+              res(transferMarketResponse.auctionInfo || []);
             }
           },
           onerror: function() {
@@ -14277,7 +14286,7 @@
       const counts = [];
       if (!build.strictlypcik && isEligibleForOneFill(criteria)) {
         const criteriaNumber = criteria[0].c + criteria[1].c;
-        let groupedFilter = { rs: JSON.parse(JSON.stringify(criteria[0].t.rs)) };
+        let groupedFilter = { rs: cloneJson(criteria[0].t.rs) };
         groupedFilter = ignorePlayerToCriteria(groupedFilter);
         const items = clubMode ? getItemBy(1, groupedFilter, playerPool) : getItemBy(1, groupedFilter, false, playerPool);
         return Math.ceil(_.size(items) / criteriaNumber);

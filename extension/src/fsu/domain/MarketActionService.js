@@ -1,6 +1,8 @@
+import { responseText, safeParseJson } from "../infra/JsonParsing.js";
+
 export class MarketActionService {
   _getAuctionPrice(i, p, helpers) {
-    const { getInfo, notice, xmlHttpRequest } = helpers;
+    const { debug = { log: () => {} }, getInfo, notice, xmlHttpRequest } = helpers;
     const info = getInfo();
     return new Promise((res) => {
       xmlHttpRequest({
@@ -15,7 +17,11 @@ export class MarketActionService {
             info.base.sId = services.Authentication.utasSession.id;
             notice("notice.loaderror", 2);
           } else {
-            res(JSON.parse(response.response).auctionInfo);
+            const transferMarketResponse = safeParseJson(responseText(response), { auctionInfo: [] }, {
+              label: "transfer-market-auctions",
+              onError: (error, context) => debug.log(`${context.label} parse failed`, error)
+            });
+            res(transferMarketResponse.auctionInfo || []);
           }
         },
         onerror: function () {

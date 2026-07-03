@@ -1,3 +1,5 @@
+import { cloneJson } from "../infra/JsonParsing.js";
+
 export function installMarketPatches(deps) {
   const { call, events, info, cntlr, isPhone, fy, debug, repositories, services, GM_setValue } = deps;
 
@@ -142,7 +144,7 @@ export function installMarketPatches(deps) {
   UTMarketSearchFiltersViewController.prototype.eSearchSelected = function (e, t, i) {
     call.other.market.eSearch.call(this, e, t, i);
     if (_.includes(this.className, "UTMarketSearch") && this.pinnedListRowItem == null) {
-      let criteria = JSON.parse(JSON.stringify(this.viewmodel.searchCriteria));
+      let criteria = cloneJson(this.viewmodel.searchCriteria);
       if (criteria.maskedDefId) {
         let criteriaText = JSON.stringify(Object.values(criteria));
         let repeat = 1;

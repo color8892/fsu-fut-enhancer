@@ -1,3 +1,5 @@
+import { cloneJson } from "../infra/JsonParsing.js";
+
 export function installSearchPatches(deps) {
   const { call, events, info, isPhone, cntlr, fy } = deps;
   events.playerSearchCountShow = (e) => {
@@ -312,7 +314,7 @@ UTPaginatedItemListView.prototype.setPaginationState = function(t, e) {
                 }
                 if(w.searchCriteria){
                     if(w.getParentViewController()._fsuFillType == 0){
-                        info.criteria = JSON.parse(JSON.stringify(w.searchCriteria));
+                        info.criteria = cloneJson(w.searchCriteria);
                         info.criteria.clubSearchType = w.clubSearchType;
                     }
                 }

@@ -1,3 +1,5 @@
+import { cloneJson } from "../infra/JsonParsing.js";
+
 export function registerSbcIgnoreTextEvent(deps) {
   const { events, info, fy } = deps;
   events.getIgnoreText = () => {
@@ -301,12 +303,12 @@ UTSBCSquadOverviewViewController.prototype.initWithSBCSet = function (...args) {
                         //24.16 排除球员配置按钮：一键填充严格模式应用
                         if(!info.build.strictlypcik && events.isEligibleForOneFill(oneFillCriteria)){
                             let criteriaNumber = oneFillCriteria[0].c + oneFillCriteria[1].c;
-                            let getCriteria = {rs:JSON.parse(JSON.stringify(oneFillCriteria[0].t.rs))};
+                            let getCriteria = {rs:cloneJson(oneFillCriteria[0].t.rs)};
                             getCriteria = events.ignorePlayerToCriteria(getCriteria);
                             playerList = events.getItemBy(2,getCriteria,repositories.Item.getUnassignedItems()).slice(0,criteriaNumber);
                         }else{
                             for (let i of oneFillCriteria) {
-                                let getCriteria = JSON.parse(JSON.stringify(i.t));
+                                let getCriteria = cloneJson(i.t);
                                 getCriteria = events.ignorePlayerToCriteria(getCriteria);
                                 if(removeIds.length){
                                     getCriteria["NEdatabaseId"] = removeIds;
