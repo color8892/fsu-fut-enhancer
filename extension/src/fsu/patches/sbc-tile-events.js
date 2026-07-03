@@ -16,7 +16,7 @@ events.SBCListInsertToFront = (sbcId,type) => {
                 return set && !set.isComplete();
             });
             info.douagain.SBCList = info.douagain.SBCList.slice(0, info.set.headentrance_number);
-            info.douagain.SBCListHtml.innerHTML = ""
+            info.douagain.SBCListHtml.replaceChildren()
             //24.16 调整为读取配置显示入口数量
             _.map(info.douagain.SBCList,(item,index) => {
                 let button = events.createButton(

@@ -1,3 +1,5 @@
+import { createTextElement } from "../ui/HtmlSafety.js";
+
 export function installAcademyHubPatches(deps) {
   const { info, events, fy, repositories, debug } = deps;
 
@@ -56,7 +58,7 @@ export function installAcademyHubPatches(deps) {
     let isChange = false;
     if (info.evolutions.new.includes(e.id)) {
       isChange = true;
-      tileView._fsu.new = events.createDF(`<div class='fsu-newtips'>${fy("task.new")}</div>`);
+      tileView._fsu.new = createTextElement("div", fy("task.new"), { className: "fsu-newtips" });
       tileViewRoot.appendChild(tileView._fsu.new);
     }
     const endTime =
@@ -65,7 +67,7 @@ export function installAcademyHubPatches(deps) {
         : e.endTime;
     if (endTime && endTime - Math.round(new Date() / 1000) < 172800) {
       isChange = true;
-      tileView._fsu.expire = events.createDF(`<div class='task-expire'>${fy("task.expire")}</div>`);
+      tileView._fsu.expire = createTextElement("div", fy("task.expire"), { className: "task-expire" });
       tileViewRoot.prepend(tileView._fsu.expire);
       Object.assign(tileViewRoot.querySelector(".task-expire").style, {
         position: "absolute",

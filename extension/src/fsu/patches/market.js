@@ -198,7 +198,7 @@ export function installMarketPatches(deps) {
       }
       if (this._fsuHistory.ts !== info.market.ts) {
         this._fsuHistory.btns.length = 0;
-        this._fsuHistory.element.querySelector(".fsu-historybox").innerHTML = "";
+        this._fsuHistory.element.querySelector(".fsu-historybox").replaceChildren();
         let criteriaKeys = Object.keys(e.searchCriteria);
 
         _.map(info.market.mb, (item, _index) => {

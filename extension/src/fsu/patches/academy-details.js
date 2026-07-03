@@ -87,7 +87,7 @@ export function installAcademyDetailsPatches(deps) {
               const attrMap = events.academyAttrToList(
                 events.academyAddAttr(academyAttr.attr, academyAttr.isGK, boost).map
               );
-              attrBox.innerHTML = "";
+              attrBox.replaceChildren();
               attrBox.appendChild(events.academyAddAttrOutput(attrMap));
               if (attrMap.size === 0) {
                 attrBox.querySelector(".academyBoostsBox").style.opacity = "0.5";

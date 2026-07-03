@@ -4266,13 +4266,13 @@
       let isChange = false;
       if (info.evolutions.new.includes(e2.id)) {
         isChange = true;
-        tileView._fsu.new = events.createDF(`<div class='fsu-newtips'>${fy2("task.new")}</div>`);
+        tileView._fsu.new = createTextElement("div", fy2("task.new"), { className: "fsu-newtips" });
         tileViewRoot.appendChild(tileView._fsu.new);
       }
       const endTime = e2.status == AcademySlotState.NOT_STARTED ? _.min(_.filter([e2.endTime, e2.endTimePurchaseVisibility], (v) => v && v !== 0)) : e2.endTime;
       if (endTime && endTime - Math.round(/* @__PURE__ */ new Date() / 1e3) < 172800) {
         isChange = true;
-        tileView._fsu.expire = events.createDF(`<div class='task-expire'>${fy2("task.expire")}</div>`);
+        tileView._fsu.expire = createTextElement("div", fy2("task.expire"), { className: "task-expire" });
         tileViewRoot.prepend(tileView._fsu.expire);
         Object.assign(tileViewRoot.querySelector(".task-expire").style, {
           position: "absolute",
@@ -5135,12 +5135,12 @@
         }
         if (_.includes(info.task.obj.stat.new, i2.id)) {
           i2.getRootElement().insertBefore(
-            events.createDF(`<div class="fsu-newtips">${fy2("task.new")}</div>`),
+            createTextElement("div", fy2("task.new"), { className: "fsu-newtips" }),
             i2.getRootElement().firstChild
           );
         }
         if (_.includes(info.task.obj.stat.expiry, i2.id)) {
-          i2.__title.parentNode.after(events.createDF(`<div class="task-expire">${fy2("task.expire")}</div>`));
+          i2.__title.parentNode.after(createTextElement("div", fy2("task.expire"), { className: "task-expire" }));
         }
         let item = e2.find((z) => z.compositeId == i2.id);
         if (item && item.rewards.rewards.length && item.rewards.rewards.length == 1) {
@@ -5565,7 +5565,7 @@
         }
         if (this._fsuHistory.ts !== info.market.ts) {
           this._fsuHistory.btns.length = 0;
-          this._fsuHistory.element.querySelector(".fsu-historybox").innerHTML = "";
+          this._fsuHistory.element.querySelector(".fsu-historybox").replaceChildren();
           let criteriaKeys = Object.keys(e2.searchCriteria);
           _.map(info.market.mb, (item, _index) => {
             let playerInfo = repositories2.Item.getStaticDataByDefId(
@@ -7331,7 +7331,7 @@
             return set && !set.isComplete();
           });
           info.douagain.SBCList = info.douagain.SBCList.slice(0, info.set.headentrance_number);
-          info.douagain.SBCListHtml.innerHTML = "";
+          info.douagain.SBCListHtml.replaceChildren();
           _.map(info.douagain.SBCList, (item, index) => {
             let button = events.createButton(
               new UTImageButtonControl(),
@@ -9558,7 +9558,7 @@
                 const attrMap = events.academyAttrToList(
                   events.academyAddAttr(academyAttr.attr, academyAttr.isGK, boost).map
                 );
-                attrBox.innerHTML = "";
+                attrBox.replaceChildren();
                 attrBox.appendChild(events.academyAddAttrOutput(attrMap));
                 if (attrMap.size === 0) {
                   attrBox.querySelector(".academyBoostsBox").style.opacity = "0.5";

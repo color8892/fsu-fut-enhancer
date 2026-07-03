@@ -1,3 +1,5 @@
+import { createTextElement } from "../ui/HtmlSafety.js";
+
 export function installObjectivesHubPatches(deps) {
   const { call, events, info, fy, isPhone } = deps;
 
@@ -61,12 +63,12 @@ export function installObjectivesHubPatches(deps) {
       }
       if (_.includes(info.task.obj.stat.new, i.id)) {
         i.getRootElement().insertBefore(
-          events.createDF(`<div class="fsu-newtips">${fy("task.new")}</div>`),
+          createTextElement("div", fy("task.new"), { className: "fsu-newtips" }),
           i.getRootElement().firstChild
         );
       }
       if (_.includes(info.task.obj.stat.expiry, i.id)) {
-        i.__title.parentNode.after(events.createDF(`<div class="task-expire">${fy("task.expire")}</div>`));
+        i.__title.parentNode.after(createTextElement("div", fy("task.expire"), { className: "task-expire" }));
       }
       let item = e.find((z) => z.compositeId == i.id);
       if (item && item.rewards.rewards.length && item.rewards.rewards.length == 1) {
