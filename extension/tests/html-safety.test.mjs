@@ -1,5 +1,10 @@
 import assert from "assert";
-import { createExternalLink, normalizeExternalUrl } from "../src/fsu/ui/HtmlSafety.js";
+import {
+  appendText,
+  createExternalLink,
+  createTextElement,
+  normalizeExternalUrl
+} from "../src/fsu/ui/HtmlSafety.js";
 
 function createFakeDocument() {
   return {
@@ -10,8 +15,15 @@ function createFakeDocument() {
         href: "",
         target: "",
         rel: "",
-        textContent: ""
+        textContent: "",
+        children: [],
+        appendChild(child) {
+          this.children.push(child);
+        }
       };
+    },
+    createTextNode(text) {
+      return { nodeType: 3, textContent: text };
     }
   };
 }
@@ -38,4 +50,18 @@ export function runHtmlSafetyTests() {
   assert.strictEqual(link.target, "_blank");
   assert.strictEqual(link.rel, "noopener noreferrer");
   assert.strictEqual(link.textContent, "<b>Upgrade</b>");
+
+  const documentRef = createFakeDocument();
+  const badge = createTextElement("span", "<b>3</b>", {
+    className: "fsu-fcount",
+    documentRef
+  });
+  assert.strictEqual(badge.tag, "span");
+  assert.strictEqual(badge.className, "fsu-fcount");
+  assert.strictEqual(badge.textContent, "<b>3</b>");
+
+  appendText(badge, "<script>alert(1)</script>", documentRef);
+  assert.deepStrictEqual(badge.children, [
+    { nodeType: 3, textContent: "<script>alert(1)</script>" }
+  ]);
 }

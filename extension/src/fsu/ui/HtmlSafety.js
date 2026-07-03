@@ -29,6 +29,19 @@ export function createExternalLink({ href, text, className, documentRef = docume
   return link;
 }
 
+export function appendText(element, text, documentRef = document) {
+  element.appendChild(documentRef.createTextNode(String(text ?? "")));
+}
+
+export function createTextElement(tagName, text, { className, documentRef = document } = {}) {
+  const element = documentRef.createElement(tagName);
+  if (className) {
+    element.className = className;
+  }
+  element.textContent = String(text ?? "");
+  return element;
+}
+
 export function createTrustedHtmlFragment(html) {
   return document.createRange().createContextualFragment(String(html ?? ""));
 }

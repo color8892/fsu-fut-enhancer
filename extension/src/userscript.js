@@ -3273,6 +3273,50 @@
     };
   }
 
+  // src/fsu/ui/HtmlSafety.js
+  var SAFE_EXTERNAL_PROTOCOLS = /* @__PURE__ */ new Set(["http:", "https:"]);
+  function normalizeExternalUrl(url, baseUrl) {
+    const rawUrl = String(url ?? "").trim();
+    if (!/^https?:\/\//i.test(rawUrl)) {
+      return "";
+    }
+    try {
+      const parsed = new URL(rawUrl, baseUrl || document.location.href);
+      return SAFE_EXTERNAL_PROTOCOLS.has(parsed.protocol) ? parsed.href : "";
+    } catch {
+      return "";
+    }
+  }
+  function createExternalLink({ href, text, className, documentRef = document, baseUrl } = {}) {
+    const link = documentRef.createElement("a");
+    const safeHref = normalizeExternalUrl(href, baseUrl);
+    if (className) {
+      link.className = className;
+    }
+    link.href = safeHref || "#";
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    link.textContent = text == null ? "" : String(text);
+    return link;
+  }
+  function appendText(element, text, documentRef = document) {
+    element.appendChild(documentRef.createTextNode(String(text ?? "")));
+  }
+  function createTextElement(tagName, text, { className, documentRef = document } = {}) {
+    const element = documentRef.createElement(tagName);
+    if (className) {
+      element.className = className;
+    }
+    element.textContent = String(text ?? "");
+    return element;
+  }
+  function createTrustedHtmlFragment(html) {
+    return document.createRange().createContextualFragment(String(html ?? ""));
+  }
+  function setTrustedHtml(element, html) {
+    element.replaceChildren(createTrustedHtmlFragment(html));
+  }
+
   // src/fsu/patches/sectioned-list.js
   function installSectionedListPatches(deps) {
     const { call, events, info, fy: fy2, cntlr: cntlr2, services: services2 } = deps;
@@ -3341,19 +3385,19 @@
           this._fsuAkbToggle._parent = this;
           b.appendChild(this._fsuAkbToggle.__root);
           let bnd = document.createElement("div");
-          bnd.insertAdjacentHTML("beforeend", `${fy2("losa.select")} `);
+          appendText(bnd, `${fy2("losa.select")} `);
           let bns = document.createElement("span");
           bns.classList.add("fsu-akb-num");
           bns.innerText = `${pn}`;
           bnd.appendChild(bns);
-          bnd.insertAdjacentHTML("beforeend", `/`);
+          appendText(bnd, `/`);
           let bnn = document.createElement("span");
           bnn.classList.add("fsu-akb-max");
           bnn.innerText = `${pn}`;
           bnd.appendChild(bnn);
           b.appendChild(bnd);
           let bpd = document.createElement("div");
-          bpd.insertAdjacentHTML("beforeend", `${fy2("losa.price")} `);
+          appendText(bpd, `${fy2("losa.price")} `);
           let bpp = document.createElement("span");
           bpp.classList.add("fsu-akb-price", "currency-coins");
           bpp.innerText = `0`;
@@ -6598,10 +6642,10 @@
             let id = e2.options[index].id, count = resultMap.get(`${id}`);
             if (count) {
               if (isPhone2()) {
-                element.append(events.createDF(`(${count})`));
+                appendText(element, `(${count})`);
               } else {
                 element.style.position = "relative";
-                element.append(events.createDF(`<span class="fsu-fcount">${count}</span>`));
+                element.append(createTextElement("span", count, { className: "fsu-fcount" }));
               }
               oCount.push(count);
             } else {
@@ -12913,39 +12957,6 @@
     events.adaptSbcSetsResponse = (response) => service.adaptSbcSetsResponse(response);
     events.adaptSbcChallengesResponse = (response) => service.adaptSbcChallengesResponse(response);
     events.adaptSbcChallengeSquadResponse = (response) => service.adaptSbcChallengeSquadResponse(response);
-  }
-
-  // src/fsu/ui/HtmlSafety.js
-  var SAFE_EXTERNAL_PROTOCOLS = /* @__PURE__ */ new Set(["http:", "https:"]);
-  function normalizeExternalUrl(url, baseUrl) {
-    const rawUrl = String(url ?? "").trim();
-    if (!/^https?:\/\//i.test(rawUrl)) {
-      return "";
-    }
-    try {
-      const parsed = new URL(rawUrl, baseUrl || document.location.href);
-      return SAFE_EXTERNAL_PROTOCOLS.has(parsed.protocol) ? parsed.href : "";
-    } catch {
-      return "";
-    }
-  }
-  function createExternalLink({ href, text, className, documentRef = document, baseUrl } = {}) {
-    const link = documentRef.createElement("a");
-    const safeHref = normalizeExternalUrl(href, baseUrl);
-    if (className) {
-      link.className = className;
-    }
-    link.href = safeHref || "#";
-    link.target = "_blank";
-    link.rel = "noopener noreferrer";
-    link.textContent = text == null ? "" : String(text);
-    return link;
-  }
-  function createTrustedHtmlFragment(html) {
-    return document.createRange().createContextualFragment(String(html ?? ""));
-  }
-  function setTrustedHtml(element, html) {
-    element.replaceChildren(createTrustedHtmlFragment(html));
   }
 
   // src/fsu/ui/UiFactory.js

@@ -1,3 +1,5 @@
+import { appendText } from "../ui/HtmlSafety.js";
+
 export function installSectionedListPatches(deps) {
   const { call, events, info, fy, cntlr, services } = deps;
   //分个形式(拍卖行待售、待分配)球员列表 读取球员列表查询价格
@@ -69,12 +71,12 @@ UTSectionedItemListView.prototype.addItems = function(t, e, i, r) {
             b.appendChild(this._fsuAkbToggle.__root);
 
             let bnd = document.createElement("div");
-            bnd.insertAdjacentHTML('beforeend', `${fy("losa.select")} `);
+            appendText(bnd, `${fy("losa.select")} `);
             let bns = document.createElement("span");
             bns.classList.add("fsu-akb-num");
             bns.innerText = `${pn}`;
             bnd.appendChild(bns);
-            bnd.insertAdjacentHTML('beforeend', `/`);
+            appendText(bnd, `/`);
             let bnn = document.createElement("span");
             bnn.classList.add("fsu-akb-max");
             bnn.innerText = `${pn}`;
@@ -82,7 +84,7 @@ UTSectionedItemListView.prototype.addItems = function(t, e, i, r) {
             b.appendChild(bnd);
 
             let bpd = document.createElement("div");
-            bpd.insertAdjacentHTML('beforeend', `${fy("losa.price")} `);
+            appendText(bpd, `${fy("losa.price")} `);
             let bpp = document.createElement("span");
             bpp.classList.add("fsu-akb-price","currency-coins");
             bpp.innerText = `0`;

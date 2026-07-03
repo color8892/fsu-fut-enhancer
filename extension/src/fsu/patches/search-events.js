@@ -1,4 +1,5 @@
 import { cloneJson } from "../infra/JsonParsing.js";
+import { appendText, createTextElement } from "../ui/HtmlSafety.js";
 
 export function installSearchPatches(deps) {
   const { call, events, info, isPhone, cntlr, fy } = deps;
@@ -98,10 +99,10 @@ export function installSearchPatches(deps) {
                 let id = e.options[index].id,count = resultMap.get(`${id}`);
                 if(count){
                     if(isPhone()){
-                        element.append(events.createDF(`(${count})`));
+                        appendText(element, `(${count})`);
                     }else{
                         element.style.position = "relative";
-                        element.append(events.createDF(`<span class="fsu-fcount">${count}</span>`));
+                        element.append(createTextElement("span", count, { className: "fsu-fcount" }));
                     }
                     oCount.push(count);
                 }else{
