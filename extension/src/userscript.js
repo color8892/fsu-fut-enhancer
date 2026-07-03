@@ -6846,7 +6846,7 @@
         let a = s2.options.map((e2) => e2.label);
         s2.__root.setAttribute("data-f", i);
         let st = s2.__label.innerText;
-        s2.__label.innerHTML = "";
+        s2.__label.replaceChildren();
         s2.__label.style.marginRight = 0;
         0;
         s2.__list.style.height = "14rem";
@@ -14637,9 +14637,7 @@
         let ownedPlayer = 0;
         let surplusValue = 0;
         const createSquad = new Array(11);
-        const copySquadPos = JSON.parse(
-          JSON.stringify(controller.challenge.squad.getFormation().generalPositions)
-        );
+        const copySquadPos = cloneJson(controller.challenge.squad.getFormation().generalPositions);
         const formationMap = getFormationMap();
         for (let i = 0; i < createSquad.length; i++) {
           let posIndex = i;

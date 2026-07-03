@@ -331,7 +331,7 @@ events.searchInput = (c) => {
         let a = s.options.map(e => e.label);
         s.__root.setAttribute("data-f",i);
         let st = s.__label.innerText;
-        s.__label.innerHTML = "";
+        s.__label.replaceChildren();
         s.__label.style.marginRight = 0
         0;
         s.__list.style.height = "14rem";

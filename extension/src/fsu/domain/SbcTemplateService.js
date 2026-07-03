@@ -1,3 +1,5 @@
+import { cloneJson } from "../infra/JsonParsing.js";
+
 export class SbcTemplateService {
   async loadTemplate(controller, type, sId, helpers) {
     const {
@@ -73,9 +75,7 @@ export class SbcTemplateService {
       let ownedPlayer = 0;
       let surplusValue = 0;
       const createSquad = new Array(11);
-      const copySquadPos = JSON.parse(
-        JSON.stringify(controller.challenge.squad.getFormation().generalPositions)
-      );
+      const copySquadPos = cloneJson(controller.challenge.squad.getFormation().generalPositions);
       const formationMap = getFormationMap();
 
       for (let i = 0; i < createSquad.length; i++) {
