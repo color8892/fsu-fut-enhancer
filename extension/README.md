@@ -28,3 +28,15 @@ npm run build
 ```
 
 After changing `src/fsu/`, rebuild then reload the extension and refresh FUT tabs (F5).
+
+## EA Bundle Compatibility Check
+
+Save local EA `compiled_*.js` and `ocompiled.js` files under a throwaway folder such as
+`../futwebapp/js`, then run:
+
+```bash
+node scripts/ea-bundle-check.mjs --bundles ../futwebapp/js
+```
+
+Do not commit HAR files, cookies, session headers, or EA bundle snapshots. Keep only sanitized
+fixtures under `tests/fixtures/`.

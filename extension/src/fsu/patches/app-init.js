@@ -1,4 +1,5 @@
 import { applyLowpriceToInfo } from "../infra/RatingPrices.js";
+import { responseText, safeParseJson } from "../infra/JsonParsing.js";
 import { createExternalLink } from "../ui/HtmlSafety.js";
 
 export function registerAppInitEvents(deps) {
@@ -72,6 +73,17 @@ export function installAppInitPatches(deps) {
     GM_xmlhttpRequest,
     GM_info
   } = deps;
+  const parseStoredJson = (key, fallback) =>
+    safeParseJson(GM_getValue(key, JSON.stringify(fallback)), fallback, {
+      label: `GM:${key}`,
+      onError: (error, context) => debug.log(`${context.label} parse failed`, error)
+    });
+  const parseResponseJson = (res, fallback, label) =>
+    safeParseJson(responseText(res), fallback, {
+      label,
+      onError: (error, context) => debug.log(`${context.label} parse failed`, error)
+    });
+
   events.notice = function(text,type){
     services.Notification.queue([fy(text),type])
 };
@@ -112,7 +124,7 @@ events.init =  async function(){
         SBCCount.createElement(cntlr.current().parentViewController.getView());
     }
 
-    let history_a = JSON.parse(GM_getValue("history","[]")),history_b = [];
+    let history_a = parseStoredJson("history", []),history_b = [];
     if (history_a && _.isArray(history_a)) {
         let newSize = _.size(new UTSearchCriteriaDTO());
         let filteredMembers = _.filter(history_a, item => _.isArray(item) && item.length === newSize);
@@ -141,7 +153,7 @@ events.init =  async function(){
             if(res.status == 404){
                 events.notice("notice.upgradefailed",2);
             }else{
-                let data = JSON.parse(res.response);
+                let data = parseResponseJson(res, {}, "updata.json");
                 let myVersion = Number(GM_info.script.version) || 0;
                 if(data["version"] > myVersion){
                     urlText = fy("top.upgrade");
@@ -159,7 +171,7 @@ events.init =  async function(){
                                 "Cache-Control": "max-age=31536000"
                             },
                             onload:function(res){
-                                let metaJson = JSON.parse(res.response);
+                                let metaJson = parseResponseJson(res, {}, "meta.json");
                                 if(_.has(metaJson, "bodyType")){
                                     info.meta.bodyType = _.fromPairs(
                                         _.flatMap(metaJson.bodyType, (ids, bodyType) =>
@@ -182,7 +194,7 @@ events.init =  async function(){
                                 "Cache-Control": "max-age=31536000"
                             },
                             onload: function(res) {
-                                _.forEach(JSON.parse(res.responseText),(i,k) => {
+                                _.forEach(parseResponseJson(res, {}, "fast.json"),(i,k) => {
                                     let nowTime = Math.floor(Date.now() / 1000);
                                     if(i.t > nowTime){
                                         info.base.fastsbc[k] = i.g;
@@ -201,7 +213,7 @@ events.init =  async function(){
                                 "Cache-Control": "max-age=31536000"
                             },
                             onload:function(res){
-                                info.base.oddo = JSON.parse(res.response)
+                                info.base.oddo = parseResponseJson(res, {}, "pack.json")
                             },
                         });
 
@@ -215,12 +227,12 @@ events.init =  async function(){
                                 "Cache-Control": "max-age=31536000"
                             },
                             onload:function(res){
-                                let sbcJson = JSON.parse(res.response);
+                                let sbcJson = parseResponseJson(res, { reward: [], new: [] }, "sbc.json");
                                 info.task.sbc.stat = sbcJson;
-                                let sbcRewardArray = _.map(sbcJson.reward,i => {
+                                let sbcRewardArray = _.map(sbcJson.reward || [],i => {
                                     return i == 1 ? fy("task.player") :  i == 2 ? fy("task.pack") : '';
                                 })
-                                info.task.sbc.html = events.taskHtml(sbcJson.new.length,sbcRewardArray.join("、"));
+                                info.task.sbc.html = events.taskHtml((sbcJson.new || []).length,sbcRewardArray.join("、"));
                             },
                         });
                     }
@@ -233,7 +245,7 @@ events.init =  async function(){
                                 "Cache-Control": "max-age=31536000"
                             },
                             onload:function(res){
-                                info.GGRRAR = JSON.parse(res.response);
+                                info.GGRRAR = parseResponseJson(res, {}, "ggrating.json");
                                 debug.log(`GGRRAR加载完毕！`)
                             },
                         })
@@ -248,7 +260,7 @@ events.init =  async function(){
                                 "Cache-Control": "max-age=31536000"
                             },
                             onload:function(res){
-                                info.evolutions.new = JSON.parse(res.response).new;
+                                info.evolutions.new = parseResponseJson(res, { new: [] }, "evolutions.json").new || [];
                                 debug.log(`evolutions加载完毕！`)
                             },
                         })
@@ -263,7 +275,7 @@ events.init =  async function(){
                                 "Cache-Control": "max-age=31536000"
                             },
                             onload:function(res){
-                                const { defIds, rarityIds } = JSON.parse(res.response);
+                                const { defIds = [], rarityIds = [] } = parseResponseJson(res, {}, "inpacks.json");
                                 info.inpacks.defIds = defIds;
                                 info.inpacks.rarityIds = rarityIds;
                                 debug.log(`inpacks加载完毕！`)
@@ -280,7 +292,7 @@ events.init =  async function(){
                                 "Cache-Control": "max-age=31536000"
                             },
                             onload:function(res){
-                                const { dynamic, chem } = JSON.parse(res.response);
+                                const { dynamic = {}, chem = {} } = parseResponseJson(res, {}, "other.json");
                                 info.specialPlayers = {
                                     "dynamic": dynamic,
                                     "DList": Object.entries(dynamic)
@@ -306,7 +318,7 @@ events.init =  async function(){
                                 "Cache-Control": "max-age=31536000"
                             },
                             onload:function(res){
-                                info.fgconfig = JSON.parse(res.response);
+                                info.fgconfig = parseResponseJson(res, {}, "fgconfig.json");
                                 debug.log(`fgconfig加载完毕！`)
                             },
                         })
@@ -322,7 +334,7 @@ events.init =  async function(){
                                 "Cache-Control": "max-age=31536000"
                             },
                             onload:function(res){
-                                let data = JSON.parse(res.response);
+                                let data = parseResponseJson(res, [], "playermeta.json");
                                 info.playermeta = {};
                                 _.forEach(data, value => {
                                     if(value.length == 4){
@@ -348,7 +360,7 @@ events.init =  async function(){
                                 "Cache-Control": "max-age=31536000"
                             },
                             onload:function(res){
-                                applyLowpriceToInfo(info, JSON.parse(res.response));
+                                applyLowpriceToInfo(info, parseResponseJson(res, {}, "lowprice.json"));
                                 debug.log(`lowprice加载完毕！`)
                             },
                         })
@@ -374,7 +386,7 @@ events.init =  async function(){
     services.User.maxAllowedAuctions = 100;
 
     //26.07 加载玩家meta
-    info.playerMetaData = JSON.parse(GM_getValue(`playerMetaData_${info.base.year}`, "{}"));
+    info.playerMetaData = parseStoredJson(`playerMetaData_${info.base.year}`, {});
 
     //26.02 loading文本添加事件
     events.addLoadingElment();
@@ -383,7 +395,7 @@ events.init =  async function(){
     //25.22 获取SBC信息并插入头部导航
     services.SBC.requestSets().observe(getAppMain().getRootViewController(), function(e, t) {
         if (e.unobserve(getAppMain().getRootViewController()),t.success && JSUtils.isObject(t.data)) {
-            let tempSBCList = JSON.parse(GM_getValue("sbclist", "[]")).reverse();
+            let tempSBCList = parseStoredJson("sbclist", []).reverse();
             tempSBCList.forEach(sbcId => {
                 events.SBCListInsertToFront(sbcId, 1);
             });
@@ -477,7 +489,7 @@ events.init =  async function(){
                         if(tt.success && tt.data && !JSUtils.isString(tt.data)){
                             info.evolutions.newCount += _.filter(tt.data.slots,i => info.evolutions.new.includes(i.id)).length;
                             info.evolutions.html = events.taskHtml(info.evolutions.newCount, "")
-                            let academyCache = JSON.parse(GM_getValue("academy","{}"));
+                            let academyCache = parseStoredJson("academy", {});
                             
                             _.map(tt.data.slots,s => {
                                 academyCache[s.id] = {

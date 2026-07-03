@@ -1,4 +1,11 @@
+import { safeParseJson } from "../infra/JsonParsing.js";
+import { SbcResponseAdapter } from "./SbcResponseAdapter.js";
+
 export class SbcDataService {
+  constructor({ responseAdapter = new SbcResponseAdapter() } = {}) {
+    this.responseAdapter = responseAdapter;
+  }
+
   async getFutbinSbcSquad(id, type, helpers) {
     const { getInfo, externalRequest, notice, hideLoader, fy, futbinId } = helpers;
     const info = getInfo();
@@ -12,7 +19,8 @@ export class SbcDataService {
 
     try {
       const futBinResponse = await externalRequest("GET", url);
-      const data = JSON.parse(futBinResponse)[type == 2 ? "squad_data" : "data"];
+      const parsedResponse = safeParseJson(futBinResponse, {}, { label: "futbin-sbc-squad" });
+      const data = parsedResponse[type == 2 ? "squad_data" : "data"];
       if (data) {
         if (type == 2) {
           _.map(data, (i, k) => {
@@ -35,6 +43,18 @@ export class SbcDataService {
       }
       throw error;
     }
+  }
+
+  adaptSbcSetsResponse(response) {
+    return this.responseAdapter.adaptSetsResponse(response);
+  }
+
+  adaptSbcChallengesResponse(response) {
+    return this.responseAdapter.adaptChallengesResponse(response);
+  }
+
+  adaptSbcChallengeSquadResponse(response) {
+    return this.responseAdapter.adaptChallengeSquadResponse(response);
   }
 
   createVirtualChallenge(c) {
@@ -303,4 +323,7 @@ export function registerSbcDataEvents(deps) {
   events.saveOldSquad = (s, t) => service.saveOldSquad(s, t, helpers);
   events.getRatingPlayers = (squad, ratings) => service.getRatingPlayers(squad, ratings, helpers);
   events.getFastSbcSubText = (j) => service.getFastSbcSubText(j, helpers);
+  events.adaptSbcSetsResponse = (response) => service.adaptSbcSetsResponse(response);
+  events.adaptSbcChallengesResponse = (response) => service.adaptSbcChallengesResponse(response);
+  events.adaptSbcChallengeSquadResponse = (response) => service.adaptSbcChallengeSquadResponse(response);
 }

@@ -12446,8 +12446,193 @@
     events.sbcListNeedCount = (needRatings, sbcTitle) => service.sbcListNeedCount(needRatings, sbcTitle, helpers);
   }
 
+  // src/fsu/infra/JsonParsing.js
+  function safeParseJson(rawValue, fallback, options = {}) {
+    const { label = "JSON", onError } = options;
+    if (rawValue === void 0 || rawValue === null || rawValue === "") {
+      return fallback;
+    }
+    try {
+      return JSON.parse(String(rawValue));
+    } catch (error) {
+      if (typeof onError === "function") {
+        onError(error, { label, rawValue });
+      }
+      return fallback;
+    }
+  }
+  function responseText(response) {
+    return response?.responseText ?? response?.response ?? "";
+  }
+
+  // src/fsu/domain/SbcResponseAdapter.js
+  function assertObject(value, label) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      throw new TypeError(`${label} must be an object`);
+    }
+  }
+  function assertArray(value, label) {
+    if (!Array.isArray(value)) {
+      throw new TypeError(`${label} must be an array`);
+    }
+  }
+  function requireNumber(value, label) {
+    if (typeof value !== "number" || Number.isNaN(value)) {
+      throw new TypeError(`${label} must be a number`);
+    }
+    return value;
+  }
+  function optionalNumber(value, label, fallback = 0) {
+    if (value === void 0 || value === null) {
+      return fallback;
+    }
+    return requireNumber(value, label);
+  }
+  function optionalString(value, fallback = "") {
+    return value == null ? fallback : String(value);
+  }
+  var SbcResponseAdapter = class {
+    adaptSetsResponse(response) {
+      assertObject(response, "SBC sets response");
+      assertArray(response.categories, "SBC sets response.categories");
+      return {
+        categories: response.categories.map(
+          (category, categoryIndex) => this.adaptCategory(category, categoryIndex)
+        )
+      };
+    }
+    adaptCategory(category, categoryIndex) {
+      assertObject(category, `SBC category[${categoryIndex}]`);
+      assertArray(category.sets, `SBC category[${categoryIndex}].sets`);
+      return {
+        categoryId: requireNumber(category.categoryId, `SBC category[${categoryIndex}].categoryId`),
+        name: optionalString(category.name),
+        priority: optionalNumber(category.priority, `SBC category[${categoryIndex}].priority`),
+        releaseTime: optionalNumber(category.releaseTime, `SBC category[${categoryIndex}].releaseTime`),
+        sets: category.sets.map((set, setIndex) => this.adaptSet(set, categoryIndex, setIndex))
+      };
+    }
+    adaptSet(set, categoryIndex, setIndex) {
+      assertObject(set, `SBC category[${categoryIndex}].sets[${setIndex}]`);
+      return {
+        setId: requireNumber(set.setId, `SBC category[${categoryIndex}].sets[${setIndex}].setId`),
+        name: optionalString(set.name),
+        description: optionalString(set.description),
+        priority: optionalNumber(set.priority, `SBC category[${categoryIndex}].sets[${setIndex}].priority`),
+        startTime: optionalNumber(set.startTime, `SBC category[${categoryIndex}].sets[${setIndex}].startTime`),
+        endTime: optionalNumber(set.endTime, `SBC category[${categoryIndex}].sets[${setIndex}].endTime`),
+        challengesCount: optionalNumber(
+          set.challengesCount,
+          `SBC category[${categoryIndex}].sets[${setIndex}].challengesCount`
+        ),
+        challengesCompletedCount: optionalNumber(
+          set.challengesCompletedCount,
+          `SBC category[${categoryIndex}].sets[${setIndex}].challengesCompletedCount`
+        ),
+        repeatable: Boolean(set.repeatable),
+        repeatabilityMode: optionalString(set.repeatabilityMode),
+        awards: set.awards ?? [],
+        setImageId: optionalString(set.setImageId),
+        timesCompleted: optionalNumber(
+          set.timesCompleted,
+          `SBC category[${categoryIndex}].sets[${setIndex}].timesCompleted`
+        )
+      };
+    }
+    adaptChallengesResponse(response) {
+      assertObject(response, "SBC challenges response");
+      assertArray(response.challenges, "SBC challenges response.challenges");
+      return {
+        challenges: response.challenges.map((challenge, index) => this.adaptChallenge(challenge, index))
+      };
+    }
+    adaptChallenge(challenge, index) {
+      assertObject(challenge, `SBC challenge[${index}]`);
+      assertArray(challenge.elgReq, `SBC challenge[${index}].elgReq`);
+      return {
+        challengeId: requireNumber(challenge.challengeId, `SBC challenge[${index}].challengeId`),
+        setId: requireNumber(challenge.setId, `SBC challenge[${index}].setId`),
+        name: optionalString(challenge.name),
+        description: optionalString(challenge.description),
+        status: optionalString(challenge.status),
+        formation: optionalString(challenge.formation),
+        priority: optionalNumber(challenge.priority, `SBC challenge[${index}].priority`),
+        endTime: optionalNumber(challenge.endTime, `SBC challenge[${index}].endTime`),
+        repeatable: Boolean(challenge.repeatable),
+        timesCompleted: optionalNumber(challenge.timesCompleted, `SBC challenge[${index}].timesCompleted`),
+        eligibilityOperation: optionalString(challenge.elgOperation),
+        eligibilityRequirements: challenge.elgReq.map(
+          (requirement, requirementIndex) => this.adaptEligibilityRequirement(requirement, index, requirementIndex)
+        ),
+        awards: Array.isArray(challenge.awards) ? challenge.awards : [],
+        type: optionalString(challenge.type),
+        tutorial: optionalNumber(challenge.tutorial, `SBC challenge[${index}].tutorial`)
+      };
+    }
+    adaptEligibilityRequirement(requirement, challengeIndex, requirementIndex) {
+      assertObject(requirement, `SBC challenge[${challengeIndex}].elgReq[${requirementIndex}]`);
+      return {
+        type: optionalString(requirement.type),
+        eligibilitySlot: optionalNumber(
+          requirement.eligibilitySlot,
+          `SBC challenge[${challengeIndex}].elgReq[${requirementIndex}].eligibilitySlot`
+        ),
+        eligibilityKey: requireNumber(
+          requirement.eligibilityKey,
+          `SBC challenge[${challengeIndex}].elgReq[${requirementIndex}].eligibilityKey`
+        ),
+        eligibilityValue: requireNumber(
+          requirement.eligibilityValue,
+          `SBC challenge[${challengeIndex}].elgReq[${requirementIndex}].eligibilityValue`
+        )
+      };
+    }
+    adaptChallengeSquadResponse(response) {
+      assertObject(response, "SBC challenge squad response");
+      assertObject(response.squad, "SBC challenge squad response.squad");
+      assertArray(response.squad.players, "SBC challenge squad response.squad.players");
+      return {
+        challengeId: requireNumber(response.challengeId, "SBC challenge squad response.challengeId"),
+        squad: {
+          id: requireNumber(response.squad.id, "SBC challenge squad response.squad.id"),
+          formation: optionalString(response.squad.formation),
+          rating: optionalNumber(response.squad.rating, "SBC challenge squad response.squad.rating"),
+          chemistry: optionalNumber(response.squad.chemistry, "SBC challenge squad response.squad.chemistry"),
+          manager: Array.isArray(response.squad.manager) ? response.squad.manager : [],
+          players: response.squad.players.map((player, index) => this.adaptSquadPlayer(player, index))
+        }
+      };
+    }
+    adaptSquadPlayer(player, index) {
+      assertObject(player, `SBC challenge squad player[${index}]`);
+      const squadIndex = requireNumber(player.index, `SBC challenge squad player[${index}].index`);
+      assertObject(player.itemData, `SBC challenge squad player[${index}].itemData`);
+      return {
+        index: squadIndex,
+        itemData: {
+          id: requireNumber(player.itemData.id, `SBC challenge squad player[${index}].itemData.id`),
+          assetId: optionalNumber(player.itemData.assetId, `SBC challenge squad player[${index}].itemData.assetId`),
+          rating: optionalNumber(player.itemData.rating, `SBC challenge squad player[${index}].itemData.rating`),
+          itemType: optionalString(player.itemData.itemType),
+          resourceId: optionalNumber(
+            player.itemData.resourceId,
+            `SBC challenge squad player[${index}].itemData.resourceId`
+          ),
+          preferredPosition: optionalString(player.itemData.preferredPosition),
+          untradeable: Boolean(player.itemData.untradeable),
+          teamid: optionalNumber(player.itemData.teamid, `SBC challenge squad player[${index}].itemData.teamid`),
+          nation: optionalNumber(player.itemData.nation, `SBC challenge squad player[${index}].itemData.nation`),
+          rareflag: optionalNumber(player.itemData.rareflag, `SBC challenge squad player[${index}].itemData.rareflag`)
+        }
+      };
+    }
+  };
+
   // src/fsu/domain/SbcDataService.js
   var SbcDataService = class {
+    constructor({ responseAdapter = new SbcResponseAdapter() } = {}) {
+      this.responseAdapter = responseAdapter;
+    }
     async getFutbinSbcSquad(id, type, helpers) {
       const { getInfo, externalRequest, notice, hideLoader, fy: fy2, futbinId: futbinId2 } = helpers;
       const info = getInfo();
@@ -12455,7 +12640,8 @@
       const url = type == 1 ? `https://www.futbin.org/futbin/api/${info.base.year}/getChallengeTopSquads?chal_id=${id}&platform=${platform}` : type == 2 ? `https://www.futbin.org/futbin/api/${info.base.year}/getSquadByID?squadId=${id}&platform=${platform}` : `https://www.fut.gg/api/squads/${id}`;
       try {
         const futBinResponse = await externalRequest("GET", url);
-        const data = JSON.parse(futBinResponse)[type == 2 ? "squad_data" : "data"];
+        const parsedResponse = safeParseJson(futBinResponse, {}, { label: "futbin-sbc-squad" });
+        const data = parsedResponse[type == 2 ? "squad_data" : "data"];
         if (data) {
           if (type == 2) {
             _.map(data, (i, k) => {
@@ -12477,6 +12663,15 @@
         }
         throw error;
       }
+    }
+    adaptSbcSetsResponse(response) {
+      return this.responseAdapter.adaptSetsResponse(response);
+    }
+    adaptSbcChallengesResponse(response) {
+      return this.responseAdapter.adaptChallengesResponse(response);
+    }
+    adaptSbcChallengeSquadResponse(response) {
+      return this.responseAdapter.adaptChallengeSquadResponse(response);
     }
     createVirtualChallenge(c) {
       const challengeInfo = {
@@ -12700,6 +12895,9 @@
     events.saveOldSquad = (s2, t) => service.saveOldSquad(s2, t, helpers);
     events.getRatingPlayers = (squad, ratings) => service.getRatingPlayers(squad, ratings, helpers);
     events.getFastSbcSubText = (j) => service.getFastSbcSubText(j, helpers);
+    events.adaptSbcSetsResponse = (response) => service.adaptSbcSetsResponse(response);
+    events.adaptSbcChallengesResponse = (response) => service.adaptSbcChallengesResponse(response);
+    events.adaptSbcChallengeSquadResponse = (response) => service.adaptSbcChallengeSquadResponse(response);
   }
 
   // src/fsu/ui/HtmlSafety.js
@@ -13579,6 +13777,14 @@
       GM_xmlhttpRequest: GM_xmlhttpRequest2,
       GM_info: GM_info2
     } = deps;
+    const parseStoredJson = (key, fallback) => safeParseJson(GM_getValue2(key, JSON.stringify(fallback)), fallback, {
+      label: `GM:${key}`,
+      onError: (error, context) => debug2.log(`${context.label} parse failed`, error)
+    });
+    const parseResponseJson = (res, fallback, label) => safeParseJson(responseText(res), fallback, {
+      label,
+      onError: (error, context) => debug2.log(`${context.label} parse failed`, error)
+    });
     events.notice = function(text, type) {
       services2.Notification.queue([fy2(text), type]);
     };
@@ -13613,7 +13819,7 @@
         }
         SBCCount.createElement(cntlr2.current().parentViewController.getView());
       }
-      let history_a = JSON.parse(GM_getValue2("history", "[]")), history_b = [];
+      let history_a = parseStoredJson("history", []), history_b = [];
       if (history_a && _.isArray(history_a)) {
         let newSize = _.size(new UTSearchCriteriaDTO());
         let filteredMembers = _.filter(history_a, (item) => _.isArray(item) && item.length === newSize);
@@ -13640,7 +13846,7 @@
           if (res.status == 404) {
             events.notice("notice.upgradefailed", 2);
           } else {
-            let data = JSON.parse(res.response);
+            let data = parseResponseJson(res, {}, "updata.json");
             let myVersion = Number(GM_info2.script.version) || 0;
             if (data["version"] > myVersion) {
               urlText = fy2("top.upgrade");
@@ -13658,7 +13864,7 @@
                     "Cache-Control": "max-age=31536000"
                   },
                   onload: function(res2) {
-                    let metaJson = JSON.parse(res2.response);
+                    let metaJson = parseResponseJson(res2, {}, "meta.json");
                     if (_.has(metaJson, "bodyType")) {
                       info.meta.bodyType = _.fromPairs(
                         _.flatMap(
@@ -13682,7 +13888,7 @@
                     "Cache-Control": "max-age=31536000"
                   },
                   onload: function(res2) {
-                    _.forEach(JSON.parse(res2.responseText), (i, k) => {
+                    _.forEach(parseResponseJson(res2, {}, "fast.json"), (i, k) => {
                       let nowTime = Math.floor(Date.now() / 1e3);
                       if (i.t > nowTime) {
                         info.base.fastsbc[k] = i.g;
@@ -13700,7 +13906,7 @@
                     "Cache-Control": "max-age=31536000"
                   },
                   onload: function(res2) {
-                    info.base.oddo = JSON.parse(res2.response);
+                    info.base.oddo = parseResponseJson(res2, {}, "pack.json");
                   }
                 });
               }
@@ -13713,12 +13919,12 @@
                     "Cache-Control": "max-age=31536000"
                   },
                   onload: function(res2) {
-                    let sbcJson = JSON.parse(res2.response);
+                    let sbcJson = parseResponseJson(res2, { reward: [], new: [] }, "sbc.json");
                     info.task.sbc.stat = sbcJson;
-                    let sbcRewardArray = _.map(sbcJson.reward, (i) => {
+                    let sbcRewardArray = _.map(sbcJson.reward || [], (i) => {
                       return i == 1 ? fy2("task.player") : i == 2 ? fy2("task.pack") : "";
                     });
-                    info.task.sbc.html = events.taskHtml(sbcJson.new.length, sbcRewardArray.join("、"));
+                    info.task.sbc.html = events.taskHtml((sbcJson.new || []).length, sbcRewardArray.join("、"));
                   }
                 });
               }
@@ -13731,7 +13937,7 @@
                     "Cache-Control": "max-age=31536000"
                   },
                   onload: function(res2) {
-                    info.GGRRAR = JSON.parse(res2.response);
+                    info.GGRRAR = parseResponseJson(res2, {}, "ggrating.json");
                     debug2.log(`GGRRAR加载完毕！`);
                   }
                 });
@@ -13745,7 +13951,7 @@
                     "Cache-Control": "max-age=31536000"
                   },
                   onload: function(res2) {
-                    info.evolutions.new = JSON.parse(res2.response).new;
+                    info.evolutions.new = parseResponseJson(res2, { new: [] }, "evolutions.json").new || [];
                     debug2.log(`evolutions加载完毕！`);
                   }
                 });
@@ -13759,7 +13965,7 @@
                     "Cache-Control": "max-age=31536000"
                   },
                   onload: function(res2) {
-                    const { defIds, rarityIds } = JSON.parse(res2.response);
+                    const { defIds = [], rarityIds = [] } = parseResponseJson(res2, {}, "inpacks.json");
                     info.inpacks.defIds = defIds;
                     info.inpacks.rarityIds = rarityIds;
                     debug2.log(`inpacks加载完毕！`);
@@ -13775,7 +13981,7 @@
                     "Cache-Control": "max-age=31536000"
                   },
                   onload: function(res2) {
-                    const { dynamic, chem } = JSON.parse(res2.response);
+                    const { dynamic = {}, chem = {} } = parseResponseJson(res2, {}, "other.json");
                     info.specialPlayers = {
                       "dynamic": dynamic,
                       "DList": Object.entries(dynamic).filter(([_key, value]) => {
@@ -13797,7 +14003,7 @@
                     "Cache-Control": "max-age=31536000"
                   },
                   onload: function(res2) {
-                    info.fgconfig = JSON.parse(res2.response);
+                    info.fgconfig = parseResponseJson(res2, {}, "fgconfig.json");
                     debug2.log(`fgconfig加载完毕！`);
                   }
                 });
@@ -13811,7 +14017,7 @@
                     "Cache-Control": "max-age=31536000"
                   },
                   onload: function(res2) {
-                    let data2 = JSON.parse(res2.response);
+                    let data2 = parseResponseJson(res2, [], "playermeta.json");
                     info.playermeta = {};
                     _.forEach(data2, (value) => {
                       if (value.length == 4) {
@@ -13835,7 +14041,7 @@
                     "Cache-Control": "max-age=31536000"
                   },
                   onload: function(res2) {
-                    applyLowpriceToInfo(info, JSON.parse(res2.response));
+                    applyLowpriceToInfo(info, parseResponseJson(res2, {}, "lowprice.json"));
                     debug2.log(`lowprice加载完毕！`);
                   }
                 });
@@ -13859,12 +14065,12 @@
         info.base.platform = "ps";
       }
       services2.User.maxAllowedAuctions = 100;
-      info.playerMetaData = JSON.parse(GM_getValue2(`playerMetaData_${info.base.year}`, "{}"));
+      info.playerMetaData = parseStoredJson(`playerMetaData_${info.base.year}`, {});
       events.addLoadingElment();
       info.base.localization = services2.Localization.repository._collection;
       services2.SBC.requestSets().observe(getAppMain().getRootViewController(), function(e2, t) {
         if (e2.unobserve(getAppMain().getRootViewController()), t.success && JSUtils.isObject(t.data)) {
-          let tempSBCList = JSON.parse(GM_getValue2("sbclist", "[]")).reverse();
+          let tempSBCList = parseStoredJson("sbclist", []).reverse();
           tempSBCList.forEach((sbcId) => {
             events.SBCListInsertToFront(sbcId, 1);
           });
@@ -13950,7 +14156,7 @@
                 if (tt.success && tt.data && !JSUtils.isString(tt.data)) {
                   info.evolutions.newCount += _.filter(tt.data.slots, (i) => info.evolutions.new.includes(i.id)).length;
                   info.evolutions.html = events.taskHtml(info.evolutions.newCount, "");
-                  let academyCache = JSON.parse(GM_getValue2("academy", "{}"));
+                  let academyCache = parseStoredJson("academy", {});
                   _.map(tt.data.slots, (s2) => {
                     academyCache[s2.id] = {
                       "name": s2.slotName,

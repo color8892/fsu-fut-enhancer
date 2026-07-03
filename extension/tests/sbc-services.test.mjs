@@ -2,6 +2,7 @@ import assert from "assert";
 import { FastSbcService } from "../src/fsu/domain/FastSbcService.js";
 import { SbcPlayerMatchService } from "../src/fsu/domain/SbcPlayerMatchService.js";
 import { OneFillCriteriaService } from "../src/fsu/domain/OneFillCriteriaService.js";
+import { SbcDataService } from "../src/fsu/domain/SbcDataService.js";
 
 function installLodashMock() {
   globalThis._ = {
@@ -111,6 +112,11 @@ function installLodashMock() {
 
 export function runSbcServiceTests() {
   installLodashMock();
+  const sbcDataService = new SbcDataService();
+  assert.deepStrictEqual(sbcDataService.adaptSbcChallengesResponse({ challenges: [] }), {
+    challenges: []
+  });
+
   const fastSbcService = new FastSbcService();
   const helpers = {
     build: { strictlypcik: true },
@@ -213,4 +219,26 @@ export function runSbcServiceTests() {
     ]),
     false
   );
+}
+
+export async function runSbcDataServiceAsyncTests() {
+  installLodashMock();
+
+  const notices = [];
+  let hidden = false;
+  const service = new SbcDataService();
+  const result = await service.getFutbinSbcSquad(17, 1, {
+    getInfo: () => ({ base: { platform: "pc", year: "26" } }),
+    externalRequest: async () => "<html>bad gateway</html>",
+    notice: (...args) => notices.push(args),
+    hideLoader: () => {
+      hidden = true;
+    },
+    fy: (key) => key,
+    futbinId: { set: () => {}, setPrice: () => {} }
+  });
+
+  assert.strictEqual(result, false);
+  assert.deepStrictEqual(notices, [["notice.squaderror", 2]]);
+  assert.strictEqual(hidden, true);
 }
