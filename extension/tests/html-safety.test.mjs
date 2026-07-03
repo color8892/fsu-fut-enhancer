@@ -3,7 +3,8 @@ import {
   appendText,
   createExternalLink,
   createTextElement,
-  normalizeExternalUrl
+  normalizeExternalUrl,
+  setTrustedHtml
 } from "../src/fsu/ui/HtmlSafety.js";
 
 function createFakeDocument() {
@@ -19,11 +20,21 @@ function createFakeDocument() {
         children: [],
         appendChild(child) {
           this.children.push(child);
+        },
+        replaceChildren(...children) {
+          this.children = children;
         }
       };
     },
     createTextNode(text) {
       return { nodeType: 3, textContent: text };
+    },
+    createRange() {
+      return {
+        createContextualFragment(html) {
+          return { nodeType: 11, html };
+        }
+      };
     }
   };
 }
@@ -63,5 +74,10 @@ export function runHtmlSafetyTests() {
   appendText(badge, "<script>alert(1)</script>", documentRef);
   assert.deepStrictEqual(badge.children, [
     { nodeType: 3, textContent: "<script>alert(1)</script>" }
+  ]);
+
+  setTrustedHtml(badge, "<span>trusted</span>", documentRef);
+  assert.deepStrictEqual(badge.children, [
+    { nodeType: 11, html: "<span>trusted</span>" }
   ]);
 }

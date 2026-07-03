@@ -1,3 +1,5 @@
+import { setTrustedHtml } from "../ui/HtmlSafety.js";
+
 export function installSquadOverviewViewPatches(deps) {
   const { call, events, info, fy, isPhone, repositories, SBCEligibilityKey, GM_openInTab } = deps;
   //26.04 改用新的快捷球员载入方法
@@ -248,7 +250,7 @@ UTSquadOverviewViewController.prototype.viewDidAppear = function() {
                         },
                         "im"
                     )
-                    leftRatingPlusBtn.getRootElement().innerHTML = `<span> >= </span>${ratPlus}`;
+                    setTrustedHtml(leftRatingPlusBtn.getRootElement(), `<span> >= </span>${ratPlus}`);
                     this._fsu.leftRatingPlusBtn = leftRatingPlusBtn;
                     quickLeft.append(leftRatingPlusBtn.getRootElement());
                 }
@@ -267,7 +269,7 @@ UTSquadOverviewViewController.prototype.viewDidAppear = function() {
                         },
                         "im"
                     )
-                    leftRatingMinusBtn.getRootElement().innerHTML = `<span> <= </span>${ratMinus}`;
+                    setTrustedHtml(leftRatingMinusBtn.getRootElement(), `<span> <= </span>${ratMinus}`);
                     this._fsu.leftRatingMinusBtn = leftRatingMinusBtn;
                     quickLeft.append(leftRatingMinusBtn.getRootElement());
                 }
@@ -284,12 +286,12 @@ UTSquadOverviewViewController.prototype.viewDidAppear = function() {
                     },
                     "im"
                 )
-                leftQalityBtn.getRootElement().innerHTML = `${ratingStart}<span>-</span>${maxRating}`;
+                setTrustedHtml(leftQalityBtn.getRootElement(), `${ratingStart}<span>-</span>${maxRating}`);
                 this._fsu.leftQalityBtn = leftQalityBtn;
                 quickLeft.append(leftQalityBtn.getRootElement());
             }
         }
-        if(this._fsu?.quickOther.innerHTML !== ""){
+        if(this._fsu?.quickOther.childElementCount){
             this._fsu?.quickTop.append(this._fsu?.quickOther);
         }
         //初始载入保存阵容

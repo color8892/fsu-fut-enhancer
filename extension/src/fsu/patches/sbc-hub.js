@@ -1,4 +1,4 @@
-import { createTextElement } from "../ui/HtmlSafety.js";
+import { createTextElement, setTrustedHtml } from "../ui/HtmlSafety.js";
 
 function navigationAddCount(events, e, c) {
   if (e.className == "EAFilterBarItemView") {
@@ -329,8 +329,9 @@ export function registerSbcInfoFillEvent(deps) {
             "call-to-action mini fsu-challengefastbtn"
           );
 
-          e._fsufastsbcbtn.__currencyLabel.innerHTML = events.getFastSbcSubText(
-            info.base.fastsbc[`${fastCid}#${fastSid}`]
+          setTrustedHtml(
+            e._fsufastsbcbtn.__currencyLabel,
+            events.getFastSbcSubText(info.base.fastsbc[`${fastCid}#${fastSid}`])
           );
 
           if (fastCount == 0) {

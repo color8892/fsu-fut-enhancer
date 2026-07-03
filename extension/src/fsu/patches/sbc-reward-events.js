@@ -1,3 +1,5 @@
+import { setTrustedHtml } from "../ui/HtmlSafety.js";
+
 export function registerSbcRewardEvents(deps) {
   const { events, info, cntlr, isPhone, repositories, debug, oneFillCriteriaService, SBCEligibilityKey } = deps;
   events.oneFillCreationGF = (req, miss) =>
@@ -41,7 +43,7 @@ events.showRewardsView = (set) => {
                 marginTop: ".5rem",
                 width: "100%"
             });
-            tryAgainBtn.__currencyLabel.innerHTML = events.getFastSbcSubText(fastInfo);
+            setTrustedHtml(tryAgainBtn.__currencyLabel, events.getFastSbcSubText(fastInfo));
             rewardsController.getView().getRootElement().querySelector("footer").appendChild(tryAgainBtn.getRootElement());
         }
     }

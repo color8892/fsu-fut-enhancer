@@ -42,10 +42,10 @@ export function createTextElement(tagName, text, { className, documentRef = docu
   return element;
 }
 
-export function createTrustedHtmlFragment(html) {
-  return document.createRange().createContextualFragment(String(html ?? ""));
+export function createTrustedHtmlFragment(html, documentRef = document) {
+  return documentRef.createRange().createContextualFragment(String(html ?? ""));
 }
 
-export function setTrustedHtml(element, html) {
-  element.replaceChildren(createTrustedHtmlFragment(html));
+export function setTrustedHtml(element, html, documentRef = document) {
+  element.replaceChildren(createTrustedHtmlFragment(html, documentRef));
 }

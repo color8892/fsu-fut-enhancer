@@ -1,3 +1,5 @@
+import { setTrustedHtml } from "../ui/HtmlSafety.js";
+
 export function installUnassignedPatches(deps) {
   const { call, events, fy, cntlr, info } = deps;
 
@@ -328,7 +330,7 @@ export function installUnassignedPatches(deps) {
                           let fastBtnText = events.createElementWithConfig("div", {
                               classList: "fsu-unassigned-fastsbctsub"
                           })
-                          fastBtnText.innerHTML = events.getFastSbcSubText(info.base.fastsbc[i.n]);
+                          setTrustedHtml(fastBtnText, events.getFastSbcSubText(info.base.fastsbc[i.n]));
                           fastBtnBox.appendChild(fastBtnText)
                           let fastBtnTips = events.createElementWithConfig("div", {
                               textContent:i.c,
