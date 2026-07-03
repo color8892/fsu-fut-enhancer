@@ -1,4 +1,5 @@
 import { PriceRequestQueue } from "../core/PriceRequestQueue.js";
+import { safeParseJson } from "../infra/JsonParsing.js";
 
 const PRICE_BATCH_SIZE = 23;
 
@@ -25,6 +26,13 @@ export class PriceService {
 
   request(method, url, body, contentType) {
     return this.httpClient.request(method, url, body, contentType);
+  }
+
+  parseJsonResponse(response, fallback, label) {
+    return safeParseJson(response, fallback, {
+      label,
+      onError: (error, context) => this.debug.log(`${context.label} parse failed`, error)
+    });
   }
 
   getCachePrice(definitionId, type) {
@@ -74,7 +82,7 @@ export class PriceService {
   async getFutbinUrl(url) {
     try {
       const response = await this.request("GET", url);
-      return JSON.parse(response);
+      return this.parseJsonResponse(response, {}, "futbin-url");
     } catch (error) {
       this.handleError(error);
     }
@@ -102,9 +110,9 @@ export class PriceService {
           "GET",
           `${baseUrl}player-prices/26/?ids=${params}${platform}`
         );
-        const originalJson = JSON.parse(response);
+        const originalJson = this.parseJsonResponse(response, { data: [] }, "futgg-player-prices");
 
-        _.map(originalJson.data, (item) => {
+        _.map(originalJson.data || [], (item) => {
           if (
             item.price !== null ||
             item.isExtinct ||
@@ -138,9 +146,9 @@ export class PriceService {
           "GET",
           `https://enhancer-api.futnext.com/players/prices?ids=${params}&platform=${info.base.platform}`
         );
-        const originalJson = JSON.parse(response);
+        const originalJson = this.parseJsonResponse(response, [], "futnext-player-prices");
 
-        _.map(originalJson, (item) => {
+        _.map(originalJson || [], (item) => {
           if (item.prices.length) {
             priceJson[item.definitionId] = {
               n: item.prices[0],
@@ -165,7 +173,7 @@ export class PriceService {
         "GET",
         `https://www.futbin.org/futbin/api/${info.base.year}/fetchPriceInformation?playerresource=${playerResourceId}&platform=${platform}`
       );
-      const originalJson = JSON.parse(response);
+      const originalJson = this.parseJsonResponse(response, {}, "futbin-price-information");
       const price = originalJson.LCPrice ?? 0;
       const priceJson = {
         n: price,
@@ -218,9 +226,9 @@ export class PriceService {
         "GET",
         `https://www.futbin.org/futbin/api/${info.base.year}/getFilteredPlayers?platform=${platform}&nation=${nation}&league=${league}&rating=${rating}-${rating}&club=${team}&sort=rating&position=${position}&order=desc&page=1`
       );
-      const data = JSON.parse(response);
+      const data = this.parseJsonResponse(response, { data: [] }, "futbin-filtered-players");
 
-      _.forEach(data.data, (itemData) => {
+      _.forEach(data.data || [], (itemData) => {
         this.setPriceFromFutbinData(itemData, itemData.resource_id);
         this.setFutbinMapping(itemData.resource_id, itemData.ID);
       });
@@ -239,9 +247,9 @@ export class PriceService {
         "GET",
         `https://www.futbin.org/futbin/api/${info.base.year}/fetchPlayerInformationMinimal?ID=${futbinId}&platform=${platform}`
       );
-      const data = JSON.parse(response);
+      const data = this.parseJsonResponse(response, { data: [] }, "futbin-player-information");
 
-      _.forEach(data.data, (itemData) => {
+      _.forEach(data.data || [], (itemData) => {
         this.setPriceFromFutbinData(itemData, itemData.Player_Resource);
       });
 

@@ -296,6 +296,25 @@
     }
   };
 
+  // src/fsu/infra/JsonParsing.js
+  function safeParseJson(rawValue, fallback, options = {}) {
+    const { label = "JSON", onError } = options;
+    if (rawValue === void 0 || rawValue === null || rawValue === "") {
+      return fallback;
+    }
+    try {
+      return JSON.parse(String(rawValue));
+    } catch (error) {
+      if (typeof onError === "function") {
+        onError(error, { label, rawValue });
+      }
+      return fallback;
+    }
+  }
+  function responseText(response) {
+    return response?.responseText ?? response?.response ?? "";
+  }
+
   // src/fsu/domain/PriceService.js
   var PriceService = class {
     constructor({ httpClient, store, getInfo, debug: debug2 }) {
@@ -317,6 +336,12 @@
     }
     request(method, url, body, contentType) {
       return this.httpClient.request(method, url, body, contentType);
+    }
+    parseJsonResponse(response, fallback, label) {
+      return safeParseJson(response, fallback, {
+        label,
+        onError: (error, context) => this.debug.log(`${context.label} parse failed`, error)
+      });
     }
     getCachePrice(definitionId, type) {
       const info = this.getInfo();
@@ -353,7 +378,7 @@
     async getFutbinUrl(url) {
       try {
         const response = await this.request("GET", url);
-        return JSON.parse(response);
+        return this.parseJsonResponse(response, {}, "futbin-url");
       } catch (error) {
         this.handleError(error);
       }
@@ -376,8 +401,8 @@
             "GET",
             `${baseUrl}player-prices/26/?ids=${params}${platform}`
           );
-          const originalJson = JSON.parse(response);
-          _.map(originalJson.data, (item) => {
+          const originalJson = this.parseJsonResponse(response, { data: [] }, "futgg-player-prices");
+          _.map(originalJson.data || [], (item) => {
             if (item.price !== null || item.isExtinct || item.isSbc || item.isObjective || item.premiumSeasonPassLevel !== null || item.standardSeasonPassLevel !== null) {
               let price = 0;
               let type = 0;
@@ -400,8 +425,8 @@
             "GET",
             `https://enhancer-api.futnext.com/players/prices?ids=${params}&platform=${info.base.platform}`
           );
-          const originalJson = JSON.parse(response);
-          _.map(originalJson, (item) => {
+          const originalJson = this.parseJsonResponse(response, [], "futnext-player-prices");
+          _.map(originalJson || [], (item) => {
             if (item.prices.length) {
               priceJson[item.definitionId] = {
                 n: item.prices[0],
@@ -424,7 +449,7 @@
           "GET",
           `https://www.futbin.org/futbin/api/${info.base.year}/fetchPriceInformation?playerresource=${playerResourceId}&platform=${platform}`
         );
-        const originalJson = JSON.parse(response);
+        const originalJson = this.parseJsonResponse(response, {}, "futbin-price-information");
         const price = originalJson.LCPrice ?? 0;
         const priceJson = {
           n: price,
@@ -470,8 +495,8 @@
           "GET",
           `https://www.futbin.org/futbin/api/${info.base.year}/getFilteredPlayers?platform=${platform}&nation=${nation}&league=${league}&rating=${rating}-${rating}&club=${team}&sort=rating&position=${position}&order=desc&page=1`
         );
-        const data = JSON.parse(response);
-        _.forEach(data.data, (itemData) => {
+        const data = this.parseJsonResponse(response, { data: [] }, "futbin-filtered-players");
+        _.forEach(data.data || [], (itemData) => {
           this.setPriceFromFutbinData(itemData, itemData.resource_id);
           this.setFutbinMapping(itemData.resource_id, itemData.ID);
         });
@@ -488,8 +513,8 @@
           "GET",
           `https://www.futbin.org/futbin/api/${info.base.year}/fetchPlayerInformationMinimal?ID=${futbinId2}&platform=${platform}`
         );
-        const data = JSON.parse(response);
-        _.forEach(data.data, (itemData) => {
+        const data = this.parseJsonResponse(response, { data: [] }, "futbin-player-information");
+        _.forEach(data.data || [], (itemData) => {
           this.setPriceFromFutbinData(itemData, itemData.Player_Resource);
         });
         return info.roster.data[definitionId];
@@ -12444,25 +12469,6 @@
     events.teamRatingCount = (ratings) => service.teamRatingCount(ratings);
     events.needRatingsCount = (target, squad) => service.needRatingsCount(target, squad, helpers);
     events.sbcListNeedCount = (needRatings, sbcTitle) => service.sbcListNeedCount(needRatings, sbcTitle, helpers);
-  }
-
-  // src/fsu/infra/JsonParsing.js
-  function safeParseJson(rawValue, fallback, options = {}) {
-    const { label = "JSON", onError } = options;
-    if (rawValue === void 0 || rawValue === null || rawValue === "") {
-      return fallback;
-    }
-    try {
-      return JSON.parse(String(rawValue));
-    } catch (error) {
-      if (typeof onError === "function") {
-        onError(error, { label, rawValue });
-      }
-      return fallback;
-    }
-  }
-  function responseText(response) {
-    return response?.responseText ?? response?.response ?? "";
   }
 
   // src/fsu/domain/SbcResponseAdapter.js

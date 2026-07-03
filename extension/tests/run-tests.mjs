@@ -243,17 +243,28 @@ async function assertPriceService() {
     },
     has(object, key) {
       return Object.prototype.hasOwnProperty.call(object, key);
+    },
+    map(collection, iteratee) {
+      return collection.map(iteratee);
+    },
+    forEach(collection, iteratee) {
+      collection.forEach(iteratee);
     }
   };
 
   const { PriceService } = await import(new URL("../src/fsu/domain/PriceService.js", import.meta.url));
 
   const info = {
+    apiPlatform: 1,
+    apiProxy: "",
+    base: { platform: "pc", year: "26" },
+    futbinId: {},
+    posIdToName: { 25: "ST" },
     roster: { data: { 1: { n: 500, y: 0 } } }
   };
 
   const service = new PriceService({
-    httpClient: { request: async () => '{"data":[]}' },
+    httpClient: { request: async () => "<html>bad gateway</html>" },
     store: { getObject: () => ({}), setJson: () => {} },
     getInfo: () => info,
     debug: { log: () => {} }
@@ -263,6 +274,18 @@ async function assertPriceService() {
   assert.strictEqual(cached.num, 500);
   assert.strictEqual(service.getCachePrice(1, 3), true);
   assert.ok(service.priceLastDiff(100, 100).includes("minus"));
+
+  const emptyPrices = await service.getPriceForUrl([1, 2]);
+  assert.deepStrictEqual(emptyPrices, {});
+  const missingFutbinId = await service.getFutbinPlayerId({
+    nationId: 1,
+    teamId: 1,
+    leagueId: 1,
+    _rating: 80,
+    preferredPosition: 25,
+    definitionId: 9
+  });
+  assert.strictEqual(missingFutbinId, 0);
 }
 
 assertLodashVendor();
