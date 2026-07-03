@@ -1,3 +1,5 @@
+import { createTrustedHtmlFragment, setTrustedHtml } from "./HtmlSafety.js";
+
 export function createButton(s, t, b, c, style) {
   const btn = s;
   btn.init();
@@ -61,7 +63,7 @@ export function createElementWithConfig(tag, config) {
 }
 
 export function createDF(t) {
-  return document.createRange().createContextualFragment(t);
+  return createTrustedHtmlFragment(t);
 }
 
 export function popup(deps, t, m, c, o, i, n, s) {
@@ -77,7 +79,7 @@ export function popup(deps, t, m, c, o, i, n, s) {
   let message = m;
   if (info.isEnhancer) {
     message = document.createElement("div");
-    message.innerHTML = m;
+    setTrustedHtml(message, m);
   }
 
   const mp = new EADialogViewController({

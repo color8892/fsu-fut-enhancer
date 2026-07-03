@@ -17,6 +17,9 @@ export class FsuContext {
   pick(...keys) {
     const out = {};
     for (const key of keys) {
+      if (!Object.prototype.hasOwnProperty.call(this, key) || this[key] === undefined) {
+        throw new Error(`FsuContext missing required dependency: ${key}`);
+      }
       out[key] = this[key];
     }
     return out;

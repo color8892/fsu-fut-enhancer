@@ -31,6 +31,14 @@ export function runFsuContextTests() {
   assert.strictEqual(picked.info, info);
   assert.strictEqual(picked.fy("x"), "x");
   assert.ok(!("cntlr" in picked));
+  assert.throws(
+    () => ctx.pick("missingService"),
+    /FsuContext missing required dependency: missingService/
+  );
+  assert.throws(
+    () => new FsuContext({ optional: undefined }).pick("optional"),
+    /FsuContext missing required dependency: optional/
+  );
 
   const early = ctx.toEarlyModuleDeps();
   assert.ok("SBCEligibilityKey" in early);

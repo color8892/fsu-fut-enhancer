@@ -1,4 +1,5 @@
 import { applyLowpriceToInfo } from "../infra/RatingPrices.js";
+import { createExternalLink } from "../ui/HtmlSafety.js";
 
 export function registerAppInitEvents(deps) {
   const { events, info, fy } = deps;
@@ -354,7 +355,13 @@ events.init =  async function(){
                     }
                 }
             }
-            getAppMain()._FCHeader.getView().__easportsLink.insertAdjacentHTML('afterend', `<a class="header_explain" href="${urlLink}" target="_blank">${urlText}</a>`);
+            getAppMain()._FCHeader.getView().__easportsLink.after(
+                createExternalLink({
+                    className: "header_explain",
+                    href: urlLink,
+                    text: urlText
+                })
+            );
         },
         onerror:function(){
             events.notice("notice.upgrade.failed",2);

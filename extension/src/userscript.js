@@ -15,6 +15,9 @@
     pick(...keys) {
       const out = {};
       for (const key of keys) {
+        if (!Object.prototype.hasOwnProperty.call(this, key) || this[key] === void 0) {
+          throw new Error(`FsuContext missing required dependency: ${key}`);
+        }
         out[key] = this[key];
       }
       return out;
@@ -12699,6 +12702,39 @@
     events.getFastSbcSubText = (j) => service.getFastSbcSubText(j, helpers);
   }
 
+  // src/fsu/ui/HtmlSafety.js
+  var SAFE_EXTERNAL_PROTOCOLS = /* @__PURE__ */ new Set(["http:", "https:"]);
+  function normalizeExternalUrl(url, baseUrl) {
+    const rawUrl = String(url ?? "").trim();
+    if (!/^https?:\/\//i.test(rawUrl)) {
+      return "";
+    }
+    try {
+      const parsed = new URL(rawUrl, baseUrl || document.location.href);
+      return SAFE_EXTERNAL_PROTOCOLS.has(parsed.protocol) ? parsed.href : "";
+    } catch {
+      return "";
+    }
+  }
+  function createExternalLink({ href, text, className, documentRef = document, baseUrl } = {}) {
+    const link = documentRef.createElement("a");
+    const safeHref = normalizeExternalUrl(href, baseUrl);
+    if (className) {
+      link.className = className;
+    }
+    link.href = safeHref || "#";
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    link.textContent = text == null ? "" : String(text);
+    return link;
+  }
+  function createTrustedHtmlFragment(html) {
+    return document.createRange().createContextualFragment(String(html ?? ""));
+  }
+  function setTrustedHtml(element, html) {
+    element.replaceChildren(createTrustedHtmlFragment(html));
+  }
+
   // src/fsu/ui/UiFactory.js
   function createButton(s2, t, b, c, style) {
     const btn = s2;
@@ -12759,7 +12795,7 @@
     return element;
   }
   function createDF(t) {
-    return document.createRange().createContextualFragment(t);
+    return createTrustedHtmlFragment(t);
   }
   function popup(deps, t, m, c, o, i, n, s2) {
     const { info, fy: fy2, createDF: createDF2 } = deps;
@@ -12772,7 +12808,7 @@
     let message = m;
     if (info.isEnhancer) {
       message = document.createElement("div");
-      message.innerHTML = m;
+      setTrustedHtml(message, m);
     }
     const mp = new EADialogViewController({
       dialogOptions: o,
@@ -13806,7 +13842,13 @@
               }
             }
           }
-          getAppMain()._FCHeader.getView().__easportsLink.insertAdjacentHTML("afterend", `<a class="header_explain" href="${urlLink}" target="_blank">${urlText}</a>`);
+          getAppMain()._FCHeader.getView().__easportsLink.after(
+            createExternalLink({
+              className: "header_explain",
+              href: urlLink,
+              text: urlText
+            })
+          );
         },
         onerror: function() {
           events.notice("notice.upgrade.failed", 2);
