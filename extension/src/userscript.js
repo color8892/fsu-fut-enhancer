@@ -13738,6 +13738,176 @@
     return { fsuSC, fsuSV };
   }
 
+  // src/fsu/domain/RemoteConfigService.js
+  var API_BASE_URL = "https://api.fut.to/26";
+  var README_URL = "https://mfrasi851i.feishu.cn/wiki/wikcng1Ih7fFRidBfMdNS9SrucR";
+  var RemoteConfigService = class {
+    constructor({
+      info,
+      fy: fy2,
+      debug: debug2,
+      notice,
+      request,
+      taskHtml,
+      scriptVersion,
+      nowSeconds = () => Math.floor(Date.now() / 1e3),
+      applyLowprice = applyLowpriceToInfo
+    }) {
+      this.info = info;
+      this.fy = fy2;
+      this.debug = debug2;
+      this.notice = notice;
+      this.request = request;
+      this.taskHtml = taskHtml;
+      this.scriptVersion = scriptVersion;
+      this.nowSeconds = nowSeconds;
+      this.applyLowprice = applyLowprice;
+    }
+    parseResponse(res, fallback, label) {
+      return safeParseJson(responseText(res), fallback, {
+        label,
+        onError: (error, context) => this.debug.log(`${context.label} parse failed`, error)
+      });
+    }
+    load({ onHeaderReady } = {}) {
+      this.request({
+        method: "GET",
+        url: `${API_BASE_URL}/updata.json`,
+        timeout: 8e3,
+        headers: {
+          "Content-type": "application/json",
+          "Cache-Control": "no-cache",
+          "Pragma": "no-cache"
+        },
+        onload: (res) => this.handleAppConfig(res, { onHeaderReady }),
+        onerror: () => {
+          this.notice("notice.upgrade.failed", 2);
+        }
+      });
+    }
+    handleAppConfig(res, { onHeaderReady } = {}) {
+      let urlText = this.fy("top.readme");
+      let urlLink = README_URL;
+      if (res.status == 404) {
+        this.notice("notice.upgradefailed", 2);
+      } else {
+        const data = this.parseResponse(res, {}, "updata.json");
+        const myVersion = Number(this.scriptVersion) || 0;
+        if (data.version > myVersion) {
+          urlText = this.fy("top.upgrade");
+          urlLink = data.updateURL;
+          this.notice("notice.upgradeconfirm", 1);
+        }
+        if (_.size(data.api)) {
+          this.info.api = data.api;
+          this.loadApiData();
+        }
+      }
+      onHeaderReady?.({ urlText, urlLink });
+    }
+    loadApiData() {
+      const api = this.info.api;
+      this.loadEndpoint(api, "meta", "meta.json", {}, (data) => this.applyMeta(data));
+      this.loadEndpoint(api, "fastsbc", "fast.json", {}, (data) => this.applyFastSbc(data));
+      this.loadEndpoint(api, "pack", "pack.json", {}, (data) => {
+        this.info.base.oddo = data;
+      });
+      this.loadEndpoint(api, "sbc", "sbc.json", { reward: [], new: [] }, (data) => this.applySbc(data));
+      this.loadEndpoint(api, "ggrating", "ggrating.json", {}, (data) => {
+        this.info.GGRRAR = data;
+        this.debug.log(`GGRRAR加载完毕！`);
+      });
+      this.loadEndpoint(api, "evolutions", "evolutions.json", { new: [] }, (data) => {
+        this.info.evolutions.new = data.new || [];
+        this.debug.log(`evolutions加载完毕！`);
+      });
+      this.loadEndpoint(api, "inpacks", "inpacks.json", {}, (data) => this.applyInpacks(data));
+      this.loadEndpoint(api, "other", "other.json", {}, (data) => this.applyOther(data));
+      this.loadEndpoint(api, "fgconfig", "fgconfig.json", {}, (data) => {
+        this.info.fgconfig = data;
+        this.debug.log(`fgconfig加载完毕！`);
+      });
+      this.loadEndpoint(api, "playermeta", "playermeta.json", [], (data) => this.applyPlayerMeta(data));
+      this.loadEndpoint(api, "lowprice", "lowprice.json", {}, (data) => {
+        this.applyLowprice(this.info, data);
+        this.debug.log(`lowprice加载完毕！`);
+      });
+    }
+    loadEndpoint(api, apiKey, fileName, fallback, applyData) {
+      if (!_.has(api, apiKey)) {
+        return;
+      }
+      this.request({
+        method: "GET",
+        url: `${API_BASE_URL}/${fileName}?${api[apiKey]}`,
+        headers: {
+          "Content-type": "application/json",
+          "Cache-Control": "max-age=31536000"
+        },
+        onload: (res) => {
+          applyData(this.parseResponse(res, fallback, fileName));
+        }
+      });
+    }
+    applyMeta(metaJson) {
+      if (_.has(metaJson, "bodyType")) {
+        this.info.meta.bodyType = _.fromPairs(
+          _.flatMap(
+            metaJson.bodyType,
+            (ids, bodyType) => ids.map((id) => [id, Number(bodyType)])
+          )
+        );
+      }
+      _.has(metaJson, "baseBodyType") && (this.info.meta.baseBodyType = metaJson.baseBodyType);
+      _.has(metaJson, "realFace") && (this.info.meta.realFace = metaJson.realFace);
+      this.debug.log(`meta加载完毕！`);
+    }
+    applyFastSbc(fastSbcJson) {
+      _.forEach(fastSbcJson, (item, key) => {
+        if (item.t > this.nowSeconds()) {
+          this.info.base.fastsbc[key] = item.g;
+        }
+      });
+    }
+    applySbc(sbcJson) {
+      this.info.task.sbc.stat = sbcJson;
+      const rewardText = _.map(
+        sbcJson.reward || [],
+        (item) => item == 1 ? this.fy("task.player") : item == 2 ? this.fy("task.pack") : ""
+      );
+      this.info.task.sbc.html = this.taskHtml((sbcJson.new || []).length, rewardText.join("、"));
+    }
+    applyInpacks(data) {
+      const { defIds = [], rarityIds = [] } = data;
+      this.info.inpacks.defIds = defIds;
+      this.info.inpacks.rarityIds = rarityIds;
+      this.debug.log(`inpacks加载完毕！`);
+    }
+    applyOther(data) {
+      const { dynamic = {}, chem = {} } = data;
+      this.info.specialPlayers = {
+        dynamic,
+        DList: Object.entries(dynamic).filter(([_key, value]) => value.exp && value.exp > Date.now() / 1e3).map(([key, _value]) => Number(key)),
+        extraChem: chem,
+        ECList: Object.keys(chem).map((key) => Number(key))
+      };
+      this.debug.log(`other加载完毕！`);
+    }
+    applyPlayerMeta(data) {
+      this.info.playermeta = {};
+      _.forEach(data, (value) => {
+        if (value.length == 4) {
+          this.info.playermeta[value[0]] = {
+            badytype: value[1],
+            weight: value[2],
+            realface: value[3]
+          };
+        }
+      });
+      this.debug.log(`playermeta加载完毕！`);
+    }
+  };
+
   // src/fsu/patches/app-init.js
   function registerAppInitEvents(deps) {
     const { events, info, fy: fy2 } = deps;
@@ -13807,10 +13977,6 @@
       label: `GM:${key}`,
       onError: (error, context) => debug2.log(`${context.label} parse failed`, error)
     });
-    const parseResponseJson = (res, fallback, label) => safeParseJson(responseText(res), fallback, {
-      label,
-      onError: (error, context) => debug2.log(`${context.label} parse failed`, error)
-    });
     events.notice = function(text, type) {
       services2.Notification.queue([fy2(text), type]);
     };
@@ -13857,223 +14023,17 @@
       info.base.sId = services2.Authentication.utasSession.id;
       info.base.year = APP_YEAR_SHORT;
       MAX_NEW_ITEMS = 100;
-      GM_xmlhttpRequest2({
-        method: "GET",
-        url: "https://api.fut.to/26/updata.json",
-        timeout: 8e3,
-        headers: {
-          "Content-type": "application/json",
-          "Cache-Control": "no-cache",
-          "Pragma": "no-cache"
-        },
-        onload: function(res) {
-          let urlText = fy2("top.readme");
-          let urlLink = "https://mfrasi851i.feishu.cn/wiki/wikcng1Ih7fFRidBfMdNS9SrucR";
-          if (res.status == 404) {
-            events.notice("notice.upgradefailed", 2);
-          } else {
-            let data = parseResponseJson(res, {}, "updata.json");
-            let myVersion = Number(GM_info2.script.version) || 0;
-            if (data["version"] > myVersion) {
-              urlText = fy2("top.upgrade");
-              urlLink = data["updateURL"];
-              events.notice("notice.upgradeconfirm", 1);
-            }
-            if (_.size(data["api"])) {
-              info.api = data["api"];
-              if (_.has(info.api, "meta")) {
-                GM_xmlhttpRequest2({
-                  method: "GET",
-                  url: `https://api.fut.to/26/meta.json?${info.api.meta}`,
-                  headers: {
-                    "Content-type": "application/json",
-                    "Cache-Control": "max-age=31536000"
-                  },
-                  onload: function(res2) {
-                    let metaJson = parseResponseJson(res2, {}, "meta.json");
-                    if (_.has(metaJson, "bodyType")) {
-                      info.meta.bodyType = _.fromPairs(
-                        _.flatMap(
-                          metaJson.bodyType,
-                          (ids, bodyType) => ids.map((id) => [id, Number(bodyType)])
-                        )
-                      );
-                    }
-                    _.has(metaJson, "baseBodyType") && (info.meta.baseBodyType = metaJson.baseBodyType);
-                    _.has(metaJson, "realFace") && (info.meta.realFace = metaJson.realFace);
-                    debug2.log(`meta加载完毕！`);
-                  }
-                });
-              }
-              if (_.has(info.api, "fastsbc")) {
-                GM_xmlhttpRequest2({
-                  method: "GET",
-                  url: `https://api.fut.to/26/fast.json?${info.api.fastsbc}`,
-                  headers: {
-                    "Content-type": "application/json",
-                    "Cache-Control": "max-age=31536000"
-                  },
-                  onload: function(res2) {
-                    _.forEach(parseResponseJson(res2, {}, "fast.json"), (i, k) => {
-                      let nowTime = Math.floor(Date.now() / 1e3);
-                      if (i.t > nowTime) {
-                        info.base.fastsbc[k] = i.g;
-                      }
-                    });
-                  }
-                });
-              }
-              if (_.has(info.api, "pack")) {
-                GM_xmlhttpRequest2({
-                  method: "GET",
-                  url: `https://api.fut.to/26/pack.json?${info.api.pack}`,
-                  headers: {
-                    "Content-type": "application/json",
-                    "Cache-Control": "max-age=31536000"
-                  },
-                  onload: function(res2) {
-                    info.base.oddo = parseResponseJson(res2, {}, "pack.json");
-                  }
-                });
-              }
-              if (_.has(info.api, "sbc")) {
-                GM_xmlhttpRequest2({
-                  method: "GET",
-                  url: `https://api.fut.to/26/sbc.json?${info.api.sbc}`,
-                  headers: {
-                    "Content-type": "application/json",
-                    "Cache-Control": "max-age=31536000"
-                  },
-                  onload: function(res2) {
-                    let sbcJson = parseResponseJson(res2, { reward: [], new: [] }, "sbc.json");
-                    info.task.sbc.stat = sbcJson;
-                    let sbcRewardArray = _.map(sbcJson.reward || [], (i) => {
-                      return i == 1 ? fy2("task.player") : i == 2 ? fy2("task.pack") : "";
-                    });
-                    info.task.sbc.html = events.taskHtml((sbcJson.new || []).length, sbcRewardArray.join("、"));
-                  }
-                });
-              }
-              if (_.has(info.api, "ggrating")) {
-                GM_xmlhttpRequest2({
-                  method: "GET",
-                  url: `https://api.fut.to/26/ggrating.json?${info.api.ggrating}`,
-                  headers: {
-                    "Content-type": "application/json",
-                    "Cache-Control": "max-age=31536000"
-                  },
-                  onload: function(res2) {
-                    info.GGRRAR = parseResponseJson(res2, {}, "ggrating.json");
-                    debug2.log(`GGRRAR加载完毕！`);
-                  }
-                });
-              }
-              if (_.has(info.api, "evolutions")) {
-                GM_xmlhttpRequest2({
-                  method: "GET",
-                  url: `https://api.fut.to/26/evolutions.json?${info.api.evolutions}`,
-                  headers: {
-                    "Content-type": "application/json",
-                    "Cache-Control": "max-age=31536000"
-                  },
-                  onload: function(res2) {
-                    info.evolutions.new = parseResponseJson(res2, { new: [] }, "evolutions.json").new || [];
-                    debug2.log(`evolutions加载完毕！`);
-                  }
-                });
-              }
-              if (_.has(info.api, "inpacks")) {
-                GM_xmlhttpRequest2({
-                  method: "GET",
-                  url: `https://api.fut.to/26/inpacks.json?${info.api.inpacks}`,
-                  headers: {
-                    "Content-type": "application/json",
-                    "Cache-Control": "max-age=31536000"
-                  },
-                  onload: function(res2) {
-                    const { defIds = [], rarityIds = [] } = parseResponseJson(res2, {}, "inpacks.json");
-                    info.inpacks.defIds = defIds;
-                    info.inpacks.rarityIds = rarityIds;
-                    debug2.log(`inpacks加载完毕！`);
-                  }
-                });
-              }
-              if (_.has(info.api, "other")) {
-                GM_xmlhttpRequest2({
-                  method: "GET",
-                  url: `https://api.fut.to/26/other.json?${info.api.other}`,
-                  headers: {
-                    "Content-type": "application/json",
-                    "Cache-Control": "max-age=31536000"
-                  },
-                  onload: function(res2) {
-                    const { dynamic = {}, chem = {} } = parseResponseJson(res2, {}, "other.json");
-                    info.specialPlayers = {
-                      "dynamic": dynamic,
-                      "DList": Object.entries(dynamic).filter(([_key, value]) => {
-                        return value.exp && value.exp > Date.now() / 1e3;
-                      }).map(([key, _value]) => Number(key)),
-                      "extraChem": chem,
-                      "ECList": Object.keys(chem).map((key) => Number(key))
-                    };
-                    debug2.log(`other加载完毕！`);
-                  }
-                });
-              }
-              if (_.has(info.api, "fgconfig")) {
-                GM_xmlhttpRequest2({
-                  method: "GET",
-                  url: `https://api.fut.to/26/fgconfig.json?${info.api.fgconfig}`,
-                  headers: {
-                    "Content-type": "application/json",
-                    "Cache-Control": "max-age=31536000"
-                  },
-                  onload: function(res2) {
-                    info.fgconfig = parseResponseJson(res2, {}, "fgconfig.json");
-                    debug2.log(`fgconfig加载完毕！`);
-                  }
-                });
-              }
-              if (_.has(info.api, "playermeta")) {
-                GM_xmlhttpRequest2({
-                  method: "GET",
-                  url: `https://api.fut.to/26/playermeta.json?${info.api.playermeta}`,
-                  headers: {
-                    "Content-type": "application/json",
-                    "Cache-Control": "max-age=31536000"
-                  },
-                  onload: function(res2) {
-                    let data2 = parseResponseJson(res2, [], "playermeta.json");
-                    info.playermeta = {};
-                    _.forEach(data2, (value) => {
-                      if (value.length == 4) {
-                        info.playermeta[value[0]] = {
-                          "badytype": value[1],
-                          "weight": value[2],
-                          "realface": value[3]
-                        };
-                      }
-                    });
-                    debug2.log(`playermeta加载完毕！`);
-                  }
-                });
-              }
-              if (_.has(info.api, "lowprice")) {
-                GM_xmlhttpRequest2({
-                  method: "GET",
-                  url: `https://api.fut.to/26/lowprice.json?${info.api.lowprice}`,
-                  headers: {
-                    "Content-type": "application/json",
-                    "Cache-Control": "max-age=31536000"
-                  },
-                  onload: function(res2) {
-                    applyLowpriceToInfo(info, parseResponseJson(res2, {}, "lowprice.json"));
-                    debug2.log(`lowprice加载完毕！`);
-                  }
-                });
-              }
-            }
-          }
+      const remoteConfigService = new RemoteConfigService({
+        info,
+        fy: fy2,
+        debug: debug2,
+        notice: (...args) => events.notice(...args),
+        request: (details) => GM_xmlhttpRequest2(details),
+        taskHtml: (...args) => events.taskHtml(...args),
+        scriptVersion: GM_info2.script.version
+      });
+      remoteConfigService.load({
+        onHeaderReady: ({ urlText, urlLink }) => {
           getAppMain()._FCHeader.getView().__easportsLink.after(
             createExternalLink({
               className: "header_explain",
@@ -14081,9 +14041,6 @@
               text: urlText
             })
           );
-        },
-        onerror: function() {
-          events.notice("notice.upgrade.failed", 2);
         }
       });
       let user = services2.User.getUser().getSelectedPersona();

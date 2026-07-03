@@ -1,5 +1,5 @@
-import { applyLowpriceToInfo } from "../infra/RatingPrices.js";
-import { responseText, safeParseJson } from "../infra/JsonParsing.js";
+import { safeParseJson } from "../infra/JsonParsing.js";
+import { RemoteConfigService } from "../domain/RemoteConfigService.js";
 import { createExternalLink } from "../ui/HtmlSafety.js";
 
 export function registerAppInitEvents(deps) {
@@ -78,12 +78,6 @@ export function installAppInitPatches(deps) {
       label: `GM:${key}`,
       onError: (error, context) => debug.log(`${context.label} parse failed`, error)
     });
-  const parseResponseJson = (res, fallback, label) =>
-    safeParseJson(responseText(res), fallback, {
-      label,
-      onError: (error, context) => debug.log(`${context.label} parse failed`, error)
-    });
-
   events.notice = function(text,type){
     services.Notification.queue([fy(text),type])
 };
@@ -138,235 +132,17 @@ events.init =  async function(){
     info.base.year = APP_YEAR_SHORT;
     MAX_NEW_ITEMS = 100;
 
-    GM_xmlhttpRequest({
-        method:"GET",
-        url:"https://api.fut.to/26/updata.json",
-        timeout:8000,
-        headers: {
-            "Content-type": "application/json",
-            'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache'
-        },
-        onload:function(res){
-            let urlText = fy("top.readme");
-            let urlLink = "https://mfrasi851i.feishu.cn/wiki/wikcng1Ih7fFRidBfMdNS9SrucR";
-            if(res.status == 404){
-                events.notice("notice.upgradefailed",2);
-            }else{
-                let data = parseResponseJson(res, {}, "updata.json");
-                let myVersion = Number(GM_info.script.version) || 0;
-                if(data["version"] > myVersion){
-                    urlText = fy("top.upgrade");
-                    urlLink = data["updateURL"];
-                    events.notice("notice.upgradeconfirm",1);
-                }
-                if(_.size(data["api"])){
-                    info.api = data["api"];
-                    if(_.has(info.api,"meta")){
-                        GM_xmlhttpRequest({
-                            method:"GET",
-                            url:`https://api.fut.to/26/meta.json?${info.api.meta}`,
-                            headers: {
-                                "Content-type": "application/json",
-                                "Cache-Control": "max-age=31536000"
-                            },
-                            onload:function(res){
-                                let metaJson = parseResponseJson(res, {}, "meta.json");
-                                if(_.has(metaJson, "bodyType")){
-                                    info.meta.bodyType = _.fromPairs(
-                                        _.flatMap(metaJson.bodyType, (ids, bodyType) =>
-                                            ids.map(id => [id, Number(bodyType)])
-                                        )
-                                    );
-                                }
-                                _.has(metaJson, "baseBodyType") && (info.meta.baseBodyType = metaJson.baseBodyType);
-                                _.has(metaJson, "realFace") && (info.meta.realFace = metaJson.realFace);
-                                debug.log(`meta加载完毕！`)
-                            },
-                        })
-                    }
-                    if(_.has(info.api,"fastsbc")){
-                        GM_xmlhttpRequest({
-                            method: "GET",
-                            url: `https://api.fut.to/26/fast.json?${info.api.fastsbc}`,
-                            headers: {
-                                "Content-type": "application/json",
-                                "Cache-Control": "max-age=31536000"
-                            },
-                            onload: function(res) {
-                                _.forEach(parseResponseJson(res, {}, "fast.json"),(i,k) => {
-                                    let nowTime = Math.floor(Date.now() / 1000);
-                                    if(i.t > nowTime){
-                                        info.base.fastsbc[k] = i.g;
-                                    }
-                                })
-                            }
-                        });
-
-                    }
-                    if(_.has(info.api,"pack")){
-                        GM_xmlhttpRequest({
-                            method:"GET",
-                            url:`https://api.fut.to/26/pack.json?${info.api.pack}`,
-                            headers: {
-                                "Content-type": "application/json",
-                                "Cache-Control": "max-age=31536000"
-                            },
-                            onload:function(res){
-                                info.base.oddo = parseResponseJson(res, {}, "pack.json")
-                            },
-                        });
-
-                    }
-                    if(_.has(info.api,"sbc")){
-                        GM_xmlhttpRequest({
-                            method:"GET",
-                            url:`https://api.fut.to/26/sbc.json?${info.api.sbc}`,
-                            headers: {
-                                "Content-type": "application/json",
-                                "Cache-Control": "max-age=31536000"
-                            },
-                            onload:function(res){
-                                let sbcJson = parseResponseJson(res, { reward: [], new: [] }, "sbc.json");
-                                info.task.sbc.stat = sbcJson;
-                                let sbcRewardArray = _.map(sbcJson.reward || [],i => {
-                                    return i == 1 ? fy("task.player") :  i == 2 ? fy("task.pack") : '';
-                                })
-                                info.task.sbc.html = events.taskHtml((sbcJson.new || []).length,sbcRewardArray.join("、"));
-                            },
-                        });
-                    }
-                    if(_.has(info.api,"ggrating")){
-                        GM_xmlhttpRequest({
-                            method:"GET",
-                            url:`https://api.fut.to/26/ggrating.json?${info.api.ggrating}`,
-                            headers: {
-                                "Content-type": "application/json",
-                                "Cache-Control": "max-age=31536000"
-                            },
-                            onload:function(res){
-                                info.GGRRAR = parseResponseJson(res, {}, "ggrating.json");
-                                debug.log(`GGRRAR加载完毕！`)
-                            },
-                        })
-                    }
-                    //26.02 加载新进化信息
-                    if(_.has(info.api,"evolutions")){
-                        GM_xmlhttpRequest({
-                            method:"GET",
-                            url:`https://api.fut.to/26/evolutions.json?${info.api.evolutions}`,
-                            headers: {
-                                "Content-type": "application/json",
-                                "Cache-Control": "max-age=31536000"
-                            },
-                            onload:function(res){
-                                info.evolutions.new = parseResponseJson(res, { new: [] }, "evolutions.json").new || [];
-                                debug.log(`evolutions加载完毕！`)
-                            },
-                        })
-                    }
-                    //26.04 加载包内球员ids
-                    if(_.has(info.api,"inpacks")){
-                        GM_xmlhttpRequest({
-                            method:"GET",
-                            url:`https://api.fut.to/26/inpacks.json?${info.api.inpacks}`,
-                            headers: {
-                                "Content-type": "application/json",
-                                "Cache-Control": "max-age=31536000"
-                            },
-                            onload:function(res){
-                                const { defIds = [], rarityIds = [] } = parseResponseJson(res, {}, "inpacks.json");
-                                info.inpacks.defIds = defIds;
-                                info.inpacks.rarityIds = rarityIds;
-                                debug.log(`inpacks加载完毕！`)
-                            },
-                        })
-                    }
-                    //26.04 加载其他配置
-                    if(_.has(info.api,"other")){
-                        GM_xmlhttpRequest({
-                            method:"GET",
-                            url:`https://api.fut.to/26/other.json?${info.api.other}`,
-                            headers: {
-                                "Content-type": "application/json",
-                                "Cache-Control": "max-age=31536000"
-                            },
-                            onload:function(res){
-                                const { dynamic = {}, chem = {} } = parseResponseJson(res, {}, "other.json");
-                                info.specialPlayers = {
-                                    "dynamic": dynamic,
-                                    "DList": Object.entries(dynamic)
-                                        .filter(([_key, value]) => {
-                                            return value.exp && value.exp > Date.now() / 1000;
-                                        })
-                                        .map(([key, _value]) => Number(key)),
-                                    "extraChem": chem,
-                                    "ECList": Object.keys(chem).map(key => Number(key))
-                                }
-                                debug.log(`other加载完毕！`)
-                            },
-                        })
-                    }
-
-                    //26.07 加载fg配置
-                    if(_.has(info.api,"fgconfig")){
-                        GM_xmlhttpRequest({
-                            method:"GET",
-                            url:`https://api.fut.to/26/fgconfig.json?${info.api.fgconfig}`,
-                            headers: {
-                                "Content-type": "application/json",
-                                "Cache-Control": "max-age=31536000"
-                            },
-                            onload:function(res){
-                                info.fgconfig = parseResponseJson(res, {}, "fgconfig.json");
-                                debug.log(`fgconfig加载完毕！`)
-                            },
-                        })
-                    }
-
-                    //26.07 加载新meta配置
-                    if(_.has(info.api,"playermeta")){
-                        GM_xmlhttpRequest({
-                            method:"GET",
-                            url:`https://api.fut.to/26/playermeta.json?${info.api.playermeta}`,
-                            headers: {
-                                "Content-type": "application/json",
-                                "Cache-Control": "max-age=31536000"
-                            },
-                            onload:function(res){
-                                let data = parseResponseJson(res, [], "playermeta.json");
-                                info.playermeta = {};
-                                _.forEach(data, value => {
-                                    if(value.length == 4){
-                                        info.playermeta[value[0]] = {
-                                            "badytype":value[1],
-                                            "weight":value[2],
-                                            "realface":value[3],
-                                        }
-                                    }
-                                });
-                                debug.log(`playermeta加载完毕！`)
-                            },
-                        })
-                    }
-
-                    //26.07 加载新lowprice配置
-                    if(_.has(info.api,"lowprice")){
-                        GM_xmlhttpRequest({
-                            method:"GET",
-                            url:`https://api.fut.to/26/lowprice.json?${info.api.lowprice}`,
-                            headers: {
-                                "Content-type": "application/json",
-                                "Cache-Control": "max-age=31536000"
-                            },
-                            onload:function(res){
-                                applyLowpriceToInfo(info, parseResponseJson(res, {}, "lowprice.json"));
-                                debug.log(`lowprice加载完毕！`)
-                            },
-                        })
-                    }
-                }
-            }
+    const remoteConfigService = new RemoteConfigService({
+        info,
+        fy,
+        debug,
+        notice: (...args) => events.notice(...args),
+        request: (details) => GM_xmlhttpRequest(details),
+        taskHtml: (...args) => events.taskHtml(...args),
+        scriptVersion: GM_info.script.version
+    });
+    remoteConfigService.load({
+        onHeaderReady: ({ urlText, urlLink }) => {
             getAppMain()._FCHeader.getView().__easportsLink.after(
                 createExternalLink({
                     className: "header_explain",
@@ -374,11 +150,8 @@ events.init =  async function(){
                     text: urlText
                 })
             );
-        },
-        onerror:function(){
-            events.notice("notice.upgrade.failed",2);
         }
-    })
+    });
     let user = services.User.getUser().getSelectedPersona();
     if(user.isXbox || user.isPlaystation || user.isStadia){
         info.base.platform = "ps";
