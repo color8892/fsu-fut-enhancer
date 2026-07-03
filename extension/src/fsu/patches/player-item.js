@@ -1,3 +1,5 @@
+import { createTextElement } from "../ui/HtmlSafety.js";
+
 export function installPlayerItemPatch(deps) {
   const { call, events, fy, cntlr, info, lock } = deps;
 
@@ -46,7 +48,9 @@ export function installPlayerItemPatch(deps) {
                       "data-id":p.id
                   }
               })
-              posElement.innerHTML = events.normalizePositions(otherPos).map((z) => {return `<div>${z}</div>`}).join(``);
+              posElement.replaceChildren(
+                  ...events.normalizePositions(otherPos).map((z) => createTextElement("div", z))
+              );
               this._fsu.pos = posElement;
 
               //额外属性区块
@@ -59,9 +63,9 @@ export function installPlayerItemPatch(deps) {
                   }
               })
               let footElement = events.createElementWithConfig("div",{
-                  classList:["fsu-cards-foot",p.isLeftFoot() ? "l" : "r"],
-                  innerHTML:`<span>${p.getSkillMoves()}/${p.getWeakFoot()}</span>`
+                  classList:["fsu-cards-foot",p.isLeftFoot() ? "l" : "r"]
               })
+              footElement.appendChild(createTextElement("span", `${p.getSkillMoves()}/${p.getWeakFoot()}`));
               extraElement.appendChild(footElement);
 
               // 25.22 非门将位置加速类型显示
@@ -124,9 +128,14 @@ export function installPlayerItemPatch(deps) {
                       .map(a => a.id);
                   if(academyIds.length){
                       this._fsu.academyTips = events.createElementWithConfig("div", {
-                          innerHTML: `<span class="fsu-academytips-icon"></span><span>${academyIds.length}</span>`,
                           classList:["fsu-academytips"],
                       })
+                      this._fsu.academyTips.appendChild(
+                          events.createElementWithConfig("span", {
+                              classList: ["fsu-academytips-icon"]
+                          })
+                      );
+                      this._fsu.academyTips.appendChild(createTextElement("span", academyIds.length));
                       this._fsu.academyIds = academyIds;
                       extraElement.appendChild(this._fsu.academyTips);
                   }

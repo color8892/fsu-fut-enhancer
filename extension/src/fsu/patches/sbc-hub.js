@@ -1,3 +1,5 @@
+import { createTextElement } from "../ui/HtmlSafety.js";
+
 function navigationAddCount(events, e, c) {
   if (e.className == "EAFilterBarItemView") {
     e.getRootElement().appendChild(
@@ -257,7 +259,7 @@ export function registerSbcInfoFillEvent(deps) {
     if (s !== undefined) {
       if (e.hasOwnProperty("__tileTitle") && _.includes(info.task.sbc.stat.new, d)) {
         e.getRootElement().style.position = "relative";
-        e.getRootElement().prepend(events.createDF(`<div class='fsu-newtips'>${fy("task.new")}</div>`));
+        e.getRootElement().prepend(createTextElement("div", fy("task.new"), { className: "fsu-newtips" }));
       }
       if (!e.__root.querySelector(".task-expire") && "data" in e && !e.data.isComplete()) {
         let expireTime = e.data.endTime - Math.round(new Date() / 1000);
@@ -268,7 +270,7 @@ export function registerSbcInfoFillEvent(deps) {
           if (!_.includes(info.task.sbc.stat.expiry, d)) {
             info.task.sbc.stat.expiry.push(d);
           }
-          e.__root.prepend(events.createDF(`<div class='task-expire'>${fy("task.expire")}</div>`));
+          e.__root.prepend(createTextElement("div", fy("task.expire"), { className: "task-expire" }));
         }
       }
     }

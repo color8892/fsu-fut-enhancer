@@ -2226,6 +2226,50 @@
     };
   }
 
+  // src/fsu/ui/HtmlSafety.js
+  var SAFE_EXTERNAL_PROTOCOLS = /* @__PURE__ */ new Set(["http:", "https:"]);
+  function normalizeExternalUrl(url, baseUrl) {
+    const rawUrl = String(url ?? "").trim();
+    if (!/^https?:\/\//i.test(rawUrl)) {
+      return "";
+    }
+    try {
+      const parsed = new URL(rawUrl, baseUrl || document.location.href);
+      return SAFE_EXTERNAL_PROTOCOLS.has(parsed.protocol) ? parsed.href : "";
+    } catch {
+      return "";
+    }
+  }
+  function createExternalLink({ href, text, className, documentRef = document, baseUrl } = {}) {
+    const link = documentRef.createElement("a");
+    const safeHref = normalizeExternalUrl(href, baseUrl);
+    if (className) {
+      link.className = className;
+    }
+    link.href = safeHref || "#";
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    link.textContent = text == null ? "" : String(text);
+    return link;
+  }
+  function appendText(element, text, documentRef = document) {
+    element.appendChild(documentRef.createTextNode(String(text ?? "")));
+  }
+  function createTextElement(tagName, text, { className, documentRef = document } = {}) {
+    const element = documentRef.createElement(tagName);
+    if (className) {
+      element.className = className;
+    }
+    element.textContent = String(text ?? "");
+    return element;
+  }
+  function createTrustedHtmlFragment(html) {
+    return document.createRange().createContextualFragment(String(html ?? ""));
+  }
+  function setTrustedHtml(element, html) {
+    element.replaceChildren(createTrustedHtmlFragment(html));
+  }
+
   // src/fsu/patches/player-item.js
   function installPlayerItemPatch(deps) {
     const { call, events, fy: fy2, cntlr: cntlr2, info, lock } = deps;
@@ -2266,9 +2310,9 @@
               "data-id": p.id
             }
           });
-          posElement.innerHTML = events.normalizePositions(otherPos).map((z) => {
-            return `<div>${z}</div>`;
-          }).join(``);
+          posElement.replaceChildren(
+            ...events.normalizePositions(otherPos).map((z) => createTextElement("div", z))
+          );
           this._fsu.pos = posElement;
           let extraElement = events.createElementWithConfig("div", {
             classList: ["fsu-cards", "fsu-cards-attr", stc],
@@ -2279,9 +2323,9 @@
             }
           });
           let footElement = events.createElementWithConfig("div", {
-            classList: ["fsu-cards-foot", p.isLeftFoot() ? "l" : "r"],
-            innerHTML: `<span>${p.getSkillMoves()}/${p.getWeakFoot()}</span>`
+            classList: ["fsu-cards-foot", p.isLeftFoot() ? "l" : "r"]
           });
+          footElement.appendChild(createTextElement("span", `${p.getSkillMoves()}/${p.getWeakFoot()}`));
           extraElement.appendChild(footElement);
           if (!p.isGK() && !isSmall) {
             const isLoadMeta = services.PlayerMetaData.metaDAO.metaRepo.has(p.definitionId);
@@ -2335,9 +2379,14 @@
             const academyIds = info.academy.filter((a) => a.practical && a.el.every((t2) => t2.meetsRequirements(p))).map((a) => a.id);
             if (academyIds.length) {
               this._fsu.academyTips = events.createElementWithConfig("div", {
-                innerHTML: `<span class="fsu-academytips-icon"></span><span>${academyIds.length}</span>`,
                 classList: ["fsu-academytips"]
               });
+              this._fsu.academyTips.appendChild(
+                events.createElementWithConfig("span", {
+                  classList: ["fsu-academytips-icon"]
+                })
+              );
+              this._fsu.academyTips.appendChild(createTextElement("span", academyIds.length));
               this._fsu.academyIds = academyIds;
               extraElement.appendChild(this._fsu.academyTips);
             }
@@ -3273,50 +3322,6 @@
     };
   }
 
-  // src/fsu/ui/HtmlSafety.js
-  var SAFE_EXTERNAL_PROTOCOLS = /* @__PURE__ */ new Set(["http:", "https:"]);
-  function normalizeExternalUrl(url, baseUrl) {
-    const rawUrl = String(url ?? "").trim();
-    if (!/^https?:\/\//i.test(rawUrl)) {
-      return "";
-    }
-    try {
-      const parsed = new URL(rawUrl, baseUrl || document.location.href);
-      return SAFE_EXTERNAL_PROTOCOLS.has(parsed.protocol) ? parsed.href : "";
-    } catch {
-      return "";
-    }
-  }
-  function createExternalLink({ href, text, className, documentRef = document, baseUrl } = {}) {
-    const link = documentRef.createElement("a");
-    const safeHref = normalizeExternalUrl(href, baseUrl);
-    if (className) {
-      link.className = className;
-    }
-    link.href = safeHref || "#";
-    link.target = "_blank";
-    link.rel = "noopener noreferrer";
-    link.textContent = text == null ? "" : String(text);
-    return link;
-  }
-  function appendText(element, text, documentRef = document) {
-    element.appendChild(documentRef.createTextNode(String(text ?? "")));
-  }
-  function createTextElement(tagName, text, { className, documentRef = document } = {}) {
-    const element = documentRef.createElement(tagName);
-    if (className) {
-      element.className = className;
-    }
-    element.textContent = String(text ?? "");
-    return element;
-  }
-  function createTrustedHtmlFragment(html) {
-    return document.createRange().createContextualFragment(String(html ?? ""));
-  }
-  function setTrustedHtml(element, html) {
-    element.replaceChildren(createTrustedHtmlFragment(html));
-  }
-
   // src/fsu/patches/sectioned-list.js
   function installSectionedListPatches(deps) {
     const { call, events, info, fy: fy2, cntlr: cntlr2, services: services2 } = deps;
@@ -4092,7 +4097,7 @@
       if (s2 !== void 0) {
         if (e2.hasOwnProperty("__tileTitle") && _.includes(info.task.sbc.stat.new, d)) {
           e2.getRootElement().style.position = "relative";
-          e2.getRootElement().prepend(events.createDF(`<div class='fsu-newtips'>${fy2("task.new")}</div>`));
+          e2.getRootElement().prepend(createTextElement("div", fy2("task.new"), { className: "fsu-newtips" }));
         }
         if (!e2.__root.querySelector(".task-expire") && "data" in e2 && !e2.data.isComplete()) {
           let expireTime = e2.data.endTime - Math.round(/* @__PURE__ */ new Date() / 1e3);
@@ -4103,7 +4108,7 @@
             if (!_.includes(info.task.sbc.stat.expiry, d)) {
               info.task.sbc.stat.expiry.push(d);
             }
-            e2.__root.prepend(events.createDF(`<div class='task-expire'>${fy2("task.expire")}</div>`));
+            e2.__root.prepend(createTextElement("div", fy2("task.expire"), { className: "task-expire" }));
           }
         }
       }
