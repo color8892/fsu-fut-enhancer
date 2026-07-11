@@ -124,6 +124,87 @@ export async function runEaRuntimeAdapterTests() {
   assert.strictEqual(missingServices.createPlayerMarketSearch(123), null);
   assert.strictEqual(missingServices.incrementMarketPrice(1200, "above"), null);
 
+  const notifications = [];
+  const handledStatuses = [];
+  let unobservedContext = null;
+  let moveResponse = { success: true, data: { itemIds: [1, 2] } };
+  const moveServices = {
+    Item: {
+      move(items, pile) {
+        assert.deepStrictEqual(items, [1, 2, 3]);
+        assert.strictEqual(pile, "club");
+        return {
+          observe(_context, callback) {
+            callback(
+              { unobserve: (context) => (unobservedContext = context) },
+              moveResponse
+            );
+          }
+        };
+      }
+    },
+    Localization: {
+      localize: (key, args) => `${key}:${args?.[0] ?? ""}`
+    },
+    Notification: {
+      queue: (payload) => notifications.push(payload)
+    }
+  };
+  const moveAdapter = new EaRuntimeAdapter({
+    getServices: () => moveServices,
+    getItemRuntime: () => ({
+      ItemPile: { CLUB: "club" },
+      UINotificationType: { NEUTRAL: "neutral", NEGATIVE: "negative" },
+      NetworkErrorManager: {
+        handleStatus: (status) => handledStatuses.push(status)
+      }
+    })
+  });
+  assert.strictEqual(moveAdapter.supports(EA_CAPABILITIES.ITEM_MOVE_TO_CLUB), true);
+  const moveContext = { name: "move-context" };
+  const moved = await moveAdapter.moveItemsToClub([1, 2, 3], moveContext);
+  assert.deepStrictEqual(moved, { success: true, movedCount: 2 });
+  assert.strictEqual(unobservedContext, moveContext);
+  assert.deepStrictEqual(notifications, [
+    ["notification.item.allToClub:2", "neutral"]
+  ]);
+
+  moveResponse = {
+    success: false,
+    status: 500,
+    data: { untradeableSwap: false }
+  };
+  const failedMove = await moveAdapter.moveItemsToClub([1, 2, 3], moveContext);
+  assert.deepStrictEqual(failedMove, {
+    success: false,
+    movedCount: 0,
+    untradeableSwap: false,
+    status: 500
+  });
+  assert.deepStrictEqual(notifications.at(-1), ["notification.item.moveFailed:", "negative"]);
+  assert.deepStrictEqual(handledStatuses, [500]);
+
+  moveResponse = {
+    success: false,
+    status: 409,
+    data: { untradeableSwap: true }
+  };
+  const swapFailure = await moveAdapter.moveItemsToClub([1, 2, 3], moveContext);
+  assert.strictEqual(swapFailure.untradeableSwap, true);
+  assert.deepStrictEqual(handledStatuses, [500]);
+
+  const unavailableMove = await missingServices.moveItemsToClub([], null);
+  assert.deepStrictEqual(unavailableMove, {
+    success: false,
+    movedCount: 0,
+    error: {
+      code: "EA_CAPABILITY_UNAVAILABLE",
+      capability: EA_CAPABILITIES.ITEM_MOVE_TO_CLUB,
+      missing: ["services"],
+      cause: undefined
+    }
+  });
+
   assert.deepStrictEqual(adapter.inspect("unknown.capability"), {
     name: "unknown.capability",
     supported: false,

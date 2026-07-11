@@ -442,36 +442,20 @@ export class MarketActionService {
     return helpers.ea.searchTransferMarket(criteria, type, this);
   }
 
-  transferToClub(controller, list, helpers) {
-    const { notice, isPhone } = helpers;
-
-    services.Item.move(list, ItemPile.CLUB).observe(controller, (e, t) => {
-      if ((e.unobserve(controller), t.success)) {
-        let i = t.data.itemIds.length,
-          o =
-            1 < i
-              ? services.Localization.localize("notification.item.allToClub", [i])
-              : services.Localization.localize("notification.item.oneToClub");
-        services.Notification.queue([o, UINotificationType.NEUTRAL]);
-        if (i < list.length) {
-          notice(["transfertoclub.unable", list.length - i], 2);
-        }
-        if (isPhone()) {
-          controller.refreshList();
-        }
-      } else {
-        t.data.untradeableSwap
-          ? services.Notification.queue([
-              services.Localization.localize("notification.item.moveFailed"),
-              UINotificationType.NEGATIVE
-            ])
-          : (services.Notification.queue([
-              services.Localization.localize("notification.item.moveFailed"),
-              UINotificationType.NEGATIVE
-            ]),
-            NetworkErrorManager.handleStatus(t.status));
+  async transferToClub(controller, list, helpers) {
+    const { notice, isPhone, ea, debug } = helpers;
+    const result = await ea.moveItemsToClub(list, controller);
+    if (result.success) {
+      if (result.movedCount < list.length) {
+        notice(["transfertoclub.unable", list.length - result.movedCount], 2);
       }
-    });
+      if (isPhone()) {
+        controller.refreshList();
+      }
+    } else if (result.error?.code === "EA_CAPABILITY_UNAVAILABLE") {
+      debug.log("EA capability unavailable", result.error);
+      notice("notice.loaderror", 2);
+    }
   }
 
   async playerToAuction(d, p, time, helpers) {

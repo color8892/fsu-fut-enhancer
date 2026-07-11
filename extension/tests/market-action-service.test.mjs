@@ -102,4 +102,40 @@ export async function runMarketActionServiceTests() {
   });
   assert.deepStrictEqual(queriedPrices, [1000, 1100]);
   assert.deepStrictEqual(readOnlyResult, [{ id: 11 }]);
+
+  const controller = {
+    refreshListCalled: false,
+    refreshList() {
+      this.refreshListCalled = true;
+    }
+  };
+  const moveNotices = [];
+  await service.transferToClub(controller, [1, 2, 3], {
+    notice: (...args) => moveNotices.push(args),
+    isPhone: () => true,
+    debug: { log: () => {} },
+    ea: {
+      moveItemsToClub: async () => ({ success: true, movedCount: 2 })
+    }
+  });
+  assert.strictEqual(controller.refreshListCalled, true);
+  assert.deepStrictEqual(moveNotices, [[[
+    "transfertoclub.unable",
+    1
+  ], 2]]);
+
+  const unavailableNotices = [];
+  await service.transferToClub(controller, [1], {
+    notice: (...args) => unavailableNotices.push(args),
+    isPhone: () => false,
+    debug: { log: () => {} },
+    ea: {
+      moveItemsToClub: async () => ({
+        success: false,
+        movedCount: 0,
+        error: { code: "EA_CAPABILITY_UNAVAILABLE" }
+      })
+    }
+  });
+  assert.deepStrictEqual(unavailableNotices, [["notice.loaderror", 2]]);
 }

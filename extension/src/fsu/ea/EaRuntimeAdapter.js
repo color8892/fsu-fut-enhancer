@@ -2,7 +2,8 @@ export const EA_CAPABILITIES = Object.freeze({
   UTAS_SESSION: "authentication.utas-session",
   MARKET_SEARCH: "market.search",
   MARKET_QUERY_MODEL: "market.query-model",
-  CURRENCY_STEPS: "market.currency-steps"
+  CURRENCY_STEPS: "market.currency-steps",
+  ITEM_MOVE_TO_CLUB: "item.move-to-club"
 });
 
 /**
@@ -39,6 +40,24 @@ function unavailableResult(capability, missing, cause) {
   return {
     success: false,
     data: { items: [] },
+    error: {
+      code: "EA_CAPABILITY_UNAVAILABLE",
+      capability,
+      missing,
+      cause: cause instanceof Error ? cause.message : undefined
+    }
+  };
+}
+
+/**
+ * @param {string} capability
+ * @param {string[]} missing
+ * @param {unknown} [cause]
+ */
+function unavailableMoveResult(capability, missing, cause) {
+  return {
+    success: false,
+    movedCount: 0,
     error: {
       code: "EA_CAPABILITY_UNAVAILABLE",
       capability,
@@ -86,11 +105,20 @@ export class EaMarketSearchSession {
  */
 export class EaRuntimeAdapter {
   /**
-   * @param {{ getServices?: () => unknown, getMarketRuntime?: () => unknown }} [options]
+   * @param {{
+   *   getServices?: () => unknown,
+   *   getMarketRuntime?: () => unknown,
+   *   getItemRuntime?: () => unknown
+   * }} [options]
    */
-  constructor({ getServices = () => undefined, getMarketRuntime = () => undefined } = {}) {
+  constructor({
+    getServices = () => undefined,
+    getMarketRuntime = () => undefined,
+    getItemRuntime = () => undefined
+  } = {}) {
     this.getServices = getServices;
     this.getMarketRuntime = getMarketRuntime;
+    this.getItemRuntime = getItemRuntime;
   }
 
   /**
@@ -102,7 +130,8 @@ export class EaRuntimeAdapter {
       name !== EA_CAPABILITIES.UTAS_SESSION &&
       name !== EA_CAPABILITIES.MARKET_SEARCH &&
       name !== EA_CAPABILITIES.MARKET_QUERY_MODEL &&
-      name !== EA_CAPABILITIES.CURRENCY_STEPS
+      name !== EA_CAPABILITIES.CURRENCY_STEPS &&
+      name !== EA_CAPABILITIES.ITEM_MOVE_TO_CLUB
     ) {
       return {
         name,
@@ -163,6 +192,44 @@ export class EaRuntimeAdapter {
         }
         if (typeof itemService.searchTransferMarket !== "function") {
           missing.push("services.Item.searchTransferMarket");
+        }
+      }
+      return { name, supported: missing.length === 0, missing };
+    }
+
+    if (name === EA_CAPABILITIES.ITEM_MOVE_TO_CLUB) {
+      const runtime = this.getItemRuntime();
+      const missing = [];
+      const itemService = services.Item;
+      const localization = services.Localization;
+      const notification = services.Notification;
+      if (!isRecord(itemService) || typeof itemService.move !== "function") {
+        missing.push("services.Item.move");
+      }
+      if (!isRecord(localization) || typeof localization.localize !== "function") {
+        missing.push("services.Localization.localize");
+      }
+      if (!isRecord(notification) || typeof notification.queue !== "function") {
+        missing.push("services.Notification.queue");
+      }
+      if (!isRecord(runtime)) {
+        missing.push("itemRuntime");
+      } else {
+        if (!isRecord(runtime.ItemPile) || runtime.ItemPile.CLUB === undefined) {
+          missing.push("itemRuntime.ItemPile.CLUB");
+        }
+        if (
+          !isRecord(runtime.UINotificationType) ||
+          runtime.UINotificationType.NEUTRAL === undefined ||
+          runtime.UINotificationType.NEGATIVE === undefined
+        ) {
+          missing.push("itemRuntime.UINotificationType");
+        }
+        if (
+          !isRecord(runtime.NetworkErrorManager) ||
+          typeof runtime.NetworkErrorManager.handleStatus !== "function"
+        ) {
+          missing.push("itemRuntime.NetworkErrorManager.handleStatus");
         }
       }
       return { name, supported: missing.length === 0, missing };
@@ -277,6 +344,124 @@ export class EaRuntimeAdapter {
     if (typeof method !== "function") return null;
     const incremented = Number(method.call(currencyInput, Number(value)));
     return Number.isFinite(incremented) ? incremented : null;
+  }
+
+  /**
+   * @param {unknown} items
+   * @param {unknown} observerContext
+   * @returns {Promise<unknown>}
+   */
+  moveItemsToClub(items, observerContext) {
+    const capability = this.inspect(EA_CAPABILITIES.ITEM_MOVE_TO_CLUB);
+    if (!capability.supported) {
+      return Promise.resolve(unavailableMoveResult(capability.name, capability.missing));
+    }
+
+    const services = this.getServices();
+    const runtime = this.getItemRuntime();
+    if (!isRecord(services) || !isRecord(runtime)) {
+      return Promise.resolve(unavailableMoveResult(capability.name, ["services", "itemRuntime"]));
+    }
+    const itemService = services.Item;
+    const localization = services.Localization;
+    const notification = services.Notification;
+    const itemPile = runtime.ItemPile;
+    const notificationType = runtime.UINotificationType;
+    const networkErrorManager = runtime.NetworkErrorManager;
+    if (
+      !isRecord(itemService) ||
+      !isRecord(localization) ||
+      !isRecord(notification) ||
+      !isRecord(itemPile) ||
+      !isRecord(notificationType) ||
+      !isRecord(networkErrorManager)
+    ) {
+      return Promise.resolve(unavailableMoveResult(capability.name, capability.missing));
+    }
+    const move = itemService.move;
+    const localize = localization.localize;
+    const queue = notification.queue;
+    const handleStatus = networkErrorManager.handleStatus;
+    if (
+      typeof move !== "function" ||
+      typeof localize !== "function" ||
+      typeof queue !== "function" ||
+      typeof handleStatus !== "function"
+    ) {
+      return Promise.resolve(unavailableMoveResult(capability.name, capability.missing));
+    }
+
+    try {
+      const observable = move.call(itemService, items, itemPile.CLUB);
+      if (!isRecord(observable) || typeof observable.observe !== "function") {
+        return Promise.resolve(
+          unavailableMoveResult(capability.name, ["services.Item.move.observe"])
+        );
+      }
+      const observe = observable.observe;
+
+      return new Promise((resolve) => {
+        let settled = false;
+        /**
+         * @param {unknown} sender
+         * @param {unknown} response
+         */
+        const onResponse = (sender, response) => {
+          if (settled) return;
+          settled = true;
+          try {
+            if (isRecord(sender) && typeof sender.unobserve === "function") {
+              sender.unobserve(observerContext);
+            }
+            if (!isRecord(response)) {
+              resolve(unavailableMoveResult(capability.name, ["move.response"]));
+              return;
+            }
+
+            if (response.success) {
+              const data = response.data;
+              const movedCount =
+                isRecord(data) && Array.isArray(data.itemIds) ? data.itemIds.length : 0;
+              const messageKey =
+                movedCount > 1
+                  ? "notification.item.allToClub"
+                  : "notification.item.oneToClub";
+              const message =
+                movedCount > 1
+                  ? localize.call(localization, messageKey, [movedCount])
+                  : localize.call(localization, messageKey);
+              queue.call(notification, [message, notificationType.NEUTRAL]);
+              resolve({ success: true, movedCount });
+              return;
+            }
+
+            const message = localize.call(localization, "notification.item.moveFailed");
+            queue.call(notification, [message, notificationType.NEGATIVE]);
+            const data = response.data;
+            const untradeableSwap = Boolean(isRecord(data) && data.untradeableSwap);
+            if (!untradeableSwap) {
+              handleStatus.call(networkErrorManager, response.status);
+            }
+            resolve({
+              success: false,
+              movedCount: 0,
+              untradeableSwap,
+              status: response.status
+            });
+          } catch (error) {
+            resolve(unavailableMoveResult(capability.name, [], error));
+          }
+        };
+        try {
+          observe.call(observable, observerContext, onResponse);
+        } catch (error) {
+          settled = true;
+          resolve(unavailableMoveResult(capability.name, [], error));
+        }
+      });
+    } catch (error) {
+      return Promise.resolve(unavailableMoveResult(capability.name, [], error));
+    }
   }
 
   clearTransferMarketCache() {

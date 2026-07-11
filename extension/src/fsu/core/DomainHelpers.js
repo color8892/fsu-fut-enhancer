@@ -8,6 +8,13 @@ export function createDomainHelpers(ctx) {
   const { events, info, repositories, services, cntlr, debug, fy, eafy, futbinId, pdb, isPhone } = ctx;
   const ea = new EaRuntimeAdapter({
     getServices: () => services,
+    getItemRuntime: () => ({
+      ItemPile: typeof ItemPile === "undefined" ? undefined : ItemPile,
+      UINotificationType:
+        typeof UINotificationType === "undefined" ? undefined : UINotificationType,
+      NetworkErrorManager:
+        typeof NetworkErrorManager === "undefined" ? undefined : NetworkErrorManager
+    }),
     getMarketRuntime: () => ({
       UTSearchCriteriaDTO:
         typeof UTSearchCriteriaDTO === "undefined" ? undefined : UTSearchCriteriaDTO,
