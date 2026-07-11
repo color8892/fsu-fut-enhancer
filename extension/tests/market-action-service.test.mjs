@@ -62,4 +62,44 @@ export async function runMarketActionServiceTests() {
     }
   });
   assert.strictEqual(delegated, delegatedResponse);
+
+  let currentMaxBuy = 0;
+  const queriedPrices = [];
+  const readOnlyResult = await service.readAuctionPrices(123, 1000, null, {
+    getInfo: () => ({ set: { queries_number: 2 }, futbinId: {} }),
+    changeLoadingText: () => {},
+    getCachePrice: () => ({ num: 1000 }),
+    wait: async () => {},
+    notice: () => {},
+    sendPinEvents: () => {},
+    futbinId: {},
+    debug: { log: () => {} },
+    ea: {
+      createPlayerMarketSearch() {
+        return {
+          setMaxBuy(value) {
+            currentMaxBuy = value;
+          },
+          getMaxBuy() {
+            return currentMaxBuy;
+          },
+          getCriteria() {
+            return { maxBuy: currentMaxBuy };
+          }
+        };
+      },
+      clearTransferMarketCache() {},
+      searchTransferMarket(receivedCriteria) {
+        queriedPrices.push(receivedCriteria.maxBuy);
+        const items = queriedPrices.length === 1 ? [] : [{ id: 11 }];
+        return Promise.resolve({ success: true, data: { items } });
+      },
+      incrementMarketPrice(value, direction) {
+        assert.strictEqual(direction, "above");
+        return value + 100;
+      }
+    }
+  });
+  assert.deepStrictEqual(queriedPrices, [1000, 1100]);
+  assert.deepStrictEqual(readOnlyResult, [{ id: 11 }]);
 }

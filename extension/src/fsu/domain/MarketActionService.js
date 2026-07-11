@@ -64,7 +64,9 @@ export class MarketActionService {
     let priceList = result.map((i) => i.buyNowPrice) || [];
     if (result.length == 0) {
       for (let i = 0; i < 5; i++) {
-        price = UTCurrencyInputControl.getIncrementAboveVal(price);
+        const nextPrice = helpers.ea.incrementMarketPrice(price, "above");
+        if (nextPrice === null) break;
+        price = nextPrice;
         debug.log(`升价第${i}次循环，当前查询价格${price}`);
         let tempResult = await this._getAuctionPrice(defId, price, helpers);
         tempResult.map((i) => {
@@ -76,7 +78,9 @@ export class MarketActionService {
       }
     } else if (result.length == 21) {
       for (let i = 0; i < 5; i++) {
-        price = UTCurrencyInputControl.getIncrementBelowVal(price);
+        const nextPrice = helpers.ea.incrementMarketPrice(price, "below");
+        if (nextPrice === null) break;
+        price = nextPrice;
         debug.log(`降价第${i}次循环，当前查询价格${price}`);
         let tempResult = await this._getAuctionPrice(defId, price, helpers);
         tempResult.map((i) => {
@@ -357,7 +361,9 @@ export class MarketActionService {
       wait,
       notice,
       sendPinEvents,
-      futbinId
+      futbinId,
+      debug,
+      ea
     } = helpers;
     const info = getInfo();
 
@@ -368,65 +374,65 @@ export class MarketActionService {
       : typeof player == "object" && "definitionId" in player
         ? player.definitionId
         : Number(player);
-    let searchCriteria = new UTSearchCriteriaDTO();
-    searchCriteria.defId = [defId];
-    searchCriteria.type = SearchType.PLAYER;
-    searchCriteria.category = SearchCategory.ANY;
-    let searchModel = new UTBucketedItemSearchViewModel();
-    searchModel.searchFeature = ItemSearchFeature.MARKET;
-    searchModel.defaultSearchCriteria.type = searchCriteria.type;
-    searchModel.defaultSearchCriteria.category = searchCriteria.category;
-    searchModel.updateSearchCriteria(searchCriteria);
+    if (!Number.isFinite(defId)) return [];
+    const marketSearch = ea.createPlayerMarketSearch(defId);
+    if (!marketSearch) {
+      debug.log("EA capability unavailable", ea.inspect(EA_CAPABILITIES.MARKET_QUERY_MODEL));
+      notice("readauction.error", 2);
+      return [];
+    }
     let result = [];
-    if (searchCriteria.defId.length) {
-      let queried = [];
-      if (price) {
-        searchCriteria.maxBuy = Number(price);
-      } else {
-        try {
-          if (_.has(info.futbinId, defId)) {
-            await futbinId.getPrice(defId, info.futbinId[defId]);
-          } else {
-            await futbinId.getId(player);
-          }
-        } catch {
-          return;
+    let queried = [];
+    if (price) {
+      marketSearch.setMaxBuy(Number(price));
+    } else {
+      try {
+        if (_.has(info.futbinId, defId)) {
+          await futbinId.getPrice(defId, info.futbinId[defId]);
+        } else {
+          await futbinId.getId(player);
         }
-        searchCriteria.maxBuy = getCachePrice(defId, 1).num;
+      } catch {
+        return [];
       }
-      searchModel.updateSearchCriteria(searchCriteria);
-      changeLoadingText("readauction.loadingclose2", loadingInfo);
-      while (attempts-- > 0) {
-        changeLoadingText(
-          ["readauction.loadingclose3", `${searchModel.searchCriteria.maxBuy.toLocaleString()}`],
-          loadingInfo
-        );
-        if (queried.includes(searchModel.searchCriteria.maxBuy)) {
-          break;
-        }
-        helpers.ea.clearTransferMarketCache();
-        let response = await this.searchTransferMarket(searchModel.searchCriteria, 1, helpers);
-        if (response.success) {
-          sendPinEvents("Transfer Market Results - List View");
-          result = result.concat(response.data.items);
-          let currentQuery = searchCriteria.maxBuy;
-          queried.push(currentQuery);
-          if (response.data.items.length == 0) {
-            currentQuery = UTCurrencyInputControl.getIncrementAboveVal(currentQuery);
-          } else if (response.data.items.length == 21) {
-            currentQuery = UTCurrencyInputControl.getIncrementBelowVal(currentQuery);
-          } else {
+      marketSearch.setMaxBuy(getCachePrice(defId, 1).num);
+    }
+    changeLoadingText("readauction.loadingclose2", loadingInfo);
+    while (attempts-- > 0) {
+      const currentMaxBuy = marketSearch.getMaxBuy();
+      changeLoadingText(
+        ["readauction.loadingclose3", `${currentMaxBuy.toLocaleString()}`],
+        loadingInfo
+      );
+      if (queried.includes(currentMaxBuy)) {
+        break;
+      }
+      ea.clearTransferMarketCache();
+      let response = await this.searchTransferMarket(marketSearch.getCriteria(), 1, helpers);
+      const items = response?.success && Array.isArray(response?.data?.items)
+        ? response.data.items
+        : null;
+      if (items) {
+        sendPinEvents("Transfer Market Results - List View");
+        result = result.concat(items);
+        queried.push(currentMaxBuy);
+        if (items.length == 0 || items.length == 21) {
+          const direction = items.length == 0 ? "above" : "below";
+          const nextPrice = ea.incrementMarketPrice(currentMaxBuy, direction);
+          if (nextPrice === null) {
+            debug.log("EA capability unavailable", ea.inspect(EA_CAPABILITIES.CURRENCY_STEPS));
             break;
           }
-          searchCriteria.maxBuy = currentQuery;
-          searchModel.updateSearchCriteria(searchCriteria);
+          marketSearch.setMaxBuy(nextPrice);
         } else {
-          notice("readauction.error", 2);
           break;
         }
-        if (attempts > 0) {
-          await wait(0.2, 0.5);
-        }
+      } else {
+        notice("readauction.error", 2);
+        break;
+      }
+      if (attempts > 0) {
+        await wait(0.2, 0.5);
       }
     }
     return result;

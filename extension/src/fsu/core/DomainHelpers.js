@@ -6,7 +6,23 @@ import { EaRuntimeAdapter } from "../ea/EaRuntimeAdapter.js";
  */
 export function createDomainHelpers(ctx) {
   const { events, info, repositories, services, cntlr, debug, fy, eafy, futbinId, pdb, isPhone } = ctx;
-  const ea = new EaRuntimeAdapter({ getServices: () => services });
+  const ea = new EaRuntimeAdapter({
+    getServices: () => services,
+    getMarketRuntime: () => ({
+      UTSearchCriteriaDTO:
+        typeof UTSearchCriteriaDTO === "undefined" ? undefined : UTSearchCriteriaDTO,
+      UTBucketedItemSearchViewModel:
+        typeof UTBucketedItemSearchViewModel === "undefined"
+          ? undefined
+          : UTBucketedItemSearchViewModel,
+      UTCurrencyInputControl:
+        typeof UTCurrencyInputControl === "undefined" ? undefined : UTCurrencyInputControl,
+      SearchType: typeof SearchType === "undefined" ? undefined : SearchType,
+      SearchCategory: typeof SearchCategory === "undefined" ? undefined : SearchCategory,
+      ItemSearchFeature:
+        typeof ItemSearchFeature === "undefined" ? undefined : ItemSearchFeature
+    })
+  });
 
   const eventProxy = (name) => (...args) => events[name](...args);
 

@@ -10954,10 +10954,23 @@
   // src/fsu/ea/EaRuntimeAdapter.js
   var EA_CAPABILITIES = Object.freeze({
     UTAS_SESSION: "authentication.utas-session",
-    MARKET_SEARCH: "market.search"
+    MARKET_SEARCH: "market.search",
+    MARKET_QUERY_MODEL: "market.query-model",
+    CURRENCY_STEPS: "market.currency-steps"
   });
   function isRecord(value) {
     return value !== null && typeof value === "object";
+  }
+  function asPropertyBag(value) {
+    if (isRecord(value)) return value;
+    if (typeof value === "function") {
+      return (
+        /** @type {Record<string, unknown>} */
+        /** @type {unknown} */
+        value
+      );
+    }
+    return null;
   }
   function unavailableResult(capability, missing, cause) {
     return {
@@ -10971,24 +10984,85 @@
       }
     };
   }
+  var EaMarketSearchSession = class {
+    /**
+     * @param {{
+     *   criteria: Record<string, unknown>,
+     *   model: Record<string, unknown>,
+     *   updateCriteria: (criteria: Record<string, unknown>) => void
+     * }} options
+     */
+    constructor({ criteria, model, updateCriteria }) {
+      this.criteria = criteria;
+      this.model = model;
+      this.updateCriteria = updateCriteria;
+    }
+    /** @param {number} value */
+    setMaxBuy(value) {
+      this.criteria.maxBuy = Number(value);
+      this.updateCriteria(this.criteria);
+    }
+    getMaxBuy() {
+      return Number(this.getCriteria().maxBuy) || 0;
+    }
+    /** @returns {Record<string, unknown>} */
+    getCriteria() {
+      return isRecord(this.model.searchCriteria) ? this.model.searchCriteria : this.criteria;
+    }
+  };
   var EaRuntimeAdapter = class {
     /**
-     * @param {{ getServices?: () => unknown }} [options]
+     * @param {{ getServices?: () => unknown, getMarketRuntime?: () => unknown }} [options]
      */
-    constructor({ getServices = () => void 0 } = {}) {
+    constructor({ getServices = () => void 0, getMarketRuntime = () => void 0 } = {}) {
       this.getServices = getServices;
+      this.getMarketRuntime = getMarketRuntime;
     }
     /**
      * @param {string} name
      * @returns {EaCapabilityStatus}
      */
     inspect(name) {
-      if (name !== EA_CAPABILITIES.UTAS_SESSION && name !== EA_CAPABILITIES.MARKET_SEARCH) {
+      if (name !== EA_CAPABILITIES.UTAS_SESSION && name !== EA_CAPABILITIES.MARKET_SEARCH && name !== EA_CAPABILITIES.MARKET_QUERY_MODEL && name !== EA_CAPABILITIES.CURRENCY_STEPS) {
         return {
           name,
           supported: false,
           missing: [`capability:${name}`]
         };
+      }
+      if (name === EA_CAPABILITIES.MARKET_QUERY_MODEL) {
+        const runtime = this.getMarketRuntime();
+        if (!isRecord(runtime)) {
+          return { name, supported: false, missing: ["marketRuntime"] };
+        }
+        const requiredConstructors = ["UTSearchCriteriaDTO", "UTBucketedItemSearchViewModel"];
+        const requiredEnums = ["SearchType", "SearchCategory", "ItemSearchFeature"];
+        const missing = [];
+        for (const key of requiredConstructors) {
+          if (typeof runtime[key] !== "function") missing.push(`marketRuntime.${key}`);
+        }
+        for (const key of requiredEnums) {
+          if (!isRecord(runtime[key])) missing.push(`marketRuntime.${key}`);
+        }
+        return { name, supported: missing.length === 0, missing };
+      }
+      if (name === EA_CAPABILITIES.CURRENCY_STEPS) {
+        const runtime = this.getMarketRuntime();
+        if (!isRecord(runtime)) {
+          return { name, supported: false, missing: ["marketRuntime"] };
+        }
+        const currencyInput = asPropertyBag(runtime.UTCurrencyInputControl);
+        if (!currencyInput) {
+          return { name, supported: false, missing: ["marketRuntime.UTCurrencyInputControl"] };
+        }
+        const missing = [];
+        if (typeof currencyInput.getIncrementAboveVal !== "function") {
+          missing.push("marketRuntime.UTCurrencyInputControl.getIncrementAboveVal");
+        }
+        if (typeof currencyInput.getIncrementBelowVal !== "function") {
+          missing.push("marketRuntime.UTCurrencyInputControl.getIncrementBelowVal");
+        }
+        return { name, supported: missing.length === 0, missing };
       }
       const services2 = this.getServices();
       if (!isRecord(services2)) {
@@ -11043,6 +11117,61 @@
       const session = authentication.utasSession;
       if (!isRecord(session)) return null;
       return String(session.id);
+    }
+    /**
+     * @param {number} definitionId
+     * @returns {EaMarketSearchSession | null}
+     */
+    createPlayerMarketSearch(definitionId) {
+      if (!this.supports(EA_CAPABILITIES.MARKET_QUERY_MODEL)) return null;
+      const runtime = this.getMarketRuntime();
+      if (!isRecord(runtime)) return null;
+      const CriteriaConstructor = runtime.UTSearchCriteriaDTO;
+      const ModelConstructor = runtime.UTBucketedItemSearchViewModel;
+      const searchType = runtime.SearchType;
+      const searchCategory = runtime.SearchCategory;
+      const itemSearchFeature = runtime.ItemSearchFeature;
+      if (typeof CriteriaConstructor !== "function" || typeof ModelConstructor !== "function" || !isRecord(searchType) || !isRecord(searchCategory) || !isRecord(itemSearchFeature)) {
+        return null;
+      }
+      try {
+        const criteria = Reflect.construct(CriteriaConstructor, []);
+        const model = Reflect.construct(ModelConstructor, []);
+        if (!isRecord(criteria) || !isRecord(model) || !isRecord(model.defaultSearchCriteria)) {
+          return null;
+        }
+        const update = model.updateSearchCriteria;
+        if (typeof update !== "function") return null;
+        criteria.defId = [Number(definitionId)];
+        criteria.type = searchType.PLAYER;
+        criteria.category = searchCategory.ANY;
+        model.searchFeature = itemSearchFeature.MARKET;
+        model.defaultSearchCriteria.type = criteria.type;
+        model.defaultSearchCriteria.category = criteria.category;
+        const updateCriteria = (nextCriteria) => {
+          update.call(model, nextCriteria);
+        };
+        updateCriteria(criteria);
+        return new EaMarketSearchSession({ criteria, model, updateCriteria });
+      } catch {
+        return null;
+      }
+    }
+    /**
+     * @param {number} value
+     * @param {"above" | "below"} direction
+     * @returns {number | null}
+     */
+    incrementMarketPrice(value, direction) {
+      if (!this.supports(EA_CAPABILITIES.CURRENCY_STEPS)) return null;
+      const runtime = this.getMarketRuntime();
+      if (!isRecord(runtime)) return null;
+      const currencyInput = asPropertyBag(runtime.UTCurrencyInputControl);
+      if (!currencyInput) return null;
+      const method = direction === "above" ? currencyInput.getIncrementAboveVal : currencyInput.getIncrementBelowVal;
+      if (typeof method !== "function") return null;
+      const incremented = Number(method.call(currencyInput, Number(value)));
+      return Number.isFinite(incremented) ? incremented : null;
     }
     clearTransferMarketCache() {
       if (!this.supports(EA_CAPABILITIES.MARKET_SEARCH)) {
@@ -11162,7 +11291,9 @@
       let priceList = result.map((i) => i.buyNowPrice) || [];
       if (result.length == 0) {
         for (let i = 0; i < 5; i++) {
-          price = UTCurrencyInputControl.getIncrementAboveVal(price);
+          const nextPrice = helpers.ea.incrementMarketPrice(price, "above");
+          if (nextPrice === null) break;
+          price = nextPrice;
           debug2.log(`升价第${i}次循环，当前查询价格${price}`);
           let tempResult = await this._getAuctionPrice(defId, price, helpers);
           tempResult.map((i2) => {
@@ -11174,7 +11305,9 @@
         }
       } else if (result.length == 21) {
         for (let i = 0; i < 5; i++) {
-          price = UTCurrencyInputControl.getIncrementBelowVal(price);
+          const nextPrice = helpers.ea.incrementMarketPrice(price, "below");
+          if (nextPrice === null) break;
+          price = nextPrice;
           debug2.log(`降价第${i}次循环，当前查询价格${price}`);
           let tempResult = await this._getAuctionPrice(defId, price, helpers);
           tempResult.map((i2) => {
@@ -11439,71 +11572,71 @@
         wait,
         notice,
         sendPinEvents,
-        futbinId: futbinId2
+        futbinId: futbinId2,
+        debug: debug2,
+        ea
       } = helpers;
       const info = getInfo();
       changeLoadingText("readauction.loadingclose", loadingInfo);
       let attempts = "queries_number" in info.set ? info.set.queries_number : 5;
       let defId = Number.isInteger(player) ? player : typeof player == "object" && "definitionId" in player ? player.definitionId : Number(player);
-      let searchCriteria = new UTSearchCriteriaDTO();
-      searchCriteria.defId = [defId];
-      searchCriteria.type = SearchType.PLAYER;
-      searchCriteria.category = SearchCategory.ANY;
-      let searchModel = new UTBucketedItemSearchViewModel();
-      searchModel.searchFeature = ItemSearchFeature.MARKET;
-      searchModel.defaultSearchCriteria.type = searchCriteria.type;
-      searchModel.defaultSearchCriteria.category = searchCriteria.category;
-      searchModel.updateSearchCriteria(searchCriteria);
+      if (!Number.isFinite(defId)) return [];
+      const marketSearch = ea.createPlayerMarketSearch(defId);
+      if (!marketSearch) {
+        debug2.log("EA capability unavailable", ea.inspect(EA_CAPABILITIES.MARKET_QUERY_MODEL));
+        notice("readauction.error", 2);
+        return [];
+      }
       let result = [];
-      if (searchCriteria.defId.length) {
-        let queried = [];
-        if (price) {
-          searchCriteria.maxBuy = Number(price);
-        } else {
-          try {
-            if (_.has(info.futbinId, defId)) {
-              await futbinId2.getPrice(defId, info.futbinId[defId]);
-            } else {
-              await futbinId2.getId(player);
-            }
-          } catch {
-            return;
+      let queried = [];
+      if (price) {
+        marketSearch.setMaxBuy(Number(price));
+      } else {
+        try {
+          if (_.has(info.futbinId, defId)) {
+            await futbinId2.getPrice(defId, info.futbinId[defId]);
+          } else {
+            await futbinId2.getId(player);
           }
-          searchCriteria.maxBuy = getCachePrice(defId, 1).num;
+        } catch {
+          return [];
         }
-        searchModel.updateSearchCriteria(searchCriteria);
-        changeLoadingText("readauction.loadingclose2", loadingInfo);
-        while (attempts-- > 0) {
-          changeLoadingText(
-            ["readauction.loadingclose3", `${searchModel.searchCriteria.maxBuy.toLocaleString()}`],
-            loadingInfo
-          );
-          if (queried.includes(searchModel.searchCriteria.maxBuy)) {
-            break;
-          }
-          helpers.ea.clearTransferMarketCache();
-          let response = await this.searchTransferMarket(searchModel.searchCriteria, 1, helpers);
-          if (response.success) {
-            sendPinEvents("Transfer Market Results - List View");
-            result = result.concat(response.data.items);
-            let currentQuery = searchCriteria.maxBuy;
-            queried.push(currentQuery);
-            if (response.data.items.length == 0) {
-              currentQuery = UTCurrencyInputControl.getIncrementAboveVal(currentQuery);
-            } else if (response.data.items.length == 21) {
-              currentQuery = UTCurrencyInputControl.getIncrementBelowVal(currentQuery);
-            } else {
+        marketSearch.setMaxBuy(getCachePrice(defId, 1).num);
+      }
+      changeLoadingText("readauction.loadingclose2", loadingInfo);
+      while (attempts-- > 0) {
+        const currentMaxBuy = marketSearch.getMaxBuy();
+        changeLoadingText(
+          ["readauction.loadingclose3", `${currentMaxBuy.toLocaleString()}`],
+          loadingInfo
+        );
+        if (queried.includes(currentMaxBuy)) {
+          break;
+        }
+        ea.clearTransferMarketCache();
+        let response = await this.searchTransferMarket(marketSearch.getCriteria(), 1, helpers);
+        const items = response?.success && Array.isArray(response?.data?.items) ? response.data.items : null;
+        if (items) {
+          sendPinEvents("Transfer Market Results - List View");
+          result = result.concat(items);
+          queried.push(currentMaxBuy);
+          if (items.length == 0 || items.length == 21) {
+            const direction = items.length == 0 ? "above" : "below";
+            const nextPrice = ea.incrementMarketPrice(currentMaxBuy, direction);
+            if (nextPrice === null) {
+              debug2.log("EA capability unavailable", ea.inspect(EA_CAPABILITIES.CURRENCY_STEPS));
               break;
             }
-            searchCriteria.maxBuy = currentQuery;
-            searchModel.updateSearchCriteria(searchCriteria);
+            marketSearch.setMaxBuy(nextPrice);
           } else {
-            notice("readauction.error", 2);
             break;
           }
-          if (attempts > 0) {
-            await wait(0.2, 0.5);
-          }
+        } else {
+          notice("readauction.error", 2);
+          break;
+        }
+        if (attempts > 0) {
+          await wait(0.2, 0.5);
         }
       }
       return result;
@@ -13280,7 +13413,17 @@
   // src/fsu/core/DomainHelpers.js
   function createDomainHelpers(ctx) {
     const { events, info, repositories: repositories2, services: services2, cntlr: cntlr2, debug: debug2, fy: fy2, eafy, futbinId: futbinId2, pdb, isPhone: isPhone2 } = ctx;
-    const ea = new EaRuntimeAdapter({ getServices: () => services2 });
+    const ea = new EaRuntimeAdapter({
+      getServices: () => services2,
+      getMarketRuntime: () => ({
+        UTSearchCriteriaDTO: typeof UTSearchCriteriaDTO === "undefined" ? void 0 : UTSearchCriteriaDTO,
+        UTBucketedItemSearchViewModel: typeof UTBucketedItemSearchViewModel === "undefined" ? void 0 : UTBucketedItemSearchViewModel,
+        UTCurrencyInputControl: typeof UTCurrencyInputControl === "undefined" ? void 0 : UTCurrencyInputControl,
+        SearchType: typeof SearchType === "undefined" ? void 0 : SearchType,
+        SearchCategory: typeof SearchCategory === "undefined" ? void 0 : SearchCategory,
+        ItemSearchFeature: typeof ItemSearchFeature === "undefined" ? void 0 : ItemSearchFeature
+      })
+    });
     const eventProxy = (name) => (...args) => events[name](...args);
     return {
       market() {

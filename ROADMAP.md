@@ -49,7 +49,7 @@
 
 **目標**：停止讓 domain 和新功能直接依賴散落的 EA 全域。
 
-**狀態**：進行中。第一個切片已建立 lazy `EaRuntimeAdapter`，並遷移 UTAS session refresh、market cache clear 與唯讀 transfer market search。其他市場寫入流程仍使用舊 EA 全域，不應被視為已完成遷移。
+**狀態**：進行中。市場唯讀切片已建立 lazy `EaRuntimeAdapter` 與 `EaMarketSearchSession`，並遷移 UTAS session refresh、market cache、transfer market search、EA query model 和價格步進。購買、移動、上架、通知與其他市場寫入流程仍使用舊 EA 全域，不應被視為已完成遷移。
 
 交付項目：
 

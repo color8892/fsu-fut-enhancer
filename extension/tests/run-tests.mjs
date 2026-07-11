@@ -284,6 +284,7 @@ function assertUserscriptBundle() {
   assert.ok(userscript.includes("ModuleRegistry"));
   assert.ok(userscript.includes("MarketActionService"));
   assert.ok(userscript.includes("EaRuntimeAdapter"));
+  assert.ok(userscript.includes("EaMarketSearchSession"));
   assert.ok(userscript.includes("EA_CAPABILITY_UNAVAILABLE"));
   assert.ok(userscript.includes("showPlayerListPopup"));
   assert.ok(userscript.includes("AcademyCalcService"));

@@ -74,6 +74,56 @@ export async function runEaRuntimeAdapterTests() {
     }
   });
 
+  class SearchCriteria {}
+  class SearchModel {
+    constructor() {
+      this.defaultSearchCriteria = {};
+      this.searchCriteria = {};
+      this.searchFeature = null;
+    }
+
+    updateSearchCriteria(criteria) {
+      this.searchCriteria = { ...criteria };
+    }
+  }
+  class CurrencyInput {
+    static getIncrementAboveVal(value) {
+      return value + 100;
+    }
+
+    static getIncrementBelowVal(value) {
+      return value - 100;
+    }
+  }
+  const queryAdapter = new EaRuntimeAdapter({
+    getMarketRuntime: () => ({
+      UTSearchCriteriaDTO: SearchCriteria,
+      UTBucketedItemSearchViewModel: SearchModel,
+      UTCurrencyInputControl: CurrencyInput,
+      SearchType: { PLAYER: "player" },
+      SearchCategory: { ANY: "any" },
+      ItemSearchFeature: { MARKET: "market" }
+    })
+  });
+  assert.strictEqual(queryAdapter.supports(EA_CAPABILITIES.MARKET_QUERY_MODEL), true);
+  assert.strictEqual(queryAdapter.supports(EA_CAPABILITIES.CURRENCY_STEPS), true);
+
+  const searchSession = queryAdapter.createPlayerMarketSearch(123);
+  assert.ok(searchSession);
+  assert.deepStrictEqual(searchSession.getCriteria(), {
+    defId: [123],
+    type: "player",
+    category: "any"
+  });
+  searchSession.setMaxBuy(1200);
+  assert.strictEqual(searchSession.getMaxBuy(), 1200);
+  assert.strictEqual(searchSession.getCriteria().maxBuy, 1200);
+  assert.strictEqual(queryAdapter.incrementMarketPrice(1200, "above"), 1300);
+  assert.strictEqual(queryAdapter.incrementMarketPrice(1200, "below"), 1100);
+
+  assert.strictEqual(missingServices.createPlayerMarketSearch(123), null);
+  assert.strictEqual(missingServices.incrementMarketPrice(1200, "above"), null);
+
   assert.deepStrictEqual(adapter.inspect("unknown.capability"), {
     name: "unknown.capability",
     supported: false,
