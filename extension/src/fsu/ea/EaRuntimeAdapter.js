@@ -5,7 +5,8 @@ export const EA_CAPABILITIES = Object.freeze({
   CURRENCY_STEPS: "market.currency-steps",
   ITEM_MOVE_TO_CLUB: "item.move-to-club",
   ITEM_PURCHASE_TO_CLUB: "item.purchase-to-club",
-  ITEM_LIST_FOR_SALE: "item.list-for-sale"
+  ITEM_LIST_FOR_SALE: "item.list-for-sale",
+  UNASSIGNED_RESET: "unassigned.reset"
 });
 
 /**
@@ -103,6 +104,22 @@ function unavailableListingResult(missing, cause) {
 }
 
 /**
+ * @param {string[]} missing
+ * @param {unknown} [cause]
+ */
+function unavailableUnassignedResetResult(missing, cause) {
+  return {
+    success: false,
+    error: {
+      code: "EA_CAPABILITY_UNAVAILABLE",
+      capability: EA_CAPABILITIES.UNASSIGNED_RESET,
+      missing,
+      cause: cause instanceof Error ? cause.message : undefined
+    }
+  };
+}
+
+/**
  * @param {number} price
  * @param {string[]} [missing]
  * @param {unknown} [cause]
@@ -192,7 +209,8 @@ export class EaRuntimeAdapter {
       name !== EA_CAPABILITIES.CURRENCY_STEPS &&
       name !== EA_CAPABILITIES.ITEM_MOVE_TO_CLUB &&
       name !== EA_CAPABILITIES.ITEM_PURCHASE_TO_CLUB &&
-      name !== EA_CAPABILITIES.ITEM_LIST_FOR_SALE
+      name !== EA_CAPABILITIES.ITEM_LIST_FOR_SALE &&
+      name !== EA_CAPABILITIES.UNASSIGNED_RESET
     ) {
       return {
         name,
@@ -376,6 +394,24 @@ export class EaRuntimeAdapter {
         }
       }
       return { name, supported: missing.length === 0, missing };
+    }
+
+    if (name === EA_CAPABILITIES.UNASSIGNED_RESET) {
+      const itemService = services.Item;
+      if (!isRecord(itemService)) {
+        return { name, supported: false, missing: ["services.Item"] };
+      }
+      const itemDao = itemService.itemDao;
+      const itemRepo = isRecord(itemDao) ? itemDao.itemRepo : undefined;
+      const unassigned = isRecord(itemRepo) ? itemRepo.unassigned : undefined;
+      if (!isRecord(unassigned) || typeof unassigned.reset !== "function") {
+        return {
+          name,
+          supported: false,
+          missing: ["services.Item.itemDao.itemRepo.unassigned.reset"]
+        };
+      }
+      return { name, supported: true, missing: [] };
     }
 
     const authentication = services.Authentication;
@@ -899,6 +935,34 @@ export class EaRuntimeAdapter {
       });
     } catch (error) {
       return Promise.resolve(unavailableListingResult([], error));
+    }
+  }
+
+  /** @returns {Promise<unknown>} */
+  async resetUnassignedItems() {
+    const capability = this.inspect(EA_CAPABILITIES.UNASSIGNED_RESET);
+    if (!capability.supported) {
+      return unavailableUnassignedResetResult(capability.missing);
+    }
+
+    const services = this.getServices();
+    if (!isRecord(services) || !isRecord(services.Item)) {
+      return unavailableUnassignedResetResult(["services.Item"]);
+    }
+    const itemDao = services.Item.itemDao;
+    const itemRepo = isRecord(itemDao) ? itemDao.itemRepo : undefined;
+    const unassigned = isRecord(itemRepo) ? itemRepo.unassigned : undefined;
+    const reset = isRecord(unassigned) ? unassigned.reset : undefined;
+    if (typeof reset !== "function") {
+      return unavailableUnassignedResetResult([
+        "services.Item.itemDao.itemRepo.unassigned.reset"
+      ]);
+    }
+    try {
+      await reset.call(unassigned);
+      return { success: true };
+    } catch (error) {
+      return unavailableUnassignedResetResult([], error);
     }
   }
 

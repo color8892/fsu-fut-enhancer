@@ -455,6 +455,35 @@ export async function runEaRuntimeAdapterTests() {
     }
   );
 
+  let resetCalls = 0;
+  const resetAdapter = new EaRuntimeAdapter({
+    getServices: () => ({
+      Item: {
+        itemDao: {
+          itemRepo: {
+            unassigned: {
+              async reset() {
+                resetCalls++;
+              }
+            }
+          }
+        }
+      }
+    })
+  });
+  assert.strictEqual(resetAdapter.supports(EA_CAPABILITIES.UNASSIGNED_RESET), true);
+  assert.deepStrictEqual(await resetAdapter.resetUnassignedItems(), { success: true });
+  assert.strictEqual(resetCalls, 1);
+  assert.deepStrictEqual(await missingServices.resetUnassignedItems(), {
+    success: false,
+    error: {
+      code: "EA_CAPABILITY_UNAVAILABLE",
+      capability: EA_CAPABILITIES.UNASSIGNED_RESET,
+      missing: ["services"],
+      cause: undefined
+    }
+  });
+
   const unavailablePurchase = await missingServices.purchaseItemToClub({}, 1200, null);
   assert.deepStrictEqual(unavailablePurchase, {
     success: false,

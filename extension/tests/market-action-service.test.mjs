@@ -385,4 +385,44 @@ export async function runMarketActionServiceTests() {
     globalThis.ItemPile = originalListingItemPile;
     globalThis._ = originalLodash;
   }
+
+  const auctionParent = {
+    _fsuAkbArray: {},
+    _fsuAkbCurrent: 0
+  };
+  const auctionView = {
+    _parent: auctionParent,
+    interactionStates: [],
+    setInteractionState(value) {
+      this.interactionStates.push(value);
+    }
+  };
+  const unassignedActions = [];
+  const unassignedController = {
+    className: "UTUnassignedItemsViewController",
+    async getUnassignedItems() {
+      unassignedActions.push("reload");
+    }
+  };
+  await service.losAuctionSell(auctionView, 0, {
+    getInfo: () => ({ run: {} }),
+    showLoader: () => {},
+    hideLoader: () => {},
+    notice: () => {},
+    changeLoadingText: () => {},
+    getCachePrice: () => ({ num: 0 }),
+    wait: async () => {},
+    debug: { log: () => {} },
+    isPhone: () => false,
+    getCurrentController: () => null,
+    getLeftController: () => unassignedController,
+    ea: {
+      async resetUnassignedItems() {
+        unassignedActions.push("reset");
+        return { success: true };
+      }
+    }
+  });
+  assert.deepStrictEqual(unassignedActions, ["reset", "reload"]);
+  assert.deepStrictEqual(auctionView.interactionStates, [0, 0]);
 }

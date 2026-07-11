@@ -10959,7 +10959,8 @@
     CURRENCY_STEPS: "market.currency-steps",
     ITEM_MOVE_TO_CLUB: "item.move-to-club",
     ITEM_PURCHASE_TO_CLUB: "item.purchase-to-club",
-    ITEM_LIST_FOR_SALE: "item.list-for-sale"
+    ITEM_LIST_FOR_SALE: "item.list-for-sale",
+    UNASSIGNED_RESET: "unassigned.reset"
   });
   function isRecord(value) {
     return value !== null && typeof value === "object";
@@ -11017,6 +11018,17 @@
       error: {
         code: "EA_CAPABILITY_UNAVAILABLE",
         capability: EA_CAPABILITIES.ITEM_LIST_FOR_SALE,
+        missing,
+        cause: cause instanceof Error ? cause.message : void 0
+      }
+    };
+  }
+  function unavailableUnassignedResetResult(missing, cause) {
+    return {
+      success: false,
+      error: {
+        code: "EA_CAPABILITY_UNAVAILABLE",
+        capability: EA_CAPABILITIES.UNASSIGNED_RESET,
         missing,
         cause: cause instanceof Error ? cause.message : void 0
       }
@@ -11085,7 +11097,7 @@
      * @returns {EaCapabilityStatus}
      */
     inspect(name) {
-      if (name !== EA_CAPABILITIES.UTAS_SESSION && name !== EA_CAPABILITIES.MARKET_SEARCH && name !== EA_CAPABILITIES.MARKET_QUERY_MODEL && name !== EA_CAPABILITIES.CURRENCY_STEPS && name !== EA_CAPABILITIES.ITEM_MOVE_TO_CLUB && name !== EA_CAPABILITIES.ITEM_PURCHASE_TO_CLUB && name !== EA_CAPABILITIES.ITEM_LIST_FOR_SALE) {
+      if (name !== EA_CAPABILITIES.UTAS_SESSION && name !== EA_CAPABILITIES.MARKET_SEARCH && name !== EA_CAPABILITIES.MARKET_QUERY_MODEL && name !== EA_CAPABILITIES.CURRENCY_STEPS && name !== EA_CAPABILITIES.ITEM_MOVE_TO_CLUB && name !== EA_CAPABILITIES.ITEM_PURCHASE_TO_CLUB && name !== EA_CAPABILITIES.ITEM_LIST_FOR_SALE && name !== EA_CAPABILITIES.UNASSIGNED_RESET) {
         return {
           name,
           supported: false,
@@ -11247,6 +11259,23 @@
           }
         }
         return { name, supported: missing.length === 0, missing };
+      }
+      if (name === EA_CAPABILITIES.UNASSIGNED_RESET) {
+        const itemService = services2.Item;
+        if (!isRecord(itemService)) {
+          return { name, supported: false, missing: ["services.Item"] };
+        }
+        const itemDao = itemService.itemDao;
+        const itemRepo = isRecord(itemDao) ? itemDao.itemRepo : void 0;
+        const unassigned = isRecord(itemRepo) ? itemRepo.unassigned : void 0;
+        if (!isRecord(unassigned) || typeof unassigned.reset !== "function") {
+          return {
+            name,
+            supported: false,
+            missing: ["services.Item.itemDao.itemRepo.unassigned.reset"]
+          };
+        }
+        return { name, supported: true, missing: [] };
       }
       const authentication = services2.Authentication;
       if (!isRecord(authentication)) {
@@ -11667,6 +11696,32 @@
         });
       } catch (error) {
         return Promise.resolve(unavailableListingResult([], error));
+      }
+    }
+    /** @returns {Promise<unknown>} */
+    async resetUnassignedItems() {
+      const capability = this.inspect(EA_CAPABILITIES.UNASSIGNED_RESET);
+      if (!capability.supported) {
+        return unavailableUnassignedResetResult(capability.missing);
+      }
+      const services2 = this.getServices();
+      if (!isRecord(services2) || !isRecord(services2.Item)) {
+        return unavailableUnassignedResetResult(["services.Item"]);
+      }
+      const itemDao = services2.Item.itemDao;
+      const itemRepo = isRecord(itemDao) ? itemDao.itemRepo : void 0;
+      const unassigned = isRecord(itemRepo) ? itemRepo.unassigned : void 0;
+      const reset = isRecord(unassigned) ? unassigned.reset : void 0;
+      if (typeof reset !== "function") {
+        return unavailableUnassignedResetResult([
+          "services.Item.itemDao.itemRepo.unassigned.reset"
+        ]);
+      }
+      try {
+        await reset.call(unassigned);
+        return { success: true };
+      } catch (error) {
+        return unavailableUnassignedResetResult([], error);
       }
     }
     clearTransferMarketCache() {
@@ -12205,7 +12260,8 @@
         debug: debug2,
         isPhone: isPhone2,
         getCurrentController,
-        getLeftController
+        getLeftController,
+        ea
       } = helpers;
       const info = getInfo();
       e2.setInteractionState(0);
@@ -12236,7 +12292,12 @@
       e2.setInteractionState(e2._parent._fsuAkbCurrent);
       let currentController = isPhone2() ? getCurrentController() : getLeftController();
       if (currentController.className == "UTUnassignedItemsViewController") {
-        await services.Item.itemDao.itemRepo.unassigned.reset();
+        const resetResult = await ea.resetUnassignedItems();
+        if (!resetResult.success) {
+          debug2.log("EA unassigned reset capability unavailable", resetResult.error);
+          notice("notice.loaderror", 2);
+          return;
+        }
         await currentController.getUnassignedItems();
       } else {
         currentController.refreshList();

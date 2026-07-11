@@ -519,7 +519,8 @@ export class MarketActionService {
       debug,
       isPhone,
       getCurrentController,
-      getLeftController
+      getLeftController,
+      ea
     } = helpers;
     const info = getInfo();
 
@@ -554,7 +555,12 @@ export class MarketActionService {
     e.setInteractionState(e._parent._fsuAkbCurrent);
     let currentController = isPhone() ? getCurrentController() : getLeftController();
     if (currentController.className == "UTUnassignedItemsViewController") {
-      await services.Item.itemDao.itemRepo.unassigned.reset();
+      const resetResult = await ea.resetUnassignedItems();
+      if (!resetResult.success) {
+        debug.log("EA unassigned reset capability unavailable", resetResult.error);
+        notice("notice.loaderror", 2);
+        return;
+      }
       await currentController.getUnassignedItems();
     } else {
       currentController.refreshList();
