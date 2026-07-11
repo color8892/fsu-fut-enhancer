@@ -10951,13 +10951,161 @@
     }
   };
 
+  // src/fsu/ea/EaRuntimeAdapter.js
+  var EA_CAPABILITIES = Object.freeze({
+    UTAS_SESSION: "authentication.utas-session",
+    MARKET_SEARCH: "market.search"
+  });
+  function isRecord(value) {
+    return value !== null && typeof value === "object";
+  }
+  function unavailableResult(capability, missing, cause) {
+    return {
+      success: false,
+      data: { items: [] },
+      error: {
+        code: "EA_CAPABILITY_UNAVAILABLE",
+        capability,
+        missing,
+        cause: cause instanceof Error ? cause.message : void 0
+      }
+    };
+  }
+  var EaRuntimeAdapter = class {
+    /**
+     * @param {{ getServices?: () => unknown }} [options]
+     */
+    constructor({ getServices = () => void 0 } = {}) {
+      this.getServices = getServices;
+    }
+    /**
+     * @param {string} name
+     * @returns {EaCapabilityStatus}
+     */
+    inspect(name) {
+      if (name !== EA_CAPABILITIES.UTAS_SESSION && name !== EA_CAPABILITIES.MARKET_SEARCH) {
+        return {
+          name,
+          supported: false,
+          missing: [`capability:${name}`]
+        };
+      }
+      const services2 = this.getServices();
+      if (!isRecord(services2)) {
+        return { name, supported: false, missing: ["services"] };
+      }
+      if (name === EA_CAPABILITIES.MARKET_SEARCH) {
+        const itemService = services2.Item;
+        const missing = [];
+        if (!isRecord(itemService)) {
+          missing.push("services.Item");
+        } else {
+          if (typeof itemService.clearTransferMarketCache !== "function") {
+            missing.push("services.Item.clearTransferMarketCache");
+          }
+          if (typeof itemService.searchTransferMarket !== "function") {
+            missing.push("services.Item.searchTransferMarket");
+          }
+        }
+        return { name, supported: missing.length === 0, missing };
+      }
+      const authentication = services2.Authentication;
+      if (!isRecord(authentication)) {
+        return { name, supported: false, missing: ["services.Authentication"] };
+      }
+      const session = authentication.utasSession;
+      if (!isRecord(session) || session.id === void 0 || session.id === null || session.id === "") {
+        return {
+          name,
+          supported: false,
+          missing: ["services.Authentication.utasSession.id"]
+        };
+      }
+      return { name, supported: true, missing: [] };
+    }
+    /**
+     * @param {string} name
+     */
+    supports(name) {
+      return this.inspect(name).supported;
+    }
+    /**
+     * @returns {string | null}
+     */
+    getUtasSessionId() {
+      if (!this.supports(EA_CAPABILITIES.UTAS_SESSION)) {
+        return null;
+      }
+      const services2 = this.getServices();
+      if (!isRecord(services2)) return null;
+      const authentication = services2.Authentication;
+      if (!isRecord(authentication)) return null;
+      const session = authentication.utasSession;
+      if (!isRecord(session)) return null;
+      return String(session.id);
+    }
+    clearTransferMarketCache() {
+      if (!this.supports(EA_CAPABILITIES.MARKET_SEARCH)) {
+        return false;
+      }
+      const services2 = this.getServices();
+      if (!isRecord(services2) || !isRecord(services2.Item)) return false;
+      const clear = services2.Item.clearTransferMarketCache;
+      if (typeof clear !== "function") return false;
+      clear.call(services2.Item);
+      return true;
+    }
+    /**
+     * @param {unknown} criteria
+     * @param {number} type
+     * @param {unknown} observerContext
+     * @returns {Promise<unknown>}
+     */
+    searchTransferMarket(criteria, type, observerContext) {
+      const capability = this.inspect(EA_CAPABILITIES.MARKET_SEARCH);
+      if (!capability.supported) {
+        return Promise.resolve(unavailableResult(capability.name, capability.missing));
+      }
+      const services2 = this.getServices();
+      if (!isRecord(services2) || !isRecord(services2.Item)) {
+        return Promise.resolve(unavailableResult(capability.name, ["services.Item"]));
+      }
+      const search = services2.Item.searchTransferMarket;
+      if (typeof search !== "function") {
+        return Promise.resolve(
+          unavailableResult(capability.name, ["services.Item.searchTransferMarket"])
+        );
+      }
+      try {
+        const observable = search.call(services2.Item, criteria, type);
+        if (!isRecord(observable)) {
+          return Promise.resolve(
+            unavailableResult(capability.name, ["services.Item.searchTransferMarket.observe"])
+          );
+        }
+        const observe = observable.observe;
+        if (typeof observe !== "function") {
+          return Promise.resolve(
+            unavailableResult(capability.name, ["services.Item.searchTransferMarket.observe"])
+          );
+        }
+        return new Promise((resolve) => {
+          const onResponse = (_sender, response) => resolve(response);
+          observe.call(observable, observerContext, onResponse);
+        });
+      } catch (error) {
+        return Promise.resolve(unavailableResult(capability.name, [], error));
+      }
+    }
+  };
+
   // src/fsu/domain/MarketActionService.js
   var MarketActionService = class {
     _getAuctionPrice(i, p, helpers) {
       const { debug: debug2 = { log: () => {
-      } }, getInfo, notice, xmlHttpRequest } = helpers;
+      } }, ea, getInfo, notice, xmlHttpRequest } = helpers;
       const info = getInfo();
-      return new Promise((res) => {
+      return new Promise((resolve) => {
         xmlHttpRequest({
           method: "GET",
           url: `https://utas.mob.v5.prd.futc-ext.gcp.ea.com/ut/game/fc26/transfermarket?num=21&start=0&type=player&maskedDefId=${i}&maxb=${p}`,
@@ -10967,18 +11115,25 @@
           },
           onload: function(response) {
             if (response.status == 404 || response.status == 401) {
-              info.base.sId = services.Authentication.utasSession.id;
+              const refreshedSessionId = ea?.getUtasSessionId() || null;
+              if (refreshedSessionId) {
+                info.base.sId = refreshedSessionId;
+              } else {
+                debug2.log("EA capability unavailable", ea?.inspect?.(EA_CAPABILITIES.UTAS_SESSION));
+              }
               notice("notice.loaderror", 2);
+              resolve([]);
             } else {
               const transferMarketResponse = safeParseJson(responseText(response), { auctionInfo: [] }, {
                 label: "transfer-market-auctions",
                 onError: (error, context) => debug2.log(`${context.label} parse failed`, error)
               });
-              res(transferMarketResponse.auctionInfo || []);
+              resolve(transferMarketResponse.auctionInfo || []);
             }
           },
           onerror: function() {
             notice("notice.loaderror", 2);
+            resolve([]);
           }
         });
       });
@@ -11326,7 +11481,7 @@
           if (queried.includes(searchModel.searchCriteria.maxBuy)) {
             break;
           }
-          services.Item.clearTransferMarketCache();
+          helpers.ea.clearTransferMarketCache();
           let response = await this.searchTransferMarket(searchModel.searchCriteria, 1, helpers);
           if (response.success) {
             sendPinEvents("Transfer Market Results - List View");
@@ -11353,12 +11508,8 @@
       }
       return result;
     }
-    searchTransferMarket(criteria, type, _helpers) {
-      return new Promise(async (resolve) => {
-        services.Item.searchTransferMarket(criteria, type).observe(this, async function(sender, response) {
-          resolve(response);
-        });
-      });
+    searchTransferMarket(criteria, type, helpers) {
+      return helpers.ea.searchTransferMarket(criteria, type, this);
     }
     transferToClub(controller, list, helpers) {
       const { notice, isPhone: isPhone2 } = helpers;
@@ -13129,6 +13280,7 @@
   // src/fsu/core/DomainHelpers.js
   function createDomainHelpers(ctx) {
     const { events, info, repositories: repositories2, services: services2, cntlr: cntlr2, debug: debug2, fy: fy2, eafy, futbinId: futbinId2, pdb, isPhone: isPhone2 } = ctx;
+    const ea = new EaRuntimeAdapter({ getServices: () => services2 });
     const eventProxy = (name) => (...args) => events[name](...args);
     return {
       market() {
@@ -13141,6 +13293,7 @@
           createButton: eventProxy("createButton"),
           pdb,
           notice: eventProxy("notice"),
+          ea,
           xmlHttpRequest: ctx.GM_xmlhttpRequest,
           showLoader: () => events.showLoader(),
           hideLoader: () => events.hideLoader(),

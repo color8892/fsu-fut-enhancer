@@ -43,6 +43,7 @@ content-bridge
 extension/src/fsu/
   core/       組裝、依賴容器、patch/module registry、共用 runtime
   domain/     可測試的業務邏輯；不應直接依賴 EA 全域
+  ea/         EA runtime capability adapters；隔離 services/repositories/prototype shape
   infra/      HTTP、storage、JSON、cache 等基礎設施
   patches/    EA prototype hook 與薄事件接線
   ui/         DOM factory、安全文字／HTML 邊界、設定畫面、樣式

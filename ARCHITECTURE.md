@@ -185,6 +185,7 @@ extension/src/fsu/
 │   ├── PatchRegistry.js   # call.view 原始方法對照
 │   └── TtlCache.js / PriceRequestQueue.js / …
 ├── domain/                # 可測試業務邏輯，透過 helpers 取 deps
+├── ea/                    # EA runtime capability adapters 與 diagnostics
 ├── patches/               # EA prototype 修改 + events 註冊
 ├── legacy/futweb.js       # 僅編排，不堆業務
 ├── ui/                    # DOM 工廠、設定畫面、CSS

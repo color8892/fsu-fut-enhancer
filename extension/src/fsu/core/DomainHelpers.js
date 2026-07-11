@@ -1,9 +1,12 @@
+import { EaRuntimeAdapter } from "../ea/EaRuntimeAdapter.js";
+
 /**
  * Shared helper factories for domain services wired in ModuleRegistry.
  * @param {import("./FsuContext.js").FsuContext} ctx
  */
 export function createDomainHelpers(ctx) {
   const { events, info, repositories, services, cntlr, debug, fy, eafy, futbinId, pdb, isPhone } = ctx;
+  const ea = new EaRuntimeAdapter({ getServices: () => services });
 
   const eventProxy = (name) => (...args) => events[name](...args);
 
@@ -18,6 +21,7 @@ export function createDomainHelpers(ctx) {
         createButton: eventProxy("createButton"),
         pdb,
         notice: eventProxy("notice"),
+        ea,
         xmlHttpRequest: ctx.GM_xmlhttpRequest,
         showLoader: () => events.showLoader(),
         hideLoader: () => events.hideLoader(),

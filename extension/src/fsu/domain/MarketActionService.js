@@ -1,10 +1,11 @@
 import { responseText, safeParseJson } from "../infra/JsonParsing.js";
+import { EA_CAPABILITIES } from "../ea/EaRuntimeAdapter.js";
 
 export class MarketActionService {
   _getAuctionPrice(i, p, helpers) {
-    const { debug = { log: () => {} }, getInfo, notice, xmlHttpRequest } = helpers;
+    const { debug = { log: () => {} }, ea, getInfo, notice, xmlHttpRequest } = helpers;
     const info = getInfo();
-    return new Promise((res) => {
+    return new Promise((resolve) => {
       xmlHttpRequest({
         method: "GET",
         url: `https://utas.mob.v5.prd.futc-ext.gcp.ea.com/ut/game/fc26/transfermarket?num=21&start=0&type=player&maskedDefId=${i}&maxb=${p}`,
@@ -14,18 +15,25 @@ export class MarketActionService {
         },
         onload: function (response) {
           if (response.status == 404 || response.status == 401) {
-            info.base.sId = services.Authentication.utasSession.id;
+            const refreshedSessionId = ea?.getUtasSessionId() || null;
+            if (refreshedSessionId) {
+              info.base.sId = refreshedSessionId;
+            } else {
+              debug.log("EA capability unavailable", ea?.inspect?.(EA_CAPABILITIES.UTAS_SESSION));
+            }
             notice("notice.loaderror", 2);
+            resolve([]);
           } else {
             const transferMarketResponse = safeParseJson(responseText(response), { auctionInfo: [] }, {
               label: "transfer-market-auctions",
               onError: (error, context) => debug.log(`${context.label} parse failed`, error)
             });
-            res(transferMarketResponse.auctionInfo || []);
+            resolve(transferMarketResponse.auctionInfo || []);
           }
         },
         onerror: function () {
           notice("notice.loaderror", 2);
+          resolve([]);
         }
       });
     });
@@ -396,7 +404,7 @@ export class MarketActionService {
         if (queried.includes(searchModel.searchCriteria.maxBuy)) {
           break;
         }
-        services.Item.clearTransferMarketCache();
+        helpers.ea.clearTransferMarketCache();
         let response = await this.searchTransferMarket(searchModel.searchCriteria, 1, helpers);
         if (response.success) {
           sendPinEvents("Transfer Market Results - List View");
@@ -424,12 +432,8 @@ export class MarketActionService {
     return result;
   }
 
-  searchTransferMarket(criteria, type, _helpers) {
-    return new Promise(async (resolve) => {
-      services.Item.searchTransferMarket(criteria, type).observe(this, async function (sender, response) {
-        resolve(response);
-      });
-    });
+  searchTransferMarket(criteria, type, helpers) {
+    return helpers.ea.searchTransferMarket(criteria, type, this);
   }
 
   transferToClub(controller, list, helpers) {
