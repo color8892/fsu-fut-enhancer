@@ -7,15 +7,12 @@
   "host_permissions": [
     "https://www.ea.com/*",
     "https://www.easports.com/*",
-    "https://www.futbin.com/*",
     "https://www.futbin.org/*",
     "https://www.fut.gg/*",
-    "https://www.easysbc.io/*",
     "https://api.fut.to/*",
     "https://enhancer-api.futnext.com/*",
     "https://utas.mob.v5.prd.futc-ext.gcp.ea.com/*",
-    "https://www.futnext.com/*",
-    "https://fut.to/*"
+    "https://www.futnext.com/*"
   ],
   "background": {
     "service_worker": "src/background.js"
@@ -25,10 +22,7 @@
       "matches": [
         "https://www.ea.com/ea-sports-fc/ultimate-team/web-app/*",
         "https://www.easports.com/*/ea-sports-fc/ultimate-team/web-app/*",
-        "https://www.ea.com/*/ea-sports-fc/ultimate-team/web-app/*",
-        "https://www.easysbc.io/evolutions*",
-        "https://www.futbin.com/*",
-        "https://www.fut.gg/*"
+        "https://www.ea.com/*/ea-sports-fc/ultimate-team/web-app/*"
       ],
       "js": ["src/content-bridge.js"],
       "run_at": "document_end"
@@ -43,10 +37,7 @@
       ],
       "matches": [
         "https://www.ea.com/*",
-        "https://www.easports.com/*",
-        "https://www.easysbc.io/*",
-        "https://www.futbin.com/*",
-        "https://www.fut.gg/*"
+        "https://www.easports.com/*"
       ]
     }
   ]

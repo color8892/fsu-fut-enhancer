@@ -1,4 +1,5 @@
 // FSU EAFC FUT Web Enhancer — bundled Chrome extension userscript (v26.9.0)
+"use strict";
 (() => {
   // src/fsu/core/FsuContext.js
   var FsuContext = class {
@@ -284,7 +285,10 @@
      */
     run(key, task) {
       const existing = this.inFlight.get(key);
-      if (existing) return existing;
+      if (existing) return (
+        /** @type {Promise<T>} */
+        existing
+      );
       const promise = task().finally(() => {
         this.inFlight.delete(key);
       });
@@ -1682,6 +1686,20 @@
 
   // src/fsu/ui/HtmlSafety.js
   var SAFE_EXTERNAL_PROTOCOLS = /* @__PURE__ */ new Set(["http:", "https:"]);
+  var HTML_ESCAPE_PATTERN = /[&<>'"]/g;
+  var HTML_ESCAPES = {
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    "'": "&#39;",
+    '"': "&quot;"
+  };
+  function escapeHtml(value) {
+    return String(value ?? "").replace(
+      HTML_ESCAPE_PATTERN,
+      (character) => HTML_ESCAPES[character] ?? character
+    );
+  }
   function normalizeExternalUrl(url, baseUrl) {
     const rawUrl = String(url ?? "").trim();
     if (!/^https?:\/\//i.test(rawUrl)) {
@@ -10577,6 +10595,10 @@
       this.ttlMs = ttlMs;
       this.entries = /* @__PURE__ */ new Map();
     }
+    /**
+     * @param {string} key
+     * @returns {unknown}
+     */
     get(key) {
       const entry = this.entries.get(key);
       if (!entry) return void 0;
@@ -10588,6 +10610,10 @@
       this.entries.set(key, entry);
       return entry.value;
     }
+    /**
+     * @param {string} key
+     * @param {unknown} value
+     */
     set(key, value) {
       if (this.entries.has(key)) {
         this.entries.delete(key);
@@ -10595,6 +10621,7 @@
       this.entries.set(key, { value, expiresAt: Date.now() + this.ttlMs });
       while (this.entries.size > this.maxSize) {
         const oldest = this.entries.keys().next().value;
+        if (oldest === void 0) break;
         this.entries.delete(oldest);
       }
     }
@@ -10796,7 +10823,7 @@
           players = resultPlayers;
         }
         if (_.includes(specialOrder, 2)) {
-          let customSort = function(a, b) {
+          let customSort2 = function(a, b) {
             const rareFlagsOrder = { 1: 0, 53: 1, 52: 2 };
             const rareFlagA = rareFlagsOrder[a?.rareflag] !== void 0 ? rareFlagsOrder[a.rareflag] : Number.MAX_SAFE_INTEGER;
             const rareFlagB = rareFlagsOrder[b?.rareflag] !== void 0 ? rareFlagsOrder[b.rareflag] : Number.MAX_SAFE_INTEGER;
@@ -10805,13 +10832,14 @@
             }
             return rareFlagA - rareFlagB;
           };
+          var customSort = customSort2;
           let tempPlayers = _.values(_.groupBy(players, "rating")), resultPlayers = [];
           if (ratingOrder == "desc") {
             tempPlayers = _.reverse(tempPlayers);
           }
           _.forEach(tempPlayers, (i) => {
             const inGoldenRange = i[0].rating >= 75 && i[0].rating <= info.set.goldenrange;
-            const sortedGroup = inGoldenRange ? _.sortBy(i, customSort) : i;
+            const sortedGroup = inGoldenRange ? _.sortBy(i, customSort2) : i;
             const tempResult = inGoldenRange && !_.includes(specialOrder, 1) ? _.orderBy(sortedGroup, "untradeableCount", "desc") : sortedGroup;
             resultPlayers = _.concat(resultPlayers, tempResult);
           });
@@ -12238,7 +12266,7 @@
       if (!Number.isFinite(rating)) {
         continue;
       }
-      prices[rating] = Number.parseInt(value, 10) || 0;
+      prices[rating] = Number.parseInt(String(value), 10) || 0;
     }
     return prices;
   }
@@ -12246,7 +12274,7 @@
     info.base.price = parseLowpricePlatform(data, info.base.platform);
   }
   function resolvePriceByRating(info, rating) {
-    return Number.parseInt(info.base?.price?.[rating], 10) || 0;
+    return Number.parseInt(String(info.base.price?.[rating] ?? ""), 10) || 0;
   }
   function buildPriceByRating(info, ratings) {
     const priceByRating = {};
@@ -12922,15 +12950,15 @@
       const t = [];
       const i = info.league == 2 ? " " : "";
       _.map(j, (sj) => {
-        let lt = `${sj.c}<span>×</span>`;
+        let lt = `${escapeHtml(sj.c)}<span>×</span>`;
         if (_.has(sj.t, "rating")) {
-          lt += `${localize("squads.rating")}${i}:${i}${sj.t.rating}`;
+          lt += `${escapeHtml(localize("squads.rating"))}${i}:${i}${escapeHtml(sj.t.rating)}`;
         } else {
           if (_.has(sj.t, "gs")) {
-            lt += localize(`item.raretype${sj.t.gs ? 1 : 0}`);
+            lt += escapeHtml(localize(`item.raretype${sj.t.gs ? 1 : 0}`));
           }
           if (_.has(sj.t, "rs")) {
-            lt += i + localize(`search.cardLevels.cardLevel${sj.t.rs + 1}`);
+            lt += i + escapeHtml(localize(`search.cardLevels.cardLevel${sj.t.rs + 1}`));
           }
         }
         t.push(lt);

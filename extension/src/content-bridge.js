@@ -4,8 +4,6 @@
   const PAGE_SOURCE = "fsu-extension-page";
   const CONTENT_SOURCE = "fsu-extension-content";
   const LODASH_VENDOR_PATH = "vendor/lodash.min.js";
-  const LODASH_CDN_URL =
-    "https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.21/lodash.min.js";
   const INJECTED_SCRIPTS = [
     LODASH_VENDOR_PATH,
     "src/page-runtime.js",
@@ -67,33 +65,8 @@
       });
     }
 
-    injectExternalUrl(url) {
-      return new Promise((resolve, reject) => {
-        const script = this.documentRef.createElement("script");
-        script.src = url;
-        script.async = false;
-        script.onload = () => {
-          script.remove();
-          resolve();
-        };
-        script.onerror = () => {
-          script.remove();
-          reject(new Error(`Failed to inject ${url}`));
-        };
-        this.appendScript(script);
-      });
-    }
-
     async injectLodash() {
-      try {
-        await this.injectFile(LODASH_VENDOR_PATH);
-      } catch (error) {
-        console.warn(
-          "[FSU extension] Local lodash failed, falling back to CDN:",
-          error.message
-        );
-        await this.injectExternalUrl(LODASH_CDN_URL);
-      }
+      await this.injectFile(LODASH_VENDOR_PATH);
     }
 
     waitForRuntimeReady(windowRef, timeoutMs = 5000) {

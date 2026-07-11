@@ -75,6 +75,27 @@ export default [
     }
   },
   {
+    files: [
+      "src/fsu/core/PriceRequestQueue.js",
+      "src/fsu/core/TtlCache.js",
+      "src/fsu/infra/JsonParsing.js",
+      "src/fsu/infra/RatingPrices.js",
+      "src/fsu/ui/HtmlSafety.js"
+    ],
+    languageOptions: {
+      globals: {
+        document: "readonly",
+        URL: "readonly"
+      }
+    },
+    rules: {
+      "no-undef": "error",
+      "no-unreachable": "error",
+      "no-redeclare": "error",
+      "no-constant-condition": "error"
+    }
+  },
+  {
     files: ["scripts/**/*.mjs"],
     languageOptions: {
       ecmaVersion: 2022,

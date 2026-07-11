@@ -1,3 +1,10 @@
+/**
+ * @template T
+ * @param {unknown} rawValue
+ * @param {T} fallback
+ * @param {{ label?: string, onError?: (error: unknown, context: { label: string, rawValue: unknown }) => void }} [options]
+ * @returns {T}
+ */
 export function safeParseJson(rawValue, fallback, options = {}) {
   const { label = "JSON", onError } = options;
 
@@ -15,10 +22,19 @@ export function safeParseJson(rawValue, fallback, options = {}) {
   }
 }
 
+/**
+ * @param {{ responseText?: unknown, response?: unknown } | null | undefined} response
+ * @returns {unknown}
+ */
 export function responseText(response) {
   return response?.responseText ?? response?.response ?? "";
 }
 
+/**
+ * @template T
+ * @param {T} value
+ * @returns {T | undefined}
+ */
 export function cloneJson(value) {
   const serialized = JSON.stringify(value);
   return serialized === undefined ? undefined : JSON.parse(serialized);
