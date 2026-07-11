@@ -49,7 +49,7 @@
 
 **目標**：停止讓 domain 和新功能直接依賴散落的 EA 全域。
 
-**狀態**：進行中。市場唯讀切片已建立 lazy `EaRuntimeAdapter` 與 `EaMarketSearchSession`，並遷移 UTAS session refresh、market cache、transfer market search、EA query model 和價格步進。寫入切片已涵蓋「移動物品到俱樂部」與單一球員的購買後入隊交易，adapter 會正規化餘額不足、拍賣到期、權限拒絕及購買後移動失敗。批量概念球員購買、獨立競標、上架和其他市場寫入流程仍使用舊 EA 全域，不應被視為已完成遷移。
+**狀態**：進行中。市場唯讀切片已建立 lazy `EaRuntimeAdapter` 與 `EaMarketSearchSession`，並遷移 UTAS session refresh、market cache、transfer market search、EA query model 和價格步進。寫入切片已涵蓋「移動物品到俱樂部」與單一及批量球員的購買後入隊交易，adapter 會正規化餘額不足、拍賣到期、權限拒絕及購買後移動失敗。獨立競標、上架和其他市場寫入流程仍使用舊 EA 全域，不應被視為已完成遷移。
 
 交付項目：
 

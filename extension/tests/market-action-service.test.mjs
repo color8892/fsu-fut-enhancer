@@ -232,4 +232,85 @@ export async function runMarketActionServiceTests() {
     globalThis.ItemPile = originalItemPile;
     globalThis.MAX_NEW_ITEMS = originalMaxNewItems;
   }
+
+  const originalBulkRepositories = globalThis.repositories;
+  const originalBulkItemPile = globalThis.ItemPile;
+  const originalBulkMaxNewItems = globalThis.MAX_NEW_ITEMS;
+  const originalBulkReadAuctionPrices = service.readAuctionPrices;
+  try {
+    globalThis.repositories = {
+      Item: {
+        numItemsInCache: () => 0
+      }
+    };
+    globalThis.ItemPile = { PURCHASED: "purchased" };
+    globalThis.MAX_NEW_ITEMS = 100;
+
+    const firstPlayer = {
+      definitionId: 101,
+      isPlayer: () => true,
+      getStaticData: () => ({ name: "First Player" })
+    };
+    const secondPlayer = {
+      definitionId: 202,
+      isPlayer: () => true,
+      getStaticData: () => ({ name: "Second Player" })
+    };
+    const marketItems = new Map([
+      [firstPlayer, { _auction: { buyNowPrice: 1000 } }],
+      [secondPlayer, { _auction: { buyNowPrice: 2000 } }]
+    ]);
+    service.readAuctionPrices = async (player) => [marketItems.get(player)];
+
+    const bulkNotices = [];
+    const markedDefinitionIds = [];
+    const purchaseResults = [
+      { success: true, price: 1000 },
+      {
+        success: false,
+        reason: "move-failed",
+        purchased: true,
+        price: 2000
+      }
+    ];
+    const bulkInfo = { run: {} };
+    await service.buyConceptPlayer([firstPlayer, secondPlayer], null, {
+      getInfo: () => bulkInfo,
+      showLoader: () => {},
+      hideLoader: () => {},
+      notice: (...args) => bulkNotices.push(args),
+      changeLoadingText: () => {},
+      sendPinEvents: (event) => assert.strictEqual(event, "Item - Detail View"),
+      wait: async () => {},
+      cardAddBuyErrorTips: (definitionId) => markedDefinitionIds.push(definitionId),
+      fy: (key) => key,
+      debug: { log: () => {} },
+      isPhone: () => false,
+      getCurrentController: () => null,
+      ea: {
+        async purchaseItemToClub(item, price, context, onBeforeBid) {
+          assert.strictEqual(context, service);
+          assert.ok([...marketItems.values()].includes(item));
+          onBeforeBid();
+          const result = purchaseResults.shift();
+          assert.strictEqual(price, result.price);
+          return result;
+        }
+      }
+    });
+    assert.strictEqual(bulkInfo.run.bulkbuy, true);
+    assert.deepStrictEqual(markedDefinitionIds, [202]);
+    assert.deepStrictEqual(bulkNotices, [
+      [["buyplayer.success", "First Player", 1000], 0],
+      [["buyplayer.sendclub.success", "First Player"], 0],
+      [["buyplayer.success", "Second Player", 2000], 0],
+      [["buyplayer.sendclub.error", "Second Player"], 2],
+      [["buyplayer.bibresults", 2, 0, 3000], 0]
+    ]);
+  } finally {
+    service.readAuctionPrices = originalBulkReadAuctionPrices;
+    globalThis.repositories = originalBulkRepositories;
+    globalThis.ItemPile = originalBulkItemPile;
+    globalThis.MAX_NEW_ITEMS = originalBulkMaxNewItems;
+  }
 }
