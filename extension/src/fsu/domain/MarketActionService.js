@@ -254,10 +254,12 @@ export class MarketActionService {
       fy,
       debug,
       isPhone,
-      getCurrentController
+      getCurrentController,
+      ea
     } = helpers;
 
     showLoader();
+    let shouldMarkBuyError = false;
     let defId = 0,
       playerName = "";
     if (Number.isInteger(player)) {
@@ -268,83 +270,66 @@ export class MarketActionService {
       playerName = player.getStaticData().name;
     }
     if (!defId) {
+      hideLoader();
       return;
     }
     if (repositories.Item.numItemsInCache(ItemPile.PURCHASED) >= MAX_NEW_ITEMS) {
       notice(["buyplayer.error", playerName, fy("buyplayer.error.child5")], 2);
-      state = false;
+      shouldMarkBuyError = true;
     } else {
       let priceList = await this.readAuctionPrices(player, undefined, undefined, helpers);
       priceList.sort((a, b) => b._auction.buyNowPrice - a._auction.buyNowPrice);
       debug.log(priceList);
       changeLoadingText("buyplayer.loadingclose");
-      if (!priceList || priceList.length == 0) {
+      if (priceList.length == 0) {
         notice(["buyplayer.error", playerName, fy("buyplayer.error.child3")], 2);
-        state = false;
+        shouldMarkBuyError = true;
       } else {
         let currentPlayer = priceList[priceList.length - 1];
-        let currentData = currentPlayer.getAuctionData();
-        if (!currentData.canBuy(services.User.getUser().getCurrency(GameCurrency.COINS).amount)) {
-          notice(["buyplayer.error", playerName, fy("buyplayer.error.child2")], 2);
-          state = false;
-        } else {
-          if (0 < currentData.getSecondsRemaining()) {
-            return new Promise(async (resolve) => {
-              sendPinEvents("Item - Detail View");
-              services.Item.bid(currentPlayer, currentPlayer._auction.buyNowPrice).observe(
-                this,
-                async function (sender, data) {
-                  if (data.success) {
-                    notice(
-                      ["buyplayer.success", playerName, currentPlayer._auction.buyNowPrice],
-                      0
-                    );
-                    services.Item.move(currentPlayer, ItemPile.CLUB).observe(this, (e, t) => {
-                      if ((e.unobserve(this), t.success)) {
-                        notice(["buyplayer.sendclub.success", playerName], 0);
-                        if (isPhone()) {
-                          let controller = getCurrentController();
-                          if (controller.className == "UTSquadItemDetailsNavigationController") {
-                            controller.getParentViewController()._eBackButtonTapped();
-                          }
-                        }
-                      } else {
-                        notice(["buyplayer.sendclub.error", playerName], 2);
-                        state = false;
-                      }
-                      hideLoader();
-                    });
-                  } else {
-                    let denied = data.error && data.error.code === UtasErrorCode.PERMISSION_DENIED;
-                    notice(
-                      [
-                        "buyplayer.error",
-                        playerName,
-                        `${denied ? fy("buyplayer.error.child1") : ""}`
-                      ],
-                      2
-                    );
-                    state = false;
-                    cardAddBuyErrorTips(defId);
-                    if (view) {
-                      view
-                        .getSuperview()
-                        .items._collection[view.getSuperview().items._index].render(player);
-                    }
-                    hideLoader();
-                  }
-                }
-              );
-              resolve();
-            });
-          } else {
-            notice(["buyplayer.error", playerName, fy("buyplayer.error.child4")], 2);
-            state = false;
+        const purchasePrice = currentPlayer._auction.buyNowPrice;
+        const purchaseResult = await ea.purchaseItemToClub(
+          currentPlayer,
+          purchasePrice,
+          this,
+          () => sendPinEvents("Item - Detail View")
+        );
+        if (purchaseResult.success || purchaseResult.purchased) {
+          notice(["buyplayer.success", playerName, purchasePrice], 0);
+        }
+        if (purchaseResult.success) {
+          notice(["buyplayer.sendclub.success", playerName], 0);
+          if (isPhone()) {
+            let controller = getCurrentController();
+            if (controller.className == "UTSquadItemDetailsNavigationController") {
+              controller.getParentViewController()._eBackButtonTapped();
+            }
           }
+        } else if (purchaseResult.reason === "insufficient-funds") {
+          notice(["buyplayer.error", playerName, fy("buyplayer.error.child2")], 2);
+          shouldMarkBuyError = true;
+        } else if (purchaseResult.reason === "expired") {
+          notice(["buyplayer.error", playerName, fy("buyplayer.error.child4")], 2);
+          shouldMarkBuyError = true;
+        } else if (purchaseResult.reason === "bid-failed") {
+          notice(
+            [
+              "buyplayer.error",
+              playerName,
+              `${purchaseResult.permissionDenied ? fy("buyplayer.error.child1") : ""}`
+            ],
+            2
+          );
+          shouldMarkBuyError = true;
+        } else if (purchaseResult.reason === "move-failed") {
+          notice(["buyplayer.sendclub.error", playerName], 2);
+        } else {
+          debug.log("EA purchase unavailable", purchaseResult.error || purchaseResult);
+          notice("notice.loaderror", 2);
+          shouldMarkBuyError = true;
         }
       }
     }
-    if (!state) {
+    if (shouldMarkBuyError) {
       cardAddBuyErrorTips(defId);
       if (view) {
         view.getSuperview().items._collection[view.getSuperview().items._index].render(player);

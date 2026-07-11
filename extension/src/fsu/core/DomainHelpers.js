@@ -10,6 +10,8 @@ export function createDomainHelpers(ctx) {
     getServices: () => services,
     getItemRuntime: () => ({
       ItemPile: typeof ItemPile === "undefined" ? undefined : ItemPile,
+      GameCurrency: typeof GameCurrency === "undefined" ? undefined : GameCurrency,
+      UtasErrorCode: typeof UtasErrorCode === "undefined" ? undefined : UtasErrorCode,
       UINotificationType:
         typeof UINotificationType === "undefined" ? undefined : UINotificationType,
       NetworkErrorManager:

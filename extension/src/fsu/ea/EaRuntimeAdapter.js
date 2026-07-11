@@ -3,7 +3,8 @@ export const EA_CAPABILITIES = Object.freeze({
   MARKET_SEARCH: "market.search",
   MARKET_QUERY_MODEL: "market.query-model",
   CURRENCY_STEPS: "market.currency-steps",
-  ITEM_MOVE_TO_CLUB: "item.move-to-club"
+  ITEM_MOVE_TO_CLUB: "item.move-to-club",
+  ITEM_PURCHASE_TO_CLUB: "item.purchase-to-club"
 });
 
 /**
@@ -64,6 +65,47 @@ function unavailableMoveResult(capability, missing, cause) {
       missing,
       cause: cause instanceof Error ? cause.message : undefined
     }
+  };
+}
+
+/**
+ * @param {string[]} missing
+ * @param {unknown} [cause]
+ */
+function unavailablePurchaseResult(missing, cause) {
+  return {
+    success: false,
+    reason: "capability-unavailable",
+    error: {
+      code: "EA_CAPABILITY_UNAVAILABLE",
+      capability: EA_CAPABILITIES.ITEM_PURCHASE_TO_CLUB,
+      missing,
+      cause: cause instanceof Error ? cause.message : undefined
+    }
+  };
+}
+
+/**
+ * @param {number} price
+ * @param {string[]} [missing]
+ * @param {unknown} [cause]
+ */
+function purchasedMoveFailure(price, missing = [], cause) {
+  const error =
+    missing.length > 0 || cause instanceof Error
+      ? {
+          code: "EA_PURCHASED_ITEM_MOVE_FAILED",
+          capability: EA_CAPABILITIES.ITEM_PURCHASE_TO_CLUB,
+          missing,
+          cause: cause instanceof Error ? cause.message : undefined
+        }
+      : null;
+  return {
+    success: false,
+    reason: "move-failed",
+    purchased: true,
+    price: Number(price),
+    ...(error ? { error } : {})
   };
 }
 
@@ -131,7 +173,8 @@ export class EaRuntimeAdapter {
       name !== EA_CAPABILITIES.MARKET_SEARCH &&
       name !== EA_CAPABILITIES.MARKET_QUERY_MODEL &&
       name !== EA_CAPABILITIES.CURRENCY_STEPS &&
-      name !== EA_CAPABILITIES.ITEM_MOVE_TO_CLUB
+      name !== EA_CAPABILITIES.ITEM_MOVE_TO_CLUB &&
+      name !== EA_CAPABILITIES.ITEM_PURCHASE_TO_CLUB
     ) {
       return {
         name,
@@ -230,6 +273,39 @@ export class EaRuntimeAdapter {
           typeof runtime.NetworkErrorManager.handleStatus !== "function"
         ) {
           missing.push("itemRuntime.NetworkErrorManager.handleStatus");
+        }
+      }
+      return { name, supported: missing.length === 0, missing };
+    }
+
+    if (name === EA_CAPABILITIES.ITEM_PURCHASE_TO_CLUB) {
+      const runtime = this.getItemRuntime();
+      const missing = [];
+      const itemService = services.Item;
+      const userService = services.User;
+      if (!isRecord(itemService) || typeof itemService.bid !== "function") {
+        missing.push("services.Item.bid");
+      }
+      if (!isRecord(itemService) || typeof itemService.move !== "function") {
+        missing.push("services.Item.move");
+      }
+      if (!isRecord(userService) || typeof userService.getUser !== "function") {
+        missing.push("services.User.getUser");
+      }
+      if (!isRecord(runtime)) {
+        missing.push("itemRuntime");
+      } else {
+        if (!isRecord(runtime.ItemPile) || runtime.ItemPile.CLUB === undefined) {
+          missing.push("itemRuntime.ItemPile.CLUB");
+        }
+        if (!isRecord(runtime.GameCurrency) || runtime.GameCurrency.COINS === undefined) {
+          missing.push("itemRuntime.GameCurrency.COINS");
+        }
+        if (
+          !isRecord(runtime.UtasErrorCode) ||
+          runtime.UtasErrorCode.PERMISSION_DENIED === undefined
+        ) {
+          missing.push("itemRuntime.UtasErrorCode.PERMISSION_DENIED");
         }
       }
       return { name, supported: missing.length === 0, missing };
@@ -461,6 +537,171 @@ export class EaRuntimeAdapter {
       });
     } catch (error) {
       return Promise.resolve(unavailableMoveResult(capability.name, [], error));
+    }
+  }
+
+  /**
+   * @param {unknown} item
+   * @param {number} price
+   * @param {unknown} observerContext
+   * @param {() => void} [onBeforeBid]
+   * @returns {Promise<unknown>}
+   */
+  purchaseItemToClub(item, price, observerContext, onBeforeBid = () => {}) {
+    const capability = this.inspect(EA_CAPABILITIES.ITEM_PURCHASE_TO_CLUB);
+    if (!capability.supported) {
+      return Promise.resolve(unavailablePurchaseResult(capability.missing));
+    }
+
+    const services = this.getServices();
+    const runtime = this.getItemRuntime();
+    if (!isRecord(services) || !isRecord(runtime) || !isRecord(item)) {
+      return Promise.resolve(unavailablePurchaseResult(["services", "itemRuntime", "item"]));
+    }
+    const itemService = services.Item;
+    const userService = services.User;
+    const itemPile = runtime.ItemPile;
+    const gameCurrency = runtime.GameCurrency;
+    const utasErrorCode = runtime.UtasErrorCode;
+    if (
+      !isRecord(itemService) ||
+      !isRecord(userService) ||
+      !isRecord(itemPile) ||
+      !isRecord(gameCurrency) ||
+      !isRecord(utasErrorCode)
+    ) {
+      return Promise.resolve(unavailablePurchaseResult(capability.missing));
+    }
+    const getAuctionData = item.getAuctionData;
+    const getUser = userService.getUser;
+    const bid = itemService.bid;
+    const move = itemService.move;
+    if (
+      typeof getAuctionData !== "function" ||
+      typeof getUser !== "function" ||
+      typeof bid !== "function" ||
+      typeof move !== "function"
+    ) {
+      return Promise.resolve(
+        unavailablePurchaseResult([
+          "item.getAuctionData",
+          "services.User.getUser",
+          "services.Item.bid",
+          "services.Item.move"
+        ])
+      );
+    }
+
+    try {
+      const auction = getAuctionData.call(item);
+      const user = getUser.call(userService);
+      if (!isRecord(auction) || !isRecord(user) || typeof user.getCurrency !== "function") {
+        return Promise.resolve(
+          unavailablePurchaseResult(["item.auctionData", "services.User.getUser().getCurrency"])
+        );
+      }
+      const currency = user.getCurrency(gameCurrency.COINS);
+      const canBuy = auction.canBuy;
+      const getSecondsRemaining = auction.getSecondsRemaining;
+      if (
+        !isRecord(currency) ||
+        typeof canBuy !== "function" ||
+        typeof getSecondsRemaining !== "function"
+      ) {
+        return Promise.resolve(
+          unavailablePurchaseResult([
+            "user.currency.amount",
+            "auction.canBuy",
+            "auction.getSecondsRemaining"
+          ])
+        );
+      }
+      if (!canBuy.call(auction, Number(currency.amount) || 0)) {
+        return Promise.resolve({ success: false, reason: "insufficient-funds" });
+      }
+      if (Number(getSecondsRemaining.call(auction)) <= 0) {
+        return Promise.resolve({ success: false, reason: "expired" });
+      }
+
+      onBeforeBid();
+      const bidObservable = bid.call(itemService, item, Number(price));
+      if (!isRecord(bidObservable) || typeof bidObservable.observe !== "function") {
+        return Promise.resolve(unavailablePurchaseResult(["services.Item.bid.observe"]));
+      }
+      const observeBid = bidObservable.observe;
+
+      return new Promise((resolve) => {
+        let settled = false;
+        /**
+         * @param {unknown} sender
+         * @param {unknown} bidResponse
+         */
+        const onBid = (sender, bidResponse) => {
+          if (settled) return;
+          try {
+            if (isRecord(sender) && typeof sender.unobserve === "function") {
+              sender.unobserve(observerContext);
+            }
+            if (!isRecord(bidResponse) || !bidResponse.success) {
+              settled = true;
+              const error = isRecord(bidResponse) ? bidResponse.error : undefined;
+              const permissionDenied =
+                isRecord(error) && error.code === utasErrorCode.PERMISSION_DENIED;
+              resolve({ success: false, reason: "bid-failed", permissionDenied });
+              return;
+            }
+
+            const moveObservable = move.call(itemService, item, itemPile.CLUB);
+            if (!isRecord(moveObservable) || typeof moveObservable.observe !== "function") {
+              settled = true;
+              resolve(purchasedMoveFailure(price, ["services.Item.move.observe"]));
+              return;
+            }
+            const observeMove = moveObservable.observe;
+            /**
+             * @param {unknown} moveSender
+             * @param {unknown} moveResponse
+             */
+            const onMove = (moveSender, moveResponse) => {
+              if (settled) return;
+              settled = true;
+              try {
+                if (isRecord(moveSender) && typeof moveSender.unobserve === "function") {
+                  moveSender.unobserve(observerContext);
+                }
+                if (isRecord(moveResponse) && moveResponse.success) {
+                  resolve({ success: true, price: Number(price) });
+                } else {
+                  resolve(purchasedMoveFailure(price));
+                }
+              } catch (error) {
+                resolve(purchasedMoveFailure(price, [], error));
+              }
+            };
+            try {
+              observeMove.call(moveObservable, observerContext, onMove);
+            } catch (error) {
+              settled = true;
+              resolve(purchasedMoveFailure(price, [], error));
+            }
+          } catch (error) {
+            settled = true;
+            resolve(
+              isRecord(bidResponse) && bidResponse.success
+                ? purchasedMoveFailure(price, [], error)
+                : unavailablePurchaseResult([], error)
+            );
+          }
+        };
+        try {
+          observeBid.call(bidObservable, observerContext, onBid);
+        } catch (error) {
+          settled = true;
+          resolve(unavailablePurchaseResult([], error));
+        }
+      });
+    } catch (error) {
+      return Promise.resolve(unavailablePurchaseResult([], error));
     }
   }
 

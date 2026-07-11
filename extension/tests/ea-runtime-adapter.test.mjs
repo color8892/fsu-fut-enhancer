@@ -205,6 +205,177 @@ export async function runEaRuntimeAdapterTests() {
     }
   });
 
+  let bidResponse = { success: true };
+  let purchaseMoveResponse = { success: true };
+  const purchaseUnobservedContexts = [];
+  const purchaseCalls = [];
+  const purchaseServices = {
+    User: {
+      getUser() {
+        return {
+          getCurrency(currency) {
+            assert.strictEqual(currency, "coins");
+            return { amount: 5000 };
+          }
+        };
+      }
+    },
+    Item: {
+      bid(item, price) {
+        purchaseCalls.push(["bid", item, price]);
+        return {
+          observe(_context, callback) {
+            callback(
+              {
+                unobserve(context) {
+                  purchaseUnobservedContexts.push(["bid", context]);
+                }
+              },
+              bidResponse
+            );
+          }
+        };
+      },
+      move(item, pile) {
+        purchaseCalls.push(["move", item, pile]);
+        return {
+          observe(_context, callback) {
+            callback(
+              {
+                unobserve(context) {
+                  purchaseUnobservedContexts.push(["move", context]);
+                }
+              },
+              purchaseMoveResponse
+            );
+          }
+        };
+      }
+    }
+  };
+  const purchaseAdapter = new EaRuntimeAdapter({
+    getServices: () => purchaseServices,
+    getItemRuntime: () => ({
+      ItemPile: { CLUB: "club" },
+      GameCurrency: { COINS: "coins" },
+      UtasErrorCode: { PERMISSION_DENIED: "permission-denied" }
+    })
+  });
+  const purchaseContext = { name: "purchase-context" };
+  let hasFunds = true;
+  let secondsRemaining = 30;
+  const purchaseItem = {
+    getAuctionData() {
+      return {
+        canBuy(balance) {
+          assert.strictEqual(balance, 5000);
+          return hasFunds;
+        },
+        getSecondsRemaining() {
+          return secondsRemaining;
+        }
+      };
+    }
+  };
+  let beforeBidCalls = 0;
+  assert.strictEqual(
+    purchaseAdapter.supports(EA_CAPABILITIES.ITEM_PURCHASE_TO_CLUB),
+    true
+  );
+  const purchased = await purchaseAdapter.purchaseItemToClub(
+    purchaseItem,
+    1200,
+    purchaseContext,
+    () => beforeBidCalls++
+  );
+  assert.deepStrictEqual(purchased, { success: true, price: 1200 });
+  assert.strictEqual(beforeBidCalls, 1);
+  assert.deepStrictEqual(purchaseCalls, [
+    ["bid", purchaseItem, 1200],
+    ["move", purchaseItem, "club"]
+  ]);
+  assert.deepStrictEqual(purchaseUnobservedContexts, [
+    ["bid", purchaseContext],
+    ["move", purchaseContext]
+  ]);
+
+  hasFunds = false;
+  assert.deepStrictEqual(
+    await purchaseAdapter.purchaseItemToClub(purchaseItem, 1200, purchaseContext),
+    { success: false, reason: "insufficient-funds" }
+  );
+  hasFunds = true;
+  secondsRemaining = 0;
+  assert.deepStrictEqual(
+    await purchaseAdapter.purchaseItemToClub(purchaseItem, 1200, purchaseContext),
+    { success: false, reason: "expired" }
+  );
+  secondsRemaining = 30;
+  bidResponse = { success: false, error: { code: "permission-denied" } };
+  assert.deepStrictEqual(
+    await purchaseAdapter.purchaseItemToClub(purchaseItem, 1200, purchaseContext),
+    { success: false, reason: "bid-failed", permissionDenied: true }
+  );
+  bidResponse = { success: true };
+  purchaseMoveResponse = { success: false };
+  assert.deepStrictEqual(
+    await purchaseAdapter.purchaseItemToClub(purchaseItem, 1200, purchaseContext),
+    {
+      success: false,
+      reason: "move-failed",
+      purchased: true,
+      price: 1200
+    }
+  );
+
+  purchaseServices.Item.move = () => {
+    throw new Error("move failed");
+  };
+  assert.deepStrictEqual(
+    await purchaseAdapter.purchaseItemToClub(purchaseItem, 1200, purchaseContext),
+    {
+      success: false,
+      reason: "move-failed",
+      purchased: true,
+      price: 1200,
+      error: {
+        code: "EA_PURCHASED_ITEM_MOVE_FAILED",
+        capability: EA_CAPABILITIES.ITEM_PURCHASE_TO_CLUB,
+        missing: [],
+        cause: "move failed"
+      }
+    }
+  );
+
+  purchaseServices.Item.move = () => ({});
+  assert.deepStrictEqual(
+    await purchaseAdapter.purchaseItemToClub(purchaseItem, 1200, purchaseContext),
+    {
+      success: false,
+      reason: "move-failed",
+      purchased: true,
+      price: 1200,
+      error: {
+        code: "EA_PURCHASED_ITEM_MOVE_FAILED",
+        capability: EA_CAPABILITIES.ITEM_PURCHASE_TO_CLUB,
+        missing: ["services.Item.move.observe"],
+        cause: undefined
+      }
+    }
+  );
+
+  const unavailablePurchase = await missingServices.purchaseItemToClub({}, 1200, null);
+  assert.deepStrictEqual(unavailablePurchase, {
+    success: false,
+    reason: "capability-unavailable",
+    error: {
+      code: "EA_CAPABILITY_UNAVAILABLE",
+      capability: EA_CAPABILITIES.ITEM_PURCHASE_TO_CLUB,
+      missing: ["services"],
+      cause: undefined
+    }
+  });
+
   assert.deepStrictEqual(adapter.inspect("unknown.capability"), {
     name: "unknown.capability",
     supported: false,

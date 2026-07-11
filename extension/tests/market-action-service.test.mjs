@@ -138,4 +138,98 @@ export async function runMarketActionServiceTests() {
     }
   });
   assert.deepStrictEqual(unavailableNotices, [["notice.loaderror", 2]]);
+
+  const originalRepositories = globalThis.repositories;
+  const originalItemPile = globalThis.ItemPile;
+  const originalMaxNewItems = globalThis.MAX_NEW_ITEMS;
+  const originalReadAuctionPrices = service.readAuctionPrices;
+  try {
+    globalThis.repositories = {
+      Item: {
+        numItemsInCache: () => 0
+      }
+    };
+    globalThis.ItemPile = { PURCHASED: "purchased" };
+    globalThis.MAX_NEW_ITEMS = 100;
+
+    const player = {
+      definitionId: 123,
+      isPlayer: () => true,
+      getStaticData: () => ({ name: "Test Player" })
+    };
+    const marketItem = { _auction: { buyNowPrice: 1200 } };
+    service.readAuctionPrices = async () => [marketItem];
+
+    const purchaseNotices = [];
+    let showLoaderCalls = 0;
+    let hideLoaderCalls = 0;
+    let pinCalls = 0;
+    let markedDefinitionId = null;
+    let purchaseResult = { success: true, price: 1200 };
+    const purchaseHelpers = {
+      showLoader: () => showLoaderCalls++,
+      hideLoader: () => hideLoaderCalls++,
+      notice: (...args) => purchaseNotices.push(args),
+      changeLoadingText: () => {},
+      sendPinEvents: (event) => {
+        assert.strictEqual(event, "Item - Detail View");
+        pinCalls++;
+      },
+      cardAddBuyErrorTips: (definitionId) => (markedDefinitionId = definitionId),
+      fy: (key) => key,
+      debug: { log: () => {} },
+      isPhone: () => false,
+      getCurrentController: () => null,
+      ea: {
+        async purchaseItemToClub(item, price, context, onBeforeBid) {
+          assert.strictEqual(item, marketItem);
+          assert.strictEqual(price, 1200);
+          assert.strictEqual(context, service);
+          onBeforeBid();
+          return purchaseResult;
+        }
+      }
+    };
+
+    await service.buyPlayer(player, null, purchaseHelpers);
+    assert.strictEqual(showLoaderCalls, 1);
+    assert.strictEqual(hideLoaderCalls, 1);
+    assert.strictEqual(pinCalls, 1);
+    assert.strictEqual(markedDefinitionId, null);
+    assert.deepStrictEqual(purchaseNotices, [
+      [["buyplayer.success", "Test Player", 1200], 0],
+      [["buyplayer.sendclub.success", "Test Player"], 0]
+    ]);
+
+    purchaseNotices.length = 0;
+    purchaseResult = {
+      success: false,
+      reason: "move-failed",
+      purchased: true,
+      price: 1200
+    };
+    await service.buyPlayer(player, null, purchaseHelpers);
+    assert.strictEqual(markedDefinitionId, null);
+    assert.deepStrictEqual(purchaseNotices, [
+      [["buyplayer.success", "Test Player", 1200], 0],
+      [["buyplayer.sendclub.error", "Test Player"], 2]
+    ]);
+
+    purchaseNotices.length = 0;
+    purchaseResult = {
+      success: false,
+      reason: "bid-failed",
+      permissionDenied: true
+    };
+    await service.buyPlayer(player, null, purchaseHelpers);
+    assert.strictEqual(markedDefinitionId, 123);
+    assert.deepStrictEqual(purchaseNotices, [
+      [["buyplayer.error", "Test Player", "buyplayer.error.child1"], 2]
+    ]);
+  } finally {
+    service.readAuctionPrices = originalReadAuctionPrices;
+    globalThis.repositories = originalRepositories;
+    globalThis.ItemPile = originalItemPile;
+    globalThis.MAX_NEW_ITEMS = originalMaxNewItems;
+  }
 }
