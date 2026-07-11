@@ -288,6 +288,7 @@ function assertUserscriptBundle() {
   assert.ok(userscript.includes("EA_CAPABILITY_UNAVAILABLE"));
   assert.ok(userscript.includes("item.move-to-club"));
   assert.ok(userscript.includes("item.purchase-to-club"));
+  assert.ok(userscript.includes("item.list-for-sale"));
   assert.ok(userscript.includes("showPlayerListPopup"));
   assert.ok(userscript.includes("AcademyCalcService"));
   assert.ok(userscript.includes("FgRatingService"));

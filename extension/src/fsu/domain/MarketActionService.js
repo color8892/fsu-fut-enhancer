@@ -433,8 +433,16 @@ export class MarketActionService {
   }
 
   async playerToAuction(d, p, time, helpers) {
-    const { futbinId, getInfo, getCachePrice, notice, playerGetLimits, getCurrentController } =
-      helpers;
+    const {
+      futbinId,
+      getInfo,
+      getCachePrice,
+      notice,
+      playerGetLimits,
+      getCurrentController,
+      debug,
+      ea
+    } = helpers;
     const info = getInfo();
 
     let i =
@@ -469,40 +477,27 @@ export class MarketActionService {
             return;
           }
         }
-        let lp = UTCurrencyInputControl.getIncrementBelowVal(price);
-        await services.Item.list(i, lp, price, time * 3600).observe(
-          getCurrentController(),
-          async (e, t) => {
-            if ((e.unobserve(getCurrentController()), t.success)) {
-              notice(["notice.auctionsuccess", i._staticData.name, price], 0);
-            } else {
-              let ix = t.error ? t.error.code : t.status;
-              if (NetworkErrorManager.checkCriticalStatus(ix)) NetworkErrorManager.handleStatus(ix);
-              else {
-                const listErrorKey = (() => {
-                  switch (ix) {
-                    case HttpStatusCode.FORBIDDEN:
-                      return "popup.error.list.forbidden.message";
-                    case UtasErrorCode.PERMISSION_DENIED:
-                      return "popup.error.list.PermissionDenied";
-                    case UtasErrorCode.STATE_INVALID:
-                      return "popup.error.list.InvalidState";
-                    case UtasErrorCode.DESTINATION_FULL:
-                      return "popup.error.tradetoken.SellItemTradePileFull";
-                    case UtasErrorCode.CARD_IN_TRADE:
-                      return "popup.error.tradetoken.ItemInTradeOffer";
-                    default:
-                      return "popup.error.list.InvalidState";
-                  }
-                })();
-                services.Notification.queue([
-                  services.Localization.localize(listErrorKey),
-                  UINotificationType.NEGATIVE
-                ]);
-              }
-            }
-          }
+        const startingPrice = ea.incrementMarketPrice(price, "below");
+        if (startingPrice === null) {
+          debug.log("EA currency-step capability unavailable");
+          notice("notice.loaderror", 2);
+          return false;
+        }
+        const result = await ea.listItemForSale(
+          i,
+          startingPrice,
+          price,
+          time * 3600,
+          getCurrentController()
         );
+        if (result.success) {
+          notice(["notice.auctionsuccess", i._staticData.name, price], 0);
+        } else if (result.error?.code === "EA_CAPABILITY_UNAVAILABLE") {
+          debug.log("EA listing capability unavailable", result.error);
+          notice("notice.loaderror", 2);
+          return false;
+        }
+        return result.success;
       } else {
         notice("notice.auctionmax", 2);
         return false;

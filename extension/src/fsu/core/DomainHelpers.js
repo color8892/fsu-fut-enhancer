@@ -12,6 +12,7 @@ export function createDomainHelpers(ctx) {
       ItemPile: typeof ItemPile === "undefined" ? undefined : ItemPile,
       GameCurrency: typeof GameCurrency === "undefined" ? undefined : GameCurrency,
       UtasErrorCode: typeof UtasErrorCode === "undefined" ? undefined : UtasErrorCode,
+      HttpStatusCode: typeof HttpStatusCode === "undefined" ? undefined : HttpStatusCode,
       UINotificationType:
         typeof UINotificationType === "undefined" ? undefined : UINotificationType,
       NetworkErrorManager:

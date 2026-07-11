@@ -364,6 +364,97 @@ export async function runEaRuntimeAdapterTests() {
     }
   );
 
+  let listingResponse = { success: true };
+  const listingNotifications = [];
+  const handledListingStatuses = [];
+  const listingCalls = [];
+  let listingUnobservedContext = null;
+  const listingServices = {
+    Item: {
+      list(item, startingPrice, buyNowPrice, durationSeconds) {
+        listingCalls.push([item, startingPrice, buyNowPrice, durationSeconds]);
+        return {
+          observe(_context, callback) {
+            callback(
+              {
+                unobserve(context) {
+                  listingUnobservedContext = context;
+                }
+              },
+              listingResponse
+            );
+          }
+        };
+      }
+    },
+    Localization: {
+      localize: (key) => `localized:${key}`
+    },
+    Notification: {
+      queue: (payload) => listingNotifications.push(payload)
+    }
+  };
+  const listingAdapter = new EaRuntimeAdapter({
+    getServices: () => listingServices,
+    getItemRuntime: () => ({
+      UINotificationType: { NEGATIVE: "negative" },
+      NetworkErrorManager: {
+        checkCriticalStatus: (status) => status === 503,
+        handleStatus: (status) => handledListingStatuses.push(status)
+      },
+      HttpStatusCode: { FORBIDDEN: 403 },
+      UtasErrorCode: {
+        PERMISSION_DENIED: "permission-denied",
+        STATE_INVALID: "state-invalid",
+        DESTINATION_FULL: "destination-full",
+        CARD_IN_TRADE: "card-in-trade"
+      }
+    })
+  });
+  const listingContext = { name: "listing-context" };
+  const listingItem = { id: 99 };
+  assert.strictEqual(listingAdapter.supports(EA_CAPABILITIES.ITEM_LIST_FOR_SALE), true);
+  assert.deepStrictEqual(
+    await listingAdapter.listItemForSale(listingItem, 900, 1000, 3600, listingContext),
+    { success: true }
+  );
+  assert.deepStrictEqual(listingCalls, [[listingItem, 900, 1000, 3600]]);
+  assert.strictEqual(listingUnobservedContext, listingContext);
+
+  listingResponse = { success: false, error: { code: "permission-denied" } };
+  assert.deepStrictEqual(
+    await listingAdapter.listItemForSale(listingItem, 900, 1000, 3600, listingContext),
+    {
+      success: false,
+      critical: false,
+      code: "permission-denied",
+      messageKey: "popup.error.list.PermissionDenied"
+    }
+  );
+  assert.deepStrictEqual(listingNotifications, [
+    ["localized:popup.error.list.PermissionDenied", "negative"]
+  ]);
+
+  listingResponse = { success: false, status: 503 };
+  assert.deepStrictEqual(
+    await listingAdapter.listItemForSale(listingItem, 900, 1000, 3600, listingContext),
+    { success: false, critical: true, code: 503 }
+  );
+  assert.deepStrictEqual(handledListingStatuses, [503]);
+
+  assert.deepStrictEqual(
+    await missingServices.listItemForSale(listingItem, 900, 1000, 3600, listingContext),
+    {
+      success: false,
+      error: {
+        code: "EA_CAPABILITY_UNAVAILABLE",
+        capability: EA_CAPABILITIES.ITEM_LIST_FOR_SALE,
+        missing: ["services"],
+        cause: undefined
+      }
+    }
+  );
+
   const unavailablePurchase = await missingServices.purchaseItemToClub({}, 1200, null);
   assert.deepStrictEqual(unavailablePurchase, {
     success: false,

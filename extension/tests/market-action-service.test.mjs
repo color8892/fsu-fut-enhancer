@@ -313,4 +313,76 @@ export async function runMarketActionServiceTests() {
     globalThis.ItemPile = originalBulkItemPile;
     globalThis.MAX_NEW_ITEMS = originalBulkMaxNewItems;
   }
+
+  const originalListingRepositories = globalThis.repositories;
+  const originalListingItemPile = globalThis.ItemPile;
+  const originalLodash = globalThis._;
+  try {
+    const listingItem = {
+      definitionId: 303,
+      _staticData: { name: "Listed Player" },
+      hasPriceLimits: () => false
+    };
+    globalThis.repositories = {
+      Item: {
+        transfer: {
+          get: (id) => (id === "listing-item" ? listingItem : null),
+          _collection: {}
+        },
+        unassigned: { get: () => null },
+        club: { items: { get: () => null } },
+        getPileSize: () => 100,
+        numItemsInCache: () => 0
+      }
+    };
+    globalThis.ItemPile = { TRANSFER: "transfer" };
+    globalThis._ = {
+      has: (object, key) => Object.prototype.hasOwnProperty.call(object, key)
+    };
+
+    const listingNotices = [];
+    let resolveListing;
+    const listingStarted = new Promise((resolve) => {
+      resolveListing = resolve;
+    });
+    const listingResult = service.playerToAuction("listing-item", 1200, 1, {
+      futbinId: { getPrice: async () => {} },
+      getInfo: () => ({ futbinId: { 303: 1 } }),
+      getCachePrice: () => ({ num: 1200 }),
+      notice: (...args) => listingNotices.push(args),
+      playerGetLimits: async () => {},
+      getCurrentController: () => ({ name: "listing-controller" }),
+      debug: { log: () => {} },
+      ea: {
+        incrementMarketPrice(price, direction) {
+          assert.strictEqual(price, 1200);
+          assert.strictEqual(direction, "below");
+          return 1100;
+        },
+        listItemForSale(item, startingPrice, buyNowPrice, durationSeconds, controller) {
+          assert.strictEqual(item, listingItem);
+          assert.strictEqual(startingPrice, 1100);
+          assert.strictEqual(buyNowPrice, 1200);
+          assert.strictEqual(durationSeconds, 3600);
+          assert.deepStrictEqual(controller, { name: "listing-controller" });
+          resolveListing();
+          return new Promise((resolve) => {
+            resolveListing = () => resolve({ success: true });
+          });
+        }
+      }
+    });
+    await listingStarted;
+    let listingSettled = false;
+    listingResult.then(() => (listingSettled = true));
+    await Promise.resolve();
+    assert.strictEqual(listingSettled, false);
+    resolveListing();
+    assert.strictEqual(await listingResult, true);
+    assert.deepStrictEqual(listingNotices, [[["notice.auctionsuccess", "Listed Player", 1200], 0]]);
+  } finally {
+    globalThis.repositories = originalListingRepositories;
+    globalThis.ItemPile = originalListingItemPile;
+    globalThis._ = originalLodash;
+  }
 }
