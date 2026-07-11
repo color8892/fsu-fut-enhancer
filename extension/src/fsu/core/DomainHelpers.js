@@ -8,6 +8,7 @@ export function createDomainHelpers(ctx) {
   const { events, info, repositories, services, cntlr, debug, fy, eafy, futbinId, pdb, isPhone } = ctx;
   const ea = new EaRuntimeAdapter({
     getServices: () => services,
+    getRepositories: () => repositories,
     getItemRuntime: () => ({
       ItemPile: typeof ItemPile === "undefined" ? undefined : ItemPile,
       GameCurrency: typeof GameCurrency === "undefined" ? undefined : GameCurrency,

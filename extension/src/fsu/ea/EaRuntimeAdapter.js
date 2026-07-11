@@ -6,7 +6,10 @@ export const EA_CAPABILITIES = Object.freeze({
   ITEM_MOVE_TO_CLUB: "item.move-to-club",
   ITEM_PURCHASE_TO_CLUB: "item.purchase-to-club",
   ITEM_LIST_FOR_SALE: "item.list-for-sale",
-  UNASSIGNED_RESET: "unassigned.reset"
+  UNASSIGNED_RESET: "unassigned.reset",
+  ITEM_STATIC_DATA: "item.static-data",
+  ITEM_PURCHASE_CAPACITY: "item.purchase-capacity",
+  ITEM_LISTING_INVENTORY: "item.listing-inventory"
 });
 
 /**
@@ -120,6 +123,23 @@ function unavailableUnassignedResetResult(missing, cause) {
 }
 
 /**
+ * @param {string} capability
+ * @param {string[]} missing
+ * @param {unknown} [cause]
+ */
+function unavailableItemRepositoryResult(capability, missing, cause) {
+  return {
+    success: false,
+    error: {
+      code: "EA_CAPABILITY_UNAVAILABLE",
+      capability,
+      missing,
+      cause: cause instanceof Error ? cause.message : undefined
+    }
+  };
+}
+
+/**
  * @param {number} price
  * @param {string[]} [missing]
  * @param {unknown} [cause]
@@ -183,16 +203,19 @@ export class EaRuntimeAdapter {
   /**
    * @param {{
    *   getServices?: () => unknown,
+   *   getRepositories?: () => unknown,
    *   getMarketRuntime?: () => unknown,
    *   getItemRuntime?: () => unknown
    * }} [options]
    */
   constructor({
     getServices = () => undefined,
+    getRepositories = () => undefined,
     getMarketRuntime = () => undefined,
     getItemRuntime = () => undefined
   } = {}) {
     this.getServices = getServices;
+    this.getRepositories = getRepositories;
     this.getMarketRuntime = getMarketRuntime;
     this.getItemRuntime = getItemRuntime;
   }
@@ -210,7 +233,10 @@ export class EaRuntimeAdapter {
       name !== EA_CAPABILITIES.ITEM_MOVE_TO_CLUB &&
       name !== EA_CAPABILITIES.ITEM_PURCHASE_TO_CLUB &&
       name !== EA_CAPABILITIES.ITEM_LIST_FOR_SALE &&
-      name !== EA_CAPABILITIES.UNASSIGNED_RESET
+      name !== EA_CAPABILITIES.UNASSIGNED_RESET &&
+      name !== EA_CAPABILITIES.ITEM_STATIC_DATA &&
+      name !== EA_CAPABILITIES.ITEM_PURCHASE_CAPACITY &&
+      name !== EA_CAPABILITIES.ITEM_LISTING_INVENTORY
     ) {
       return {
         name,
@@ -251,6 +277,66 @@ export class EaRuntimeAdapter {
       }
       if (typeof currencyInput.getIncrementBelowVal !== "function") {
         missing.push("marketRuntime.UTCurrencyInputControl.getIncrementBelowVal");
+      }
+      return { name, supported: missing.length === 0, missing };
+    }
+
+    if (name === EA_CAPABILITIES.ITEM_STATIC_DATA) {
+      const repositories = this.getRepositories();
+      const itemRepository = isRecord(repositories) ? repositories.Item : undefined;
+      if (!isRecord(itemRepository) || typeof itemRepository.getStaticDataByDefId !== "function") {
+        return {
+          name,
+          supported: false,
+          missing: ["repositories.Item.getStaticDataByDefId"]
+        };
+      }
+      return { name, supported: true, missing: [] };
+    }
+
+    if (name === EA_CAPABILITIES.ITEM_PURCHASE_CAPACITY) {
+      const repositories = this.getRepositories();
+      const runtime = this.getItemRuntime();
+      const itemRepository = isRecord(repositories) ? repositories.Item : undefined;
+      const missing = [];
+      if (!isRecord(itemRepository) || typeof itemRepository.numItemsInCache !== "function") {
+        missing.push("repositories.Item.numItemsInCache");
+      }
+      if (!isRecord(runtime) || !isRecord(runtime.ItemPile) || runtime.ItemPile.PURCHASED === undefined) {
+        missing.push("itemRuntime.ItemPile.PURCHASED");
+      }
+      return { name, supported: missing.length === 0, missing };
+    }
+
+    if (name === EA_CAPABILITIES.ITEM_LISTING_INVENTORY) {
+      const repositories = this.getRepositories();
+      const runtime = this.getItemRuntime();
+      const itemRepository = isRecord(repositories) ? repositories.Item : undefined;
+      const missing = [];
+      const transfer = isRecord(itemRepository) ? itemRepository.transfer : undefined;
+      const unassigned = isRecord(itemRepository) ? itemRepository.unassigned : undefined;
+      const club = isRecord(itemRepository) ? itemRepository.club : undefined;
+      const clubItems = isRecord(club) ? club.items : undefined;
+      if (!isRecord(transfer) || typeof transfer.get !== "function") {
+        missing.push("repositories.Item.transfer.get");
+      }
+      if (!isRecord(transfer) || !isRecord(transfer._collection)) {
+        missing.push("repositories.Item.transfer._collection");
+      }
+      if (!isRecord(unassigned) || typeof unassigned.get !== "function") {
+        missing.push("repositories.Item.unassigned.get");
+      }
+      if (!isRecord(clubItems) || typeof clubItems.get !== "function") {
+        missing.push("repositories.Item.club.items.get");
+      }
+      if (!isRecord(itemRepository) || typeof itemRepository.getPileSize !== "function") {
+        missing.push("repositories.Item.getPileSize");
+      }
+      if (!isRecord(itemRepository) || typeof itemRepository.numItemsInCache !== "function") {
+        missing.push("repositories.Item.numItemsInCache");
+      }
+      if (!isRecord(runtime) || !isRecord(runtime.ItemPile) || runtime.ItemPile.TRANSFER === undefined) {
+        missing.push("itemRuntime.ItemPile.TRANSFER");
       }
       return { name, supported: missing.length === 0, missing };
     }
@@ -963,6 +1049,125 @@ export class EaRuntimeAdapter {
       return { success: true };
     } catch (error) {
       return unavailableUnassignedResetResult([], error);
+    }
+  }
+
+  /**
+   * @param {number} definitionId
+   * @returns {unknown}
+   */
+  getStaticItemData(definitionId) {
+    const capability = this.inspect(EA_CAPABILITIES.ITEM_STATIC_DATA);
+    if (!capability.supported) {
+      return unavailableItemRepositoryResult(capability.name, capability.missing);
+    }
+    const repositories = this.getRepositories();
+    const itemRepository = isRecord(repositories) ? repositories.Item : undefined;
+    const getStaticDataByDefId = isRecord(itemRepository)
+      ? itemRepository.getStaticDataByDefId
+      : undefined;
+    if (typeof getStaticDataByDefId !== "function") {
+      return unavailableItemRepositoryResult(capability.name, capability.missing);
+    }
+    try {
+      return { success: true, data: getStaticDataByDefId.call(itemRepository, definitionId) };
+    } catch (error) {
+      return unavailableItemRepositoryResult(capability.name, [], error);
+    }
+  }
+
+  /**
+   * @param {number} maxItems
+   * @returns {unknown}
+   */
+  isPurchaseCapacityReached(maxItems) {
+    const capability = this.inspect(EA_CAPABILITIES.ITEM_PURCHASE_CAPACITY);
+    if (!capability.supported) {
+      return unavailableItemRepositoryResult(capability.name, capability.missing);
+    }
+    const repositories = this.getRepositories();
+    const runtime = this.getItemRuntime();
+    const itemRepository = isRecord(repositories) ? repositories.Item : undefined;
+    const itemPile = isRecord(runtime) ? runtime.ItemPile : undefined;
+    const numItemsInCache = isRecord(itemRepository) ? itemRepository.numItemsInCache : undefined;
+    if (!isRecord(itemPile) || typeof numItemsInCache !== "function") {
+      return unavailableItemRepositoryResult(capability.name, capability.missing);
+    }
+    try {
+      return {
+        success: true,
+        reached: Number(numItemsInCache.call(itemRepository, itemPile.PURCHASED)) >= Number(maxItems)
+      };
+    } catch (error) {
+      return unavailableItemRepositoryResult(capability.name, [], error);
+    }
+  }
+
+  /**
+   * @param {unknown} id
+   * @returns {unknown}
+   */
+  findListingItem(id) {
+    const capability = this.inspect(EA_CAPABILITIES.ITEM_LISTING_INVENTORY);
+    if (!capability.supported) {
+      return unavailableItemRepositoryResult(capability.name, capability.missing);
+    }
+    const repositories = this.getRepositories();
+    const itemRepository = isRecord(repositories) ? repositories.Item : undefined;
+    if (!isRecord(itemRepository)) {
+      return unavailableItemRepositoryResult(capability.name, capability.missing);
+    }
+    const transfer = itemRepository.transfer;
+    const unassigned = itemRepository.unassigned;
+    const club = itemRepository.club;
+    const clubItems = isRecord(club) ? club.items : undefined;
+    if (
+      !isRecord(transfer) ||
+      !isRecord(unassigned) ||
+      !isRecord(clubItems) ||
+      typeof transfer.get !== "function" ||
+      typeof unassigned.get !== "function" ||
+      typeof clubItems.get !== "function" ||
+      !isRecord(transfer._collection)
+    ) {
+      return unavailableItemRepositoryResult(capability.name, capability.missing);
+    }
+    try {
+      const item =
+        transfer.get.call(transfer, id) ||
+        unassigned.get.call(unassigned, id) ||
+        clubItems.get.call(clubItems, id);
+      return {
+        success: true,
+        item,
+        alreadyListed: Object.prototype.hasOwnProperty.call(transfer._collection, String(id))
+      };
+    } catch (error) {
+      return unavailableItemRepositoryResult(capability.name, [], error);
+    }
+  }
+
+  /** @returns {unknown} */
+  hasTransferListingCapacity() {
+    const capability = this.inspect(EA_CAPABILITIES.ITEM_LISTING_INVENTORY);
+    if (!capability.supported) {
+      return unavailableItemRepositoryResult(capability.name, capability.missing);
+    }
+    const repositories = this.getRepositories();
+    const runtime = this.getItemRuntime();
+    const itemRepository = isRecord(repositories) ? repositories.Item : undefined;
+    const itemPile = isRecord(runtime) ? runtime.ItemPile : undefined;
+    const getPileSize = isRecord(itemRepository) ? itemRepository.getPileSize : undefined;
+    const numItemsInCache = isRecord(itemRepository) ? itemRepository.numItemsInCache : undefined;
+    if (!isRecord(itemPile) || typeof getPileSize !== "function" || typeof numItemsInCache !== "function") {
+      return unavailableItemRepositoryResult(capability.name, capability.missing);
+    }
+    try {
+      const capacity = Number(getPileSize.call(itemRepository, itemPile.TRANSFER));
+      const used = Number(numItemsInCache.call(itemRepository, itemPile.TRANSFER));
+      return { success: true, hasCapacity: capacity - used > 0 };
+    } catch (error) {
+      return unavailableItemRepositoryResult(capability.name, [], error);
     }
   }
 

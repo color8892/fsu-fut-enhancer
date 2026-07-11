@@ -136,7 +136,13 @@ export class MarketActionService {
     const info = getInfo();
 
     info.run.bulkbuy = true;
-    if (repositories.Item.numItemsInCache(ItemPile.PURCHASED) >= MAX_NEW_ITEMS) {
+    const purchaseCapacity = ea.isPurchaseCapacityReached(MAX_NEW_ITEMS);
+    if (!purchaseCapacity.success) {
+      debug.log("EA purchase-capacity capability unavailable", purchaseCapacity.error);
+      notice("notice.loaderror", 2);
+      return;
+    }
+    if (purchaseCapacity.reached) {
       notice(["buyplayer.error", "", fy("buyplayer.error.child5")], 2);
       return;
     }
@@ -154,7 +160,13 @@ export class MarketActionService {
         buyStatus = false;
       if (Number.isInteger(player)) {
         defId = player;
-        playerName = repositories.Item.getStaticDataByDefId(defId).name;
+        const staticData = ea.getStaticItemData(defId);
+        if (!staticData.success || !staticData.data) {
+          debug.log("EA static-item capability unavailable", staticData.error);
+          notice("buyplayer.getinfo.error", 2);
+          continue;
+        }
+        playerName = staticData.data.name;
       } else if (typeof player == "object" && player.isPlayer()) {
         defId = player.definitionId;
         playerName = player.getStaticData().name;
@@ -253,7 +265,14 @@ export class MarketActionService {
       playerName = "";
     if (Number.isInteger(player)) {
       defId = player;
-      playerName = repositories.Item.getStaticDataByDefId(defId).name;
+      const staticData = ea.getStaticItemData(defId);
+      if (!staticData.success || !staticData.data) {
+        debug.log("EA static-item capability unavailable", staticData.error);
+        hideLoader();
+        notice("notice.loaderror", 2);
+        return;
+      }
+      playerName = staticData.data.name;
     } else if (typeof player == "object" && player.isPlayer()) {
       defId = player.definitionId;
       playerName = player.getStaticData().name;
@@ -262,7 +281,14 @@ export class MarketActionService {
       hideLoader();
       return;
     }
-    if (repositories.Item.numItemsInCache(ItemPile.PURCHASED) >= MAX_NEW_ITEMS) {
+    const purchaseCapacity = ea.isPurchaseCapacityReached(MAX_NEW_ITEMS);
+    if (!purchaseCapacity.success) {
+      debug.log("EA purchase-capacity capability unavailable", purchaseCapacity.error);
+      notice("notice.loaderror", 2);
+      hideLoader();
+      return;
+    }
+    if (purchaseCapacity.reached) {
       notice(["buyplayer.error", playerName, fy("buyplayer.error.child5")], 2);
       shouldMarkBuyError = true;
     } else {
@@ -445,11 +471,14 @@ export class MarketActionService {
     } = helpers;
     const info = getInfo();
 
-    let i =
-      repositories.Item.transfer.get(d) ||
-      repositories.Item.unassigned.get(d) ||
-      repositories.Item.club.items.get(d);
-    let t = repositories.Item.transfer._collection.hasOwnProperty(d);
+    const listingItem = ea.findListingItem(d);
+    if (!listingItem.success) {
+      debug.log("EA listing-inventory capability unavailable", listingItem.error);
+      notice("notice.loaderror", 2);
+      return false;
+    }
+    const i = listingItem.item;
+    const t = listingItem.alreadyListed;
     if (i) {
       //25.13 读取futbin最新的价格
       try {
@@ -463,13 +492,13 @@ export class MarketActionService {
       }
       const price = getCachePrice(i.definitionId, 1).num;
 
-      if (
-        (repositories.Item.getPileSize(ItemPile.TRANSFER) -
-          repositories.Item.numItemsInCache(ItemPile.TRANSFER) >
-          0 ||
-          t) &&
-        price
-      ) {
+      const listingCapacity = ea.hasTransferListingCapacity();
+      if (!listingCapacity.success) {
+        debug.log("EA listing-inventory capability unavailable", listingCapacity.error);
+        notice("notice.loaderror", 2);
+        return false;
+      }
+      if ((listingCapacity.hasCapacity || t) && price) {
         await playerGetLimits(i);
         if (i.hasPriceLimits()) {
           if (p < i._itemPriceLimits.minimum || p > i._itemPriceLimits.maximum) {

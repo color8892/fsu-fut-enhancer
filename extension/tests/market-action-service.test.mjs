@@ -181,6 +181,8 @@ export async function runMarketActionServiceTests() {
       isPhone: () => false,
       getCurrentController: () => null,
       ea: {
+        isPurchaseCapacityReached: () => ({ success: true, reached: false }),
+        getStaticItemData: () => ({ success: true, data: { name: "Test Player" } }),
         async purchaseItemToClub(item, price, context, onBeforeBid) {
           assert.strictEqual(item, marketItem);
           assert.strictEqual(price, 1200);
@@ -288,6 +290,8 @@ export async function runMarketActionServiceTests() {
       isPhone: () => false,
       getCurrentController: () => null,
       ea: {
+        isPurchaseCapacityReached: () => ({ success: true, reached: false }),
+        getStaticItemData: () => ({ success: true, data: { name: "Unused" } }),
         async purchaseItemToClub(item, price, context, onBeforeBid) {
           assert.strictEqual(context, service);
           assert.ok([...marketItems.values()].includes(item));
@@ -354,6 +358,12 @@ export async function runMarketActionServiceTests() {
       getCurrentController: () => ({ name: "listing-controller" }),
       debug: { log: () => {} },
       ea: {
+        findListingItem: () => ({
+          success: true,
+          item: listingItem,
+          alreadyListed: false
+        }),
+        hasTransferListingCapacity: () => ({ success: true, hasCapacity: true }),
         incrementMarketPrice(price, direction) {
           assert.strictEqual(price, 1200);
           assert.strictEqual(direction, "below");

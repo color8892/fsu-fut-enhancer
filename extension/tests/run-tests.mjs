@@ -290,6 +290,9 @@ function assertUserscriptBundle() {
   assert.ok(userscript.includes("item.purchase-to-club"));
   assert.ok(userscript.includes("item.list-for-sale"));
   assert.ok(userscript.includes("unassigned.reset"));
+  assert.ok(userscript.includes("item.static-data"));
+  assert.ok(userscript.includes("item.purchase-capacity"));
+  assert.ok(userscript.includes("item.listing-inventory"));
   assert.ok(userscript.includes("showPlayerListPopup"));
   assert.ok(userscript.includes("AcademyCalcService"));
   assert.ok(userscript.includes("FgRatingService"));

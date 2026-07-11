@@ -10960,7 +10960,10 @@
     ITEM_MOVE_TO_CLUB: "item.move-to-club",
     ITEM_PURCHASE_TO_CLUB: "item.purchase-to-club",
     ITEM_LIST_FOR_SALE: "item.list-for-sale",
-    UNASSIGNED_RESET: "unassigned.reset"
+    UNASSIGNED_RESET: "unassigned.reset",
+    ITEM_STATIC_DATA: "item.static-data",
+    ITEM_PURCHASE_CAPACITY: "item.purchase-capacity",
+    ITEM_LISTING_INVENTORY: "item.listing-inventory"
   });
   function isRecord(value) {
     return value !== null && typeof value === "object";
@@ -11034,6 +11037,17 @@
       }
     };
   }
+  function unavailableItemRepositoryResult(capability, missing, cause) {
+    return {
+      success: false,
+      error: {
+        code: "EA_CAPABILITY_UNAVAILABLE",
+        capability,
+        missing,
+        cause: cause instanceof Error ? cause.message : void 0
+      }
+    };
+  }
   function purchasedMoveFailure(price, missing = [], cause) {
     const error = missing.length > 0 || cause instanceof Error ? {
       code: "EA_PURCHASED_ITEM_MOVE_FAILED",
@@ -11079,16 +11093,19 @@
     /**
      * @param {{
      *   getServices?: () => unknown,
+     *   getRepositories?: () => unknown,
      *   getMarketRuntime?: () => unknown,
      *   getItemRuntime?: () => unknown
      * }} [options]
      */
     constructor({
       getServices = () => void 0,
+      getRepositories = () => void 0,
       getMarketRuntime = () => void 0,
       getItemRuntime = () => void 0
     } = {}) {
       this.getServices = getServices;
+      this.getRepositories = getRepositories;
       this.getMarketRuntime = getMarketRuntime;
       this.getItemRuntime = getItemRuntime;
     }
@@ -11097,7 +11114,7 @@
      * @returns {EaCapabilityStatus}
      */
     inspect(name) {
-      if (name !== EA_CAPABILITIES.UTAS_SESSION && name !== EA_CAPABILITIES.MARKET_SEARCH && name !== EA_CAPABILITIES.MARKET_QUERY_MODEL && name !== EA_CAPABILITIES.CURRENCY_STEPS && name !== EA_CAPABILITIES.ITEM_MOVE_TO_CLUB && name !== EA_CAPABILITIES.ITEM_PURCHASE_TO_CLUB && name !== EA_CAPABILITIES.ITEM_LIST_FOR_SALE && name !== EA_CAPABILITIES.UNASSIGNED_RESET) {
+      if (name !== EA_CAPABILITIES.UTAS_SESSION && name !== EA_CAPABILITIES.MARKET_SEARCH && name !== EA_CAPABILITIES.MARKET_QUERY_MODEL && name !== EA_CAPABILITIES.CURRENCY_STEPS && name !== EA_CAPABILITIES.ITEM_MOVE_TO_CLUB && name !== EA_CAPABILITIES.ITEM_PURCHASE_TO_CLUB && name !== EA_CAPABILITIES.ITEM_LIST_FOR_SALE && name !== EA_CAPABILITIES.UNASSIGNED_RESET && name !== EA_CAPABILITIES.ITEM_STATIC_DATA && name !== EA_CAPABILITIES.ITEM_PURCHASE_CAPACITY && name !== EA_CAPABILITIES.ITEM_LISTING_INVENTORY) {
         return {
           name,
           supported: false,
@@ -11135,6 +11152,63 @@
         }
         if (typeof currencyInput.getIncrementBelowVal !== "function") {
           missing.push("marketRuntime.UTCurrencyInputControl.getIncrementBelowVal");
+        }
+        return { name, supported: missing.length === 0, missing };
+      }
+      if (name === EA_CAPABILITIES.ITEM_STATIC_DATA) {
+        const repositories2 = this.getRepositories();
+        const itemRepository = isRecord(repositories2) ? repositories2.Item : void 0;
+        if (!isRecord(itemRepository) || typeof itemRepository.getStaticDataByDefId !== "function") {
+          return {
+            name,
+            supported: false,
+            missing: ["repositories.Item.getStaticDataByDefId"]
+          };
+        }
+        return { name, supported: true, missing: [] };
+      }
+      if (name === EA_CAPABILITIES.ITEM_PURCHASE_CAPACITY) {
+        const repositories2 = this.getRepositories();
+        const runtime = this.getItemRuntime();
+        const itemRepository = isRecord(repositories2) ? repositories2.Item : void 0;
+        const missing = [];
+        if (!isRecord(itemRepository) || typeof itemRepository.numItemsInCache !== "function") {
+          missing.push("repositories.Item.numItemsInCache");
+        }
+        if (!isRecord(runtime) || !isRecord(runtime.ItemPile) || runtime.ItemPile.PURCHASED === void 0) {
+          missing.push("itemRuntime.ItemPile.PURCHASED");
+        }
+        return { name, supported: missing.length === 0, missing };
+      }
+      if (name === EA_CAPABILITIES.ITEM_LISTING_INVENTORY) {
+        const repositories2 = this.getRepositories();
+        const runtime = this.getItemRuntime();
+        const itemRepository = isRecord(repositories2) ? repositories2.Item : void 0;
+        const missing = [];
+        const transfer = isRecord(itemRepository) ? itemRepository.transfer : void 0;
+        const unassigned = isRecord(itemRepository) ? itemRepository.unassigned : void 0;
+        const club = isRecord(itemRepository) ? itemRepository.club : void 0;
+        const clubItems = isRecord(club) ? club.items : void 0;
+        if (!isRecord(transfer) || typeof transfer.get !== "function") {
+          missing.push("repositories.Item.transfer.get");
+        }
+        if (!isRecord(transfer) || !isRecord(transfer._collection)) {
+          missing.push("repositories.Item.transfer._collection");
+        }
+        if (!isRecord(unassigned) || typeof unassigned.get !== "function") {
+          missing.push("repositories.Item.unassigned.get");
+        }
+        if (!isRecord(clubItems) || typeof clubItems.get !== "function") {
+          missing.push("repositories.Item.club.items.get");
+        }
+        if (!isRecord(itemRepository) || typeof itemRepository.getPileSize !== "function") {
+          missing.push("repositories.Item.getPileSize");
+        }
+        if (!isRecord(itemRepository) || typeof itemRepository.numItemsInCache !== "function") {
+          missing.push("repositories.Item.numItemsInCache");
+        }
+        if (!isRecord(runtime) || !isRecord(runtime.ItemPile) || runtime.ItemPile.TRANSFER === void 0) {
+          missing.push("itemRuntime.ItemPile.TRANSFER");
         }
         return { name, supported: missing.length === 0, missing };
       }
@@ -11724,6 +11798,108 @@
         return unavailableUnassignedResetResult([], error);
       }
     }
+    /**
+     * @param {number} definitionId
+     * @returns {unknown}
+     */
+    getStaticItemData(definitionId) {
+      const capability = this.inspect(EA_CAPABILITIES.ITEM_STATIC_DATA);
+      if (!capability.supported) {
+        return unavailableItemRepositoryResult(capability.name, capability.missing);
+      }
+      const repositories2 = this.getRepositories();
+      const itemRepository = isRecord(repositories2) ? repositories2.Item : void 0;
+      const getStaticDataByDefId = isRecord(itemRepository) ? itemRepository.getStaticDataByDefId : void 0;
+      if (typeof getStaticDataByDefId !== "function") {
+        return unavailableItemRepositoryResult(capability.name, capability.missing);
+      }
+      try {
+        return { success: true, data: getStaticDataByDefId.call(itemRepository, definitionId) };
+      } catch (error) {
+        return unavailableItemRepositoryResult(capability.name, [], error);
+      }
+    }
+    /**
+     * @param {number} maxItems
+     * @returns {unknown}
+     */
+    isPurchaseCapacityReached(maxItems) {
+      const capability = this.inspect(EA_CAPABILITIES.ITEM_PURCHASE_CAPACITY);
+      if (!capability.supported) {
+        return unavailableItemRepositoryResult(capability.name, capability.missing);
+      }
+      const repositories2 = this.getRepositories();
+      const runtime = this.getItemRuntime();
+      const itemRepository = isRecord(repositories2) ? repositories2.Item : void 0;
+      const itemPile = isRecord(runtime) ? runtime.ItemPile : void 0;
+      const numItemsInCache = isRecord(itemRepository) ? itemRepository.numItemsInCache : void 0;
+      if (!isRecord(itemPile) || typeof numItemsInCache !== "function") {
+        return unavailableItemRepositoryResult(capability.name, capability.missing);
+      }
+      try {
+        return {
+          success: true,
+          reached: Number(numItemsInCache.call(itemRepository, itemPile.PURCHASED)) >= Number(maxItems)
+        };
+      } catch (error) {
+        return unavailableItemRepositoryResult(capability.name, [], error);
+      }
+    }
+    /**
+     * @param {unknown} id
+     * @returns {unknown}
+     */
+    findListingItem(id) {
+      const capability = this.inspect(EA_CAPABILITIES.ITEM_LISTING_INVENTORY);
+      if (!capability.supported) {
+        return unavailableItemRepositoryResult(capability.name, capability.missing);
+      }
+      const repositories2 = this.getRepositories();
+      const itemRepository = isRecord(repositories2) ? repositories2.Item : void 0;
+      if (!isRecord(itemRepository)) {
+        return unavailableItemRepositoryResult(capability.name, capability.missing);
+      }
+      const transfer = itemRepository.transfer;
+      const unassigned = itemRepository.unassigned;
+      const club = itemRepository.club;
+      const clubItems = isRecord(club) ? club.items : void 0;
+      if (!isRecord(transfer) || !isRecord(unassigned) || !isRecord(clubItems) || typeof transfer.get !== "function" || typeof unassigned.get !== "function" || typeof clubItems.get !== "function" || !isRecord(transfer._collection)) {
+        return unavailableItemRepositoryResult(capability.name, capability.missing);
+      }
+      try {
+        const item = transfer.get.call(transfer, id) || unassigned.get.call(unassigned, id) || clubItems.get.call(clubItems, id);
+        return {
+          success: true,
+          item,
+          alreadyListed: Object.prototype.hasOwnProperty.call(transfer._collection, String(id))
+        };
+      } catch (error) {
+        return unavailableItemRepositoryResult(capability.name, [], error);
+      }
+    }
+    /** @returns {unknown} */
+    hasTransferListingCapacity() {
+      const capability = this.inspect(EA_CAPABILITIES.ITEM_LISTING_INVENTORY);
+      if (!capability.supported) {
+        return unavailableItemRepositoryResult(capability.name, capability.missing);
+      }
+      const repositories2 = this.getRepositories();
+      const runtime = this.getItemRuntime();
+      const itemRepository = isRecord(repositories2) ? repositories2.Item : void 0;
+      const itemPile = isRecord(runtime) ? runtime.ItemPile : void 0;
+      const getPileSize = isRecord(itemRepository) ? itemRepository.getPileSize : void 0;
+      const numItemsInCache = isRecord(itemRepository) ? itemRepository.numItemsInCache : void 0;
+      if (!isRecord(itemPile) || typeof getPileSize !== "function" || typeof numItemsInCache !== "function") {
+        return unavailableItemRepositoryResult(capability.name, capability.missing);
+      }
+      try {
+        const capacity = Number(getPileSize.call(itemRepository, itemPile.TRANSFER));
+        const used = Number(numItemsInCache.call(itemRepository, itemPile.TRANSFER));
+        return { success: true, hasCapacity: capacity - used > 0 };
+      } catch (error) {
+        return unavailableItemRepositoryResult(capability.name, [], error);
+      }
+    }
     clearTransferMarketCache() {
       if (!this.supports(EA_CAPABILITIES.MARKET_SEARCH)) {
         return false;
@@ -11913,7 +12089,13 @@
       } = helpers;
       const info = getInfo();
       info.run.bulkbuy = true;
-      if (repositories.Item.numItemsInCache(ItemPile.PURCHASED) >= MAX_NEW_ITEMS) {
+      const purchaseCapacity = ea.isPurchaseCapacityReached(MAX_NEW_ITEMS);
+      if (!purchaseCapacity.success) {
+        debug2.log("EA purchase-capacity capability unavailable", purchaseCapacity.error);
+        notice("notice.loaderror", 2);
+        return;
+      }
+      if (purchaseCapacity.reached) {
         notice(["buyplayer.error", "", fy2("buyplayer.error.child5")], 2);
         return;
       }
@@ -11927,7 +12109,13 @@
         let defId, playerName, buyStatus = false;
         if (Number.isInteger(player)) {
           defId = player;
-          playerName = repositories.Item.getStaticDataByDefId(defId).name;
+          const staticData = ea.getStaticItemData(defId);
+          if (!staticData.success || !staticData.data) {
+            debug2.log("EA static-item capability unavailable", staticData.error);
+            notice("buyplayer.getinfo.error", 2);
+            continue;
+          }
+          playerName = staticData.data.name;
         } else if (typeof player == "object" && player.isPlayer()) {
           defId = player.definitionId;
           playerName = player.getStaticData().name;
@@ -12018,7 +12206,14 @@
       let defId = 0, playerName = "";
       if (Number.isInteger(player)) {
         defId = player;
-        playerName = repositories.Item.getStaticDataByDefId(defId).name;
+        const staticData = ea.getStaticItemData(defId);
+        if (!staticData.success || !staticData.data) {
+          debug2.log("EA static-item capability unavailable", staticData.error);
+          hideLoader();
+          notice("notice.loaderror", 2);
+          return;
+        }
+        playerName = staticData.data.name;
       } else if (typeof player == "object" && player.isPlayer()) {
         defId = player.definitionId;
         playerName = player.getStaticData().name;
@@ -12027,7 +12222,14 @@
         hideLoader();
         return;
       }
-      if (repositories.Item.numItemsInCache(ItemPile.PURCHASED) >= MAX_NEW_ITEMS) {
+      const purchaseCapacity = ea.isPurchaseCapacityReached(MAX_NEW_ITEMS);
+      if (!purchaseCapacity.success) {
+        debug2.log("EA purchase-capacity capability unavailable", purchaseCapacity.error);
+        notice("notice.loaderror", 2);
+        hideLoader();
+        return;
+      }
+      if (purchaseCapacity.reached) {
         notice(["buyplayer.error", playerName, fy2("buyplayer.error.child5")], 2);
         shouldMarkBuyError = true;
       } else {
@@ -12198,8 +12400,14 @@
         ea
       } = helpers;
       const info = getInfo();
-      let i = repositories.Item.transfer.get(d) || repositories.Item.unassigned.get(d) || repositories.Item.club.items.get(d);
-      let t = repositories.Item.transfer._collection.hasOwnProperty(d);
+      const listingItem = ea.findListingItem(d);
+      if (!listingItem.success) {
+        debug2.log("EA listing-inventory capability unavailable", listingItem.error);
+        notice("notice.loaderror", 2);
+        return false;
+      }
+      const i = listingItem.item;
+      const t = listingItem.alreadyListed;
       if (i) {
         try {
           if (_.has(info.futbinId, i.definitionId)) {
@@ -12211,7 +12419,13 @@
           return;
         }
         const price = getCachePrice(i.definitionId, 1).num;
-        if ((repositories.Item.getPileSize(ItemPile.TRANSFER) - repositories.Item.numItemsInCache(ItemPile.TRANSFER) > 0 || t) && price) {
+        const listingCapacity = ea.hasTransferListingCapacity();
+        if (!listingCapacity.success) {
+          debug2.log("EA listing-inventory capability unavailable", listingCapacity.error);
+          notice("notice.loaderror", 2);
+          return false;
+        }
+        if ((listingCapacity.hasCapacity || t) && price) {
           await playerGetLimits(i);
           if (i.hasPriceLimits()) {
             if (p < i._itemPriceLimits.minimum || p > i._itemPriceLimits.maximum) {
@@ -13936,6 +14150,7 @@
     const { events, info, repositories: repositories2, services: services2, cntlr: cntlr2, debug: debug2, fy: fy2, eafy, futbinId: futbinId2, pdb, isPhone: isPhone2 } = ctx;
     const ea = new EaRuntimeAdapter({
       getServices: () => services2,
+      getRepositories: () => repositories2,
       getItemRuntime: () => ({
         ItemPile: typeof ItemPile === "undefined" ? void 0 : ItemPile,
         GameCurrency: typeof GameCurrency === "undefined" ? void 0 : GameCurrency,

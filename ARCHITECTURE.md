@@ -235,7 +235,7 @@ SomeEAClass.prototype.someMethod = function (...args) {
 - 直接依賴 EA 動態全域的 patch 暫不強制轉 `.ts`；先透過 adapter／declaration 縮小邊界。
 - `npm run test:all` 固定執行 build、typecheck 和 tests，避免型別設定只存在於編輯器。
 
-目前 `EaRuntimeAdapter` 已是 strict island 的一部分。`EaMarketSearchSession` 隱藏 EA search DTO/view model 的欄位同步，domain 市場唯讀流程只使用 capability、session 和結構化 failure result。寫入邊界目前正規化「移動物品到俱樂部」、單一及批量球員購買交易、物品上架與未分配清單重置；購買與上架都會等待 EA observable 結束，再把結果交回 domain 映射既有 UI 或 EA 通知。獨立競標與其他市場寫入操作尚未完成 adapter 遷移。
+目前 `EaRuntimeAdapter` 已是 strict island 的一部分。`EaMarketSearchSession` 隱藏 EA search DTO/view model 的欄位同步，domain 市場唯讀流程只使用 capability、session 和結構化 failure result。寫入邊界目前正規化「移動物品到俱樂部」、單一及批量球員購買交易、物品上架與未分配清單重置；adapter 也封裝靜態球員資料、購買容量與上架庫存查詢。購買與上架都會等待 EA observable 結束，再把結果交回 domain 映射既有 UI 或 EA 通知。獨立競標與其他市場寫入操作尚未完成 adapter 遷移。
 
 未完成的 EA Adapter 與 typed runtime 規劃記錄在 [ROADMAP.md](ROADMAP.md)，不屬於目前架構。
 

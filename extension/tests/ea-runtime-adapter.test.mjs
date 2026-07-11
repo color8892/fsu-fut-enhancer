@@ -484,6 +484,58 @@ export async function runEaRuntimeAdapterTests() {
     }
   });
 
+  const listingRepositoryItem = { id: "club-item" };
+  const repositoryAdapter = new EaRuntimeAdapter({
+    getRepositories: () => ({
+      Item: {
+        getStaticDataByDefId: (definitionId) => ({ name: `Player ${definitionId}` }),
+        numItemsInCache: (pile) => (pile === "purchased" ? 50 : 99),
+        getPileSize: () => 100,
+        transfer: {
+          get: () => null,
+          _collection: { "already-listed": true }
+        },
+        unassigned: { get: () => null },
+        club: { items: { get: (id) => (id === "club-item" ? listingRepositoryItem : null) } }
+      }
+    }),
+    getItemRuntime: () => ({ ItemPile: { PURCHASED: "purchased", TRANSFER: "transfer" } })
+  });
+  assert.strictEqual(repositoryAdapter.supports(EA_CAPABILITIES.ITEM_STATIC_DATA), true);
+  assert.strictEqual(repositoryAdapter.supports(EA_CAPABILITIES.ITEM_PURCHASE_CAPACITY), true);
+  assert.strictEqual(repositoryAdapter.supports(EA_CAPABILITIES.ITEM_LISTING_INVENTORY), true);
+  assert.deepStrictEqual(repositoryAdapter.getStaticItemData(42), {
+    success: true,
+    data: { name: "Player 42" }
+  });
+  assert.deepStrictEqual(repositoryAdapter.isPurchaseCapacityReached(50), {
+    success: true,
+    reached: true
+  });
+  assert.deepStrictEqual(repositoryAdapter.findListingItem("club-item"), {
+    success: true,
+    item: listingRepositoryItem,
+    alreadyListed: false
+  });
+  assert.deepStrictEqual(repositoryAdapter.findListingItem("already-listed"), {
+    success: true,
+    item: null,
+    alreadyListed: true
+  });
+  assert.deepStrictEqual(repositoryAdapter.hasTransferListingCapacity(), {
+    success: true,
+    hasCapacity: true
+  });
+  assert.deepStrictEqual(missingServices.getStaticItemData(42), {
+    success: false,
+    error: {
+      code: "EA_CAPABILITY_UNAVAILABLE",
+      capability: EA_CAPABILITIES.ITEM_STATIC_DATA,
+      missing: ["repositories.Item.getStaticDataByDefId"],
+      cause: undefined
+    }
+  });
+
   const unavailablePurchase = await missingServices.purchaseItemToClub({}, 1200, null);
   assert.deepStrictEqual(unavailablePurchase, {
     success: false,
