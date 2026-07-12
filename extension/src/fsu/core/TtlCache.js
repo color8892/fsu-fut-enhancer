@@ -12,6 +12,10 @@ export class TtlCache {
     this.entries = new Map();
   }
 
+  /**
+   * @param {string} key
+   * @returns {unknown}
+   */
   get(key) {
     const entry = this.entries.get(key);
     if (!entry) return undefined;
@@ -24,6 +28,10 @@ export class TtlCache {
     return entry.value;
   }
 
+  /**
+   * @param {string} key
+   * @param {unknown} value
+   */
   set(key, value) {
     if (this.entries.has(key)) {
       this.entries.delete(key);
@@ -31,6 +39,7 @@ export class TtlCache {
     this.entries.set(key, { value, expiresAt: Date.now() + this.ttlMs });
     while (this.entries.size > this.maxSize) {
       const oldest = this.entries.keys().next().value;
+      if (oldest === undefined) break;
       this.entries.delete(oldest);
     }
   }

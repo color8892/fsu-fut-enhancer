@@ -3,12 +3,14 @@
 ## 目錄
 
 1. [系統總覽](#系統總覽)
-2. [啟動順序](#啟動順序)
-3. [模組邊界](#模組邊界)
-4. [依賴與 FsuContext](#依賴與-fsucontext)
-5. [Patch 安裝順序](#patch-安裝順序)
-6. [events.* API 索引](#events-api-索引)
-7. [模組化踩坑](#模組化踩坑)
+2. [Extension 安全邊界](#extension-安全邊界)
+3. [啟動順序](#啟動順序)
+4. [模組邊界](#模組邊界)
+5. [型別策略](#型別策略)
+6. [依賴與 FsuContext](#依賴與-fsucontext)
+7. [Patch 安裝順序](#patch-安裝順序)
+8. [events.* API 索引](#events-api-索引)
+9. [模組化踩坑](#模組化踩坑)
 
 ---
 
@@ -18,14 +20,14 @@ FSU 分三層執行：
 
 | 層 | 執行環境 | 職責 |
 |----|----------|------|
-| Content script | 擴充隔離世界 | 注入腳本、轉發 storage / fetch 到 background |
+| Content script | 擴充隔離世界 | 注入 packaged scripts、轉發 storage、將 page request 送往 background 驗證 |
 | Page runtime | EA 頁面世界 | `GM_getValue` / `GM_xmlhttpRequest` 等 shim |
 | FSU 模組 | EA 頁面世界 | 業務邏輯 + EA prototype patches |
 
 ```mermaid
 flowchart TB
   subgraph ext [Chrome Extension]
-    BG[background.js]
+    BG[background.js + RequestPolicy]
     CB[content-bridge.js]
   end
 
@@ -44,6 +46,49 @@ flowchart TB
   PR <-->|GM_SET_VALUE / XHR proxy| CB
   CB <-->|chrome.runtime| BG
 ```
+
+---
+
+## Extension 安全邊界
+
+FSU 的 page runtime 必須存取 EA page world，因此 `window.postMessage` 的訊息可能被同頁其他 script 偽造。`source: "fsu-extension-page"` 是 routing marker，不是身份驗證。
+
+安全模型採雙層限制：
+
+1. `manifest.json` 只在 FUT Web App 注入 content script，並限制 extension 可連線的 host。
+2. `background.js` 的 `SenderPolicy` 和 `RequestPolicy` 再驗證 sender URL、request origin、path、method、headers 和 credentials。
+
+```mermaid
+sequenceDiagram
+  participant P as Untrusted page world
+  participant C as content-bridge
+  participant B as background RequestPolicy
+  participant R as Approved remote endpoint
+
+  P->>C: GM_XMLHTTP_REQUEST details
+  C->>B: chrome.runtime.sendMessage
+  B->>B: validate sender + endpoint policy
+  alt rejected
+    B-->>C: SecurityError
+    C-->>P: error response
+  else allowed
+    B->>R: constrained GET
+    R-->>B: bounded response
+    B-->>C: serialized response
+    C-->>P: response callback
+  end
+```
+
+目前 policy 的不變條件：
+
+- 只允許 HTTPS 和已列出的 endpoint path。
+- 現有遠端整合只允許 GET。
+- header 依 endpoint allowlist 過濾；EA market 才能轉發 `X-UT-SID`。
+- credentials 預設 omit；需要 cookie 的 endpoint 必須明確宣告。
+- redirect 採 fail closed，timeout 上限 30 秒，response 上限 5 MiB。
+- Lodash 和 userscript 皆來自 extension package，不使用 CDN fallback。
+
+HTML 是另一個信任邊界。`setTrustedHtml()` 不負責 sanitize，只能接收由 extension 常數組成的 markup；遠端資料必須先 escape，或以 `textContent`／DOM node 建立。完整維護規則見 [SECURITY.md](SECURITY.md)。
 
 ---
 
@@ -140,6 +185,7 @@ extension/src/fsu/
 │   ├── PatchRegistry.js   # call.view 原始方法對照
 │   └── TtlCache.js / PriceRequestQueue.js / …
 ├── domain/                # 可測試業務邏輯，透過 helpers 取 deps
+├── ea/                    # EA runtime capability adapters 與 diagnostics
 ├── patches/               # EA prototype 修改 + events 註冊
 ├── legacy/futweb.js       # 僅編排，不堆業務
 ├── ui/                    # DOM 工廠、設定畫面、CSS
@@ -175,6 +221,23 @@ SomeEAClass.prototype.someMethod = function (...args) {
   return call.view.card.call(this, ...args);
 };
 ```
+
+---
+
+## 型別策略
+
+專案仍以 JavaScript ES modules 為主，透過 TypeScript `checkJs` 漸進建立 strict island。`tsconfig.json` 只列出已完成契約整理的純模組，並啟用 `strict`、`noImplicitReturns` 和 `noUncheckedIndexedAccess`。
+
+目前策略：
+
+- 純 `core/`、`infra/`、`domain/` 和 UI safety helper 優先加入 typecheck。
+- 使用 JSDoc generic、record 和 capability shape 描述現有 JavaScript API。
+- 直接依賴 EA 動態全域的 patch 暫不強制轉 `.ts`；先透過 adapter／declaration 縮小邊界。
+- `npm run test:all` 固定執行 build、typecheck 和 tests，避免型別設定只存在於編輯器。
+
+目前 `EaRuntimeAdapter` 已是 strict island 的一部分。`EaMarketSearchSession` 隱藏 EA search DTO/view model 的欄位同步，domain 市場唯讀流程只使用 capability、session 和結構化 failure result。寫入邊界目前正規化「移動物品到俱樂部」、單一及批量球員購買交易、物品上架與未分配清單重置；adapter 也封裝靜態球員資料、購買容量與上架庫存查詢。購買與上架都會等待 EA observable 結束，再把結果交回 domain 映射既有 UI 或 EA 通知。獨立競標與其他市場寫入操作尚未完成 adapter 遷移。
+
+未完成的 EA Adapter 與 typed runtime 規劃記錄在 [ROADMAP.md](ROADMAP.md)，不屬於目前架構。
 
 ---
 
@@ -486,6 +549,8 @@ CI / `test:all` 會驗 bundle 含關鍵符號。
 
 `DomainHelpers` 使用 `ctx.GM_xmlhttpRequest`，不要假設測試環境有 `GM_xmlhttpRequest` 全域。
 
+新增 request 時不能只修改 `manifest.host_permissions`。必須同步加入 background request rule，並測試允許與拒絕案例。page runtime 傳入的 URL、header、method 均視為不可信。
+
 ### 7. Extension context invalidated
 
 **觸發時機**：`chrome://extensions` 手動重載、擴充自動更新、開發者 `npm run build` 後重載擴充，但 FUT 分頁未刷新。
@@ -515,5 +580,9 @@ CI / `test:all` 會驗 bundle 含關鍵符號。
 ## 相關文件
 
 - [AGENTS.md](./AGENTS.md) — AI 精簡導覽
+- [README.md](./README.md) — 使用者安裝與專案入口
+- [ROADMAP.md](./ROADMAP.md) — 分階段重構計畫
+- [SECURITY.md](./SECURITY.md) — 安全模型與回報流程
+- [extension/README.md](./extension/README.md) — Extension 開發指令
 - `extension/tests/` — 測試與 manifest 驗證
 - `.github/workflows/test.yml` — CI

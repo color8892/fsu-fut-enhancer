@@ -8,7 +8,8 @@
     "build": "node scripts/build-userscript.cjs",
     "build:watch": "node scripts/build-userscript.cjs --watch",
     "test": "node tests/run-tests.mjs",
-    "test:all": "npm run build && npm test",
+    "test:all": "npm run build && npm run typecheck && npm test",
+    "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "check:ea-bundle": "node scripts/ea-bundle-check.mjs",
     "package": "node scripts/package-extension.cjs",
@@ -17,6 +18,7 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "esbuild": "^0.28.1",
-    "eslint": "^10.6.0"
+    "eslint": "^10.6.0",
+    "typescript": "^7.0.2"
   }
 }

@@ -15,7 +15,7 @@ export class PriceRequestQueue {
    */
   run(key, task) {
     const existing = this.inFlight.get(key);
-    if (existing) return existing;
+    if (existing) return /** @type {Promise<T>} */ (existing);
 
     const promise = task().finally(() => {
       this.inFlight.delete(key);

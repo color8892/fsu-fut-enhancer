@@ -3,6 +3,7 @@ import {
   appendText,
   createExternalLink,
   createTextElement,
+  escapeHtml,
   normalizeExternalUrl,
   setTrustedHtml
 } from "../src/fsu/ui/HtmlSafety.js";
@@ -40,6 +41,10 @@ function createFakeDocument() {
 }
 
 export function runHtmlSafetyTests() {
+  assert.strictEqual(
+    escapeHtml(`<img src=x onerror="alert('x')"> & safe`),
+    "&lt;img src=x onerror=&quot;alert(&#39;x&#39;)&quot;&gt; &amp; safe"
+  );
   assert.strictEqual(
     normalizeExternalUrl("https://example.com/path", "https://www.ea.com/"),
     "https://example.com/path"

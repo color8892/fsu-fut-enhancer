@@ -1,4 +1,5 @@
 // FSU EAFC FUT Web Enhancer — bundled Chrome extension userscript (v26.9.0)
+"use strict";
 (() => {
   // src/fsu/core/FsuContext.js
   var FsuContext = class {
@@ -284,7 +285,10 @@
      */
     run(key, task) {
       const existing = this.inFlight.get(key);
-      if (existing) return existing;
+      if (existing) return (
+        /** @type {Promise<T>} */
+        existing
+      );
       const promise = task().finally(() => {
         this.inFlight.delete(key);
       });
@@ -747,17 +751,17 @@
       const info = this.getInfo();
       const dayTimestamp = this.getStartOfDayTimestamp();
       const stored = this.store.getObject(STORAGE_KEY3, {});
-      const state2 = {
+      const state = {
         count: 0,
         time: dayTimestamp
       };
       if (stored && typeof stored === "object" && stored.time == dayTimestamp) {
-        state2.count = stored.count;
+        state.count = stored.count;
       } else {
-        this.store.setJson(STORAGE_KEY3, state2);
+        this.store.setJson(STORAGE_KEY3, state);
       }
-      this.debug.log(state2);
-      info.SBCCount = state2;
+      this.debug.log(state);
+      info.SBCCount = state;
     }
     getStartOfDayTimestamp() {
       const now = /* @__PURE__ */ new Date();
@@ -1617,9 +1621,9 @@
     const fy2 = function(key) {
       if (key == null) return "";
       if (typeof key !== "string" && !Array.isArray(key)) return String(key);
-      const state2 = getState();
-      const dictionary = state2.localization || {};
-      const language = state2.language ?? 2;
+      const state = getState();
+      const dictionary = state.localization || {};
+      const language = state.language ?? 2;
       if (Array.isArray(key)) {
         const parts = _.cloneDeep(key);
         const dictKey = parts.shift();
@@ -1646,8 +1650,8 @@
     };
     const eafy = function(key) {
       if (key == null) return "";
-      const state2 = getState();
-      return state2.base?.localization?.[key] ?? key;
+      const state = getState();
+      return state.base?.localization?.[key] ?? key;
     };
     return { fy: fy2, eafy };
   }
@@ -1682,6 +1686,20 @@
 
   // src/fsu/ui/HtmlSafety.js
   var SAFE_EXTERNAL_PROTOCOLS = /* @__PURE__ */ new Set(["http:", "https:"]);
+  var HTML_ESCAPE_PATTERN = /[&<>'"]/g;
+  var HTML_ESCAPES = {
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    "'": "&#39;",
+    '"': "&quot;"
+  };
+  function escapeHtml(value) {
+    return String(value ?? "").replace(
+      HTML_ESCAPE_PATTERN,
+      (character) => HTML_ESCAPES[character] ?? character
+    );
+  }
   function normalizeExternalUrl(url, baseUrl) {
     const rawUrl = String(url ?? "").trim();
     if (!/^https?:\/\//i.test(rawUrl)) {
@@ -8372,11 +8390,11 @@
     };
     events.listFilterData = (element, type) => {
       let players = _.cloneDeep(element._fsuInitPlayers);
-      const evaluateState = (state2, typeNumber) => {
+      const evaluateState = (state, typeNumber) => {
         if (type === typeNumber) {
-          return state2 === 0 ? 1 : 0;
+          return state === 0 ? 1 : 0;
         }
-        return state2;
+        return state;
       };
       if (_.has(element._fsulistfilter, 3)) {
         if (evaluateState(element._fsulistfilter[3]._state, 3)) {
@@ -8939,11 +8957,11 @@
     };
     events.listFilterData = (element, type) => {
       let players = _.cloneDeep(element._fsuInitPlayers);
-      const evaluateState = (state2, typeNumber) => {
+      const evaluateState = (state, typeNumber) => {
         if (type === typeNumber) {
-          return state2 === 0 ? 1 : 0;
+          return state === 0 ? 1 : 0;
         }
-        return state2;
+        return state;
       };
       if (_.has(element._fsulistfilter, 3)) {
         if (evaluateState(element._fsulistfilter[3]._state, 3)) {
@@ -9513,13 +9531,13 @@
           if (a.type >= AcademyStatEnum.PACE && a.type <= AcademyStatEnum.GK_SUB_POSITIONING_SUB) {
             const titleText = UTAcademyUtils.mapAttributeIdToLocString(a.type);
             const value = UTAcademyUtils.getPlayerFinalStatValue(player, a);
-            const state2 = e2.levels[a.level - 1].status;
+            const state = e2.levels[a.level - 1].status;
             let addedText = "no";
             const sub = _.find(this.panel.upgradeList, (i) => {
               return i.__title?.innerText == titleText && !i.__deltaValue.hasAttribute("data-up");
             });
             if (sub) {
-              const subText = state2 === AcademySlotLevelState.COMPLETED ? "√" : (() => {
+              const subText = state === AcademySlotLevelState.COMPLETED ? "√" : (() => {
                 const boostValue = UTAcademyUtils.getPlayerFinalStatValue(boost, a);
                 const plusValue = value - boostValue;
                 if (plusValue > 0) {
@@ -10577,6 +10595,10 @@
       this.ttlMs = ttlMs;
       this.entries = /* @__PURE__ */ new Map();
     }
+    /**
+     * @param {string} key
+     * @returns {unknown}
+     */
     get(key) {
       const entry = this.entries.get(key);
       if (!entry) return void 0;
@@ -10588,6 +10610,10 @@
       this.entries.set(key, entry);
       return entry.value;
     }
+    /**
+     * @param {string} key
+     * @param {unknown} value
+     */
     set(key, value) {
       if (this.entries.has(key)) {
         this.entries.delete(key);
@@ -10595,6 +10621,7 @@
       this.entries.set(key, { value, expiresAt: Date.now() + this.ttlMs });
       while (this.entries.size > this.maxSize) {
         const oldest = this.entries.keys().next().value;
+        if (oldest === void 0) break;
         this.entries.delete(oldest);
       }
     }
@@ -10796,7 +10823,7 @@
           players = resultPlayers;
         }
         if (_.includes(specialOrder, 2)) {
-          let customSort = function(a, b) {
+          let customSort2 = function(a, b) {
             const rareFlagsOrder = { 1: 0, 53: 1, 52: 2 };
             const rareFlagA = rareFlagsOrder[a?.rareflag] !== void 0 ? rareFlagsOrder[a.rareflag] : Number.MAX_SAFE_INTEGER;
             const rareFlagB = rareFlagsOrder[b?.rareflag] !== void 0 ? rareFlagsOrder[b.rareflag] : Number.MAX_SAFE_INTEGER;
@@ -10805,13 +10832,14 @@
             }
             return rareFlagA - rareFlagB;
           };
+          var customSort = customSort2;
           let tempPlayers = _.values(_.groupBy(players, "rating")), resultPlayers = [];
           if (ratingOrder == "desc") {
             tempPlayers = _.reverse(tempPlayers);
           }
           _.forEach(tempPlayers, (i) => {
             const inGoldenRange = i[0].rating >= 75 && i[0].rating <= info.set.goldenrange;
-            const sortedGroup = inGoldenRange ? _.sortBy(i, customSort) : i;
+            const sortedGroup = inGoldenRange ? _.sortBy(i, customSort2) : i;
             const tempResult = inGoldenRange && !_.includes(specialOrder, 1) ? _.orderBy(sortedGroup, "untradeableCount", "desc") : sortedGroup;
             resultPlayers = _.concat(resultPlayers, tempResult);
           });
@@ -10923,13 +10951,1017 @@
     }
   };
 
+  // src/fsu/ea/EaRuntimeAdapter.js
+  var EA_CAPABILITIES = Object.freeze({
+    UTAS_SESSION: "authentication.utas-session",
+    MARKET_SEARCH: "market.search",
+    MARKET_QUERY_MODEL: "market.query-model",
+    CURRENCY_STEPS: "market.currency-steps",
+    ITEM_MOVE_TO_CLUB: "item.move-to-club",
+    ITEM_PURCHASE_TO_CLUB: "item.purchase-to-club",
+    ITEM_LIST_FOR_SALE: "item.list-for-sale",
+    UNASSIGNED_RESET: "unassigned.reset",
+    ITEM_STATIC_DATA: "item.static-data",
+    ITEM_PURCHASE_CAPACITY: "item.purchase-capacity",
+    ITEM_LISTING_INVENTORY: "item.listing-inventory"
+  });
+  function isRecord(value) {
+    return value !== null && typeof value === "object";
+  }
+  function asPropertyBag(value) {
+    if (isRecord(value)) return value;
+    if (typeof value === "function") {
+      return (
+        /** @type {Record<string, unknown>} */
+        /** @type {unknown} */
+        value
+      );
+    }
+    return null;
+  }
+  function unavailableResult(capability, missing, cause) {
+    return {
+      success: false,
+      data: { items: [] },
+      error: {
+        code: "EA_CAPABILITY_UNAVAILABLE",
+        capability,
+        missing,
+        cause: cause instanceof Error ? cause.message : void 0
+      }
+    };
+  }
+  function unavailableMoveResult(capability, missing, cause) {
+    return {
+      success: false,
+      movedCount: 0,
+      error: {
+        code: "EA_CAPABILITY_UNAVAILABLE",
+        capability,
+        missing,
+        cause: cause instanceof Error ? cause.message : void 0
+      }
+    };
+  }
+  function unavailablePurchaseResult(missing, cause) {
+    return {
+      success: false,
+      reason: "capability-unavailable",
+      error: {
+        code: "EA_CAPABILITY_UNAVAILABLE",
+        capability: EA_CAPABILITIES.ITEM_PURCHASE_TO_CLUB,
+        missing,
+        cause: cause instanceof Error ? cause.message : void 0
+      }
+    };
+  }
+  function unavailableListingResult(missing, cause) {
+    return {
+      success: false,
+      error: {
+        code: "EA_CAPABILITY_UNAVAILABLE",
+        capability: EA_CAPABILITIES.ITEM_LIST_FOR_SALE,
+        missing,
+        cause: cause instanceof Error ? cause.message : void 0
+      }
+    };
+  }
+  function unavailableUnassignedResetResult(missing, cause) {
+    return {
+      success: false,
+      error: {
+        code: "EA_CAPABILITY_UNAVAILABLE",
+        capability: EA_CAPABILITIES.UNASSIGNED_RESET,
+        missing,
+        cause: cause instanceof Error ? cause.message : void 0
+      }
+    };
+  }
+  function unavailableItemRepositoryResult(capability, missing, cause) {
+    return {
+      success: false,
+      error: {
+        code: "EA_CAPABILITY_UNAVAILABLE",
+        capability,
+        missing,
+        cause: cause instanceof Error ? cause.message : void 0
+      }
+    };
+  }
+  function purchasedMoveFailure(price, missing = [], cause) {
+    const error = missing.length > 0 || cause instanceof Error ? {
+      code: "EA_PURCHASED_ITEM_MOVE_FAILED",
+      capability: EA_CAPABILITIES.ITEM_PURCHASE_TO_CLUB,
+      missing,
+      cause: cause instanceof Error ? cause.message : void 0
+    } : null;
+    return {
+      success: false,
+      reason: "move-failed",
+      purchased: true,
+      price: Number(price),
+      ...error ? { error } : {}
+    };
+  }
+  var EaMarketSearchSession = class {
+    /**
+     * @param {{
+     *   criteria: Record<string, unknown>,
+     *   model: Record<string, unknown>,
+     *   updateCriteria: (criteria: Record<string, unknown>) => void
+     * }} options
+     */
+    constructor({ criteria, model, updateCriteria }) {
+      this.criteria = criteria;
+      this.model = model;
+      this.updateCriteria = updateCriteria;
+    }
+    /** @param {number} value */
+    setMaxBuy(value) {
+      this.criteria.maxBuy = Number(value);
+      this.updateCriteria(this.criteria);
+    }
+    getMaxBuy() {
+      return Number(this.getCriteria().maxBuy) || 0;
+    }
+    /** @returns {Record<string, unknown>} */
+    getCriteria() {
+      return isRecord(this.model.searchCriteria) ? this.model.searchCriteria : this.criteria;
+    }
+  };
+  var EaRuntimeAdapter = class {
+    /**
+     * @param {{
+     *   getServices?: () => unknown,
+     *   getRepositories?: () => unknown,
+     *   getMarketRuntime?: () => unknown,
+     *   getItemRuntime?: () => unknown
+     * }} [options]
+     */
+    constructor({
+      getServices = () => void 0,
+      getRepositories = () => void 0,
+      getMarketRuntime = () => void 0,
+      getItemRuntime = () => void 0
+    } = {}) {
+      this.getServices = getServices;
+      this.getRepositories = getRepositories;
+      this.getMarketRuntime = getMarketRuntime;
+      this.getItemRuntime = getItemRuntime;
+    }
+    /**
+     * @param {string} name
+     * @returns {EaCapabilityStatus}
+     */
+    inspect(name) {
+      if (name !== EA_CAPABILITIES.UTAS_SESSION && name !== EA_CAPABILITIES.MARKET_SEARCH && name !== EA_CAPABILITIES.MARKET_QUERY_MODEL && name !== EA_CAPABILITIES.CURRENCY_STEPS && name !== EA_CAPABILITIES.ITEM_MOVE_TO_CLUB && name !== EA_CAPABILITIES.ITEM_PURCHASE_TO_CLUB && name !== EA_CAPABILITIES.ITEM_LIST_FOR_SALE && name !== EA_CAPABILITIES.UNASSIGNED_RESET && name !== EA_CAPABILITIES.ITEM_STATIC_DATA && name !== EA_CAPABILITIES.ITEM_PURCHASE_CAPACITY && name !== EA_CAPABILITIES.ITEM_LISTING_INVENTORY) {
+        return {
+          name,
+          supported: false,
+          missing: [`capability:${name}`]
+        };
+      }
+      if (name === EA_CAPABILITIES.MARKET_QUERY_MODEL) {
+        const runtime = this.getMarketRuntime();
+        if (!isRecord(runtime)) {
+          return { name, supported: false, missing: ["marketRuntime"] };
+        }
+        const requiredConstructors = ["UTSearchCriteriaDTO", "UTBucketedItemSearchViewModel"];
+        const requiredEnums = ["SearchType", "SearchCategory", "ItemSearchFeature"];
+        const missing = [];
+        for (const key of requiredConstructors) {
+          if (typeof runtime[key] !== "function") missing.push(`marketRuntime.${key}`);
+        }
+        for (const key of requiredEnums) {
+          if (!isRecord(runtime[key])) missing.push(`marketRuntime.${key}`);
+        }
+        return { name, supported: missing.length === 0, missing };
+      }
+      if (name === EA_CAPABILITIES.CURRENCY_STEPS) {
+        const runtime = this.getMarketRuntime();
+        if (!isRecord(runtime)) {
+          return { name, supported: false, missing: ["marketRuntime"] };
+        }
+        const currencyInput = asPropertyBag(runtime.UTCurrencyInputControl);
+        if (!currencyInput) {
+          return { name, supported: false, missing: ["marketRuntime.UTCurrencyInputControl"] };
+        }
+        const missing = [];
+        if (typeof currencyInput.getIncrementAboveVal !== "function") {
+          missing.push("marketRuntime.UTCurrencyInputControl.getIncrementAboveVal");
+        }
+        if (typeof currencyInput.getIncrementBelowVal !== "function") {
+          missing.push("marketRuntime.UTCurrencyInputControl.getIncrementBelowVal");
+        }
+        return { name, supported: missing.length === 0, missing };
+      }
+      if (name === EA_CAPABILITIES.ITEM_STATIC_DATA) {
+        const repositories2 = this.getRepositories();
+        const itemRepository = isRecord(repositories2) ? repositories2.Item : void 0;
+        if (!isRecord(itemRepository) || typeof itemRepository.getStaticDataByDefId !== "function") {
+          return {
+            name,
+            supported: false,
+            missing: ["repositories.Item.getStaticDataByDefId"]
+          };
+        }
+        return { name, supported: true, missing: [] };
+      }
+      if (name === EA_CAPABILITIES.ITEM_PURCHASE_CAPACITY) {
+        const repositories2 = this.getRepositories();
+        const runtime = this.getItemRuntime();
+        const itemRepository = isRecord(repositories2) ? repositories2.Item : void 0;
+        const missing = [];
+        if (!isRecord(itemRepository) || typeof itemRepository.numItemsInCache !== "function") {
+          missing.push("repositories.Item.numItemsInCache");
+        }
+        if (!isRecord(runtime) || !isRecord(runtime.ItemPile) || runtime.ItemPile.PURCHASED === void 0) {
+          missing.push("itemRuntime.ItemPile.PURCHASED");
+        }
+        return { name, supported: missing.length === 0, missing };
+      }
+      if (name === EA_CAPABILITIES.ITEM_LISTING_INVENTORY) {
+        const repositories2 = this.getRepositories();
+        const runtime = this.getItemRuntime();
+        const itemRepository = isRecord(repositories2) ? repositories2.Item : void 0;
+        const missing = [];
+        const transfer = isRecord(itemRepository) ? itemRepository.transfer : void 0;
+        const unassigned = isRecord(itemRepository) ? itemRepository.unassigned : void 0;
+        const club = isRecord(itemRepository) ? itemRepository.club : void 0;
+        const clubItems = isRecord(club) ? club.items : void 0;
+        if (!isRecord(transfer) || typeof transfer.get !== "function") {
+          missing.push("repositories.Item.transfer.get");
+        }
+        if (!isRecord(transfer) || !isRecord(transfer._collection)) {
+          missing.push("repositories.Item.transfer._collection");
+        }
+        if (!isRecord(unassigned) || typeof unassigned.get !== "function") {
+          missing.push("repositories.Item.unassigned.get");
+        }
+        if (!isRecord(clubItems) || typeof clubItems.get !== "function") {
+          missing.push("repositories.Item.club.items.get");
+        }
+        if (!isRecord(itemRepository) || typeof itemRepository.getPileSize !== "function") {
+          missing.push("repositories.Item.getPileSize");
+        }
+        if (!isRecord(itemRepository) || typeof itemRepository.numItemsInCache !== "function") {
+          missing.push("repositories.Item.numItemsInCache");
+        }
+        if (!isRecord(runtime) || !isRecord(runtime.ItemPile) || runtime.ItemPile.TRANSFER === void 0) {
+          missing.push("itemRuntime.ItemPile.TRANSFER");
+        }
+        return { name, supported: missing.length === 0, missing };
+      }
+      const services2 = this.getServices();
+      if (!isRecord(services2)) {
+        return { name, supported: false, missing: ["services"] };
+      }
+      if (name === EA_CAPABILITIES.MARKET_SEARCH) {
+        const itemService = services2.Item;
+        const missing = [];
+        if (!isRecord(itemService)) {
+          missing.push("services.Item");
+        } else {
+          if (typeof itemService.clearTransferMarketCache !== "function") {
+            missing.push("services.Item.clearTransferMarketCache");
+          }
+          if (typeof itemService.searchTransferMarket !== "function") {
+            missing.push("services.Item.searchTransferMarket");
+          }
+        }
+        return { name, supported: missing.length === 0, missing };
+      }
+      if (name === EA_CAPABILITIES.ITEM_MOVE_TO_CLUB) {
+        const runtime = this.getItemRuntime();
+        const missing = [];
+        const itemService = services2.Item;
+        const localization = services2.Localization;
+        const notification = services2.Notification;
+        if (!isRecord(itemService) || typeof itemService.move !== "function") {
+          missing.push("services.Item.move");
+        }
+        if (!isRecord(localization) || typeof localization.localize !== "function") {
+          missing.push("services.Localization.localize");
+        }
+        if (!isRecord(notification) || typeof notification.queue !== "function") {
+          missing.push("services.Notification.queue");
+        }
+        if (!isRecord(runtime)) {
+          missing.push("itemRuntime");
+        } else {
+          if (!isRecord(runtime.ItemPile) || runtime.ItemPile.CLUB === void 0) {
+            missing.push("itemRuntime.ItemPile.CLUB");
+          }
+          if (!isRecord(runtime.UINotificationType) || runtime.UINotificationType.NEUTRAL === void 0 || runtime.UINotificationType.NEGATIVE === void 0) {
+            missing.push("itemRuntime.UINotificationType");
+          }
+          if (!isRecord(runtime.NetworkErrorManager) || typeof runtime.NetworkErrorManager.handleStatus !== "function") {
+            missing.push("itemRuntime.NetworkErrorManager.handleStatus");
+          }
+        }
+        return { name, supported: missing.length === 0, missing };
+      }
+      if (name === EA_CAPABILITIES.ITEM_PURCHASE_TO_CLUB) {
+        const runtime = this.getItemRuntime();
+        const missing = [];
+        const itemService = services2.Item;
+        const userService = services2.User;
+        if (!isRecord(itemService) || typeof itemService.bid !== "function") {
+          missing.push("services.Item.bid");
+        }
+        if (!isRecord(itemService) || typeof itemService.move !== "function") {
+          missing.push("services.Item.move");
+        }
+        if (!isRecord(userService) || typeof userService.getUser !== "function") {
+          missing.push("services.User.getUser");
+        }
+        if (!isRecord(runtime)) {
+          missing.push("itemRuntime");
+        } else {
+          if (!isRecord(runtime.ItemPile) || runtime.ItemPile.CLUB === void 0) {
+            missing.push("itemRuntime.ItemPile.CLUB");
+          }
+          if (!isRecord(runtime.GameCurrency) || runtime.GameCurrency.COINS === void 0) {
+            missing.push("itemRuntime.GameCurrency.COINS");
+          }
+          if (!isRecord(runtime.UtasErrorCode) || runtime.UtasErrorCode.PERMISSION_DENIED === void 0) {
+            missing.push("itemRuntime.UtasErrorCode.PERMISSION_DENIED");
+          }
+        }
+        return { name, supported: missing.length === 0, missing };
+      }
+      if (name === EA_CAPABILITIES.ITEM_LIST_FOR_SALE) {
+        const runtime = this.getItemRuntime();
+        const missing = [];
+        const itemService = services2.Item;
+        const localization = services2.Localization;
+        const notification = services2.Notification;
+        if (!isRecord(itemService) || typeof itemService.list !== "function") {
+          missing.push("services.Item.list");
+        }
+        if (!isRecord(localization) || typeof localization.localize !== "function") {
+          missing.push("services.Localization.localize");
+        }
+        if (!isRecord(notification) || typeof notification.queue !== "function") {
+          missing.push("services.Notification.queue");
+        }
+        if (!isRecord(runtime)) {
+          missing.push("itemRuntime");
+        } else {
+          if (!isRecord(runtime.UINotificationType) || runtime.UINotificationType.NEGATIVE === void 0) {
+            missing.push("itemRuntime.UINotificationType.NEGATIVE");
+          }
+          if (!isRecord(runtime.NetworkErrorManager) || typeof runtime.NetworkErrorManager.checkCriticalStatus !== "function" || typeof runtime.NetworkErrorManager.handleStatus !== "function") {
+            missing.push("itemRuntime.NetworkErrorManager");
+          }
+          if (!isRecord(runtime.HttpStatusCode) || runtime.HttpStatusCode.FORBIDDEN === void 0) {
+            missing.push("itemRuntime.HttpStatusCode.FORBIDDEN");
+          }
+          if (!isRecord(runtime.UtasErrorCode)) {
+            missing.push("itemRuntime.UtasErrorCode");
+          } else {
+            for (const key of [
+              "PERMISSION_DENIED",
+              "STATE_INVALID",
+              "DESTINATION_FULL",
+              "CARD_IN_TRADE"
+            ]) {
+              if (runtime.UtasErrorCode[key] === void 0) {
+                missing.push(`itemRuntime.UtasErrorCode.${key}`);
+              }
+            }
+          }
+        }
+        return { name, supported: missing.length === 0, missing };
+      }
+      if (name === EA_CAPABILITIES.UNASSIGNED_RESET) {
+        const itemService = services2.Item;
+        if (!isRecord(itemService)) {
+          return { name, supported: false, missing: ["services.Item"] };
+        }
+        const itemDao = itemService.itemDao;
+        const itemRepo = isRecord(itemDao) ? itemDao.itemRepo : void 0;
+        const unassigned = isRecord(itemRepo) ? itemRepo.unassigned : void 0;
+        if (!isRecord(unassigned) || typeof unassigned.reset !== "function") {
+          return {
+            name,
+            supported: false,
+            missing: ["services.Item.itemDao.itemRepo.unassigned.reset"]
+          };
+        }
+        return { name, supported: true, missing: [] };
+      }
+      const authentication = services2.Authentication;
+      if (!isRecord(authentication)) {
+        return { name, supported: false, missing: ["services.Authentication"] };
+      }
+      const session = authentication.utasSession;
+      if (!isRecord(session) || session.id === void 0 || session.id === null || session.id === "") {
+        return {
+          name,
+          supported: false,
+          missing: ["services.Authentication.utasSession.id"]
+        };
+      }
+      return { name, supported: true, missing: [] };
+    }
+    /**
+     * @param {string} name
+     */
+    supports(name) {
+      return this.inspect(name).supported;
+    }
+    /**
+     * @returns {string | null}
+     */
+    getUtasSessionId() {
+      if (!this.supports(EA_CAPABILITIES.UTAS_SESSION)) {
+        return null;
+      }
+      const services2 = this.getServices();
+      if (!isRecord(services2)) return null;
+      const authentication = services2.Authentication;
+      if (!isRecord(authentication)) return null;
+      const session = authentication.utasSession;
+      if (!isRecord(session)) return null;
+      return String(session.id);
+    }
+    /**
+     * @param {number} definitionId
+     * @returns {EaMarketSearchSession | null}
+     */
+    createPlayerMarketSearch(definitionId) {
+      if (!this.supports(EA_CAPABILITIES.MARKET_QUERY_MODEL)) return null;
+      const runtime = this.getMarketRuntime();
+      if (!isRecord(runtime)) return null;
+      const CriteriaConstructor = runtime.UTSearchCriteriaDTO;
+      const ModelConstructor = runtime.UTBucketedItemSearchViewModel;
+      const searchType = runtime.SearchType;
+      const searchCategory = runtime.SearchCategory;
+      const itemSearchFeature = runtime.ItemSearchFeature;
+      if (typeof CriteriaConstructor !== "function" || typeof ModelConstructor !== "function" || !isRecord(searchType) || !isRecord(searchCategory) || !isRecord(itemSearchFeature)) {
+        return null;
+      }
+      try {
+        const criteria = Reflect.construct(CriteriaConstructor, []);
+        const model = Reflect.construct(ModelConstructor, []);
+        if (!isRecord(criteria) || !isRecord(model) || !isRecord(model.defaultSearchCriteria)) {
+          return null;
+        }
+        const update = model.updateSearchCriteria;
+        if (typeof update !== "function") return null;
+        criteria.defId = [Number(definitionId)];
+        criteria.type = searchType.PLAYER;
+        criteria.category = searchCategory.ANY;
+        model.searchFeature = itemSearchFeature.MARKET;
+        model.defaultSearchCriteria.type = criteria.type;
+        model.defaultSearchCriteria.category = criteria.category;
+        const updateCriteria = (nextCriteria) => {
+          update.call(model, nextCriteria);
+        };
+        updateCriteria(criteria);
+        return new EaMarketSearchSession({ criteria, model, updateCriteria });
+      } catch {
+        return null;
+      }
+    }
+    /**
+     * @param {number} value
+     * @param {"above" | "below"} direction
+     * @returns {number | null}
+     */
+    incrementMarketPrice(value, direction) {
+      if (!this.supports(EA_CAPABILITIES.CURRENCY_STEPS)) return null;
+      const runtime = this.getMarketRuntime();
+      if (!isRecord(runtime)) return null;
+      const currencyInput = asPropertyBag(runtime.UTCurrencyInputControl);
+      if (!currencyInput) return null;
+      const method = direction === "above" ? currencyInput.getIncrementAboveVal : currencyInput.getIncrementBelowVal;
+      if (typeof method !== "function") return null;
+      const incremented = Number(method.call(currencyInput, Number(value)));
+      return Number.isFinite(incremented) ? incremented : null;
+    }
+    /**
+     * @param {unknown} items
+     * @param {unknown} observerContext
+     * @returns {Promise<unknown>}
+     */
+    moveItemsToClub(items, observerContext) {
+      const capability = this.inspect(EA_CAPABILITIES.ITEM_MOVE_TO_CLUB);
+      if (!capability.supported) {
+        return Promise.resolve(unavailableMoveResult(capability.name, capability.missing));
+      }
+      const services2 = this.getServices();
+      const runtime = this.getItemRuntime();
+      if (!isRecord(services2) || !isRecord(runtime)) {
+        return Promise.resolve(unavailableMoveResult(capability.name, ["services", "itemRuntime"]));
+      }
+      const itemService = services2.Item;
+      const localization = services2.Localization;
+      const notification = services2.Notification;
+      const itemPile = runtime.ItemPile;
+      const notificationType = runtime.UINotificationType;
+      const networkErrorManager = runtime.NetworkErrorManager;
+      if (!isRecord(itemService) || !isRecord(localization) || !isRecord(notification) || !isRecord(itemPile) || !isRecord(notificationType) || !isRecord(networkErrorManager)) {
+        return Promise.resolve(unavailableMoveResult(capability.name, capability.missing));
+      }
+      const move = itemService.move;
+      const localize = localization.localize;
+      const queue = notification.queue;
+      const handleStatus = networkErrorManager.handleStatus;
+      if (typeof move !== "function" || typeof localize !== "function" || typeof queue !== "function" || typeof handleStatus !== "function") {
+        return Promise.resolve(unavailableMoveResult(capability.name, capability.missing));
+      }
+      try {
+        const observable = move.call(itemService, items, itemPile.CLUB);
+        if (!isRecord(observable) || typeof observable.observe !== "function") {
+          return Promise.resolve(
+            unavailableMoveResult(capability.name, ["services.Item.move.observe"])
+          );
+        }
+        const observe = observable.observe;
+        return new Promise((resolve) => {
+          let settled = false;
+          const onResponse = (sender, response) => {
+            if (settled) return;
+            settled = true;
+            try {
+              if (isRecord(sender) && typeof sender.unobserve === "function") {
+                sender.unobserve(observerContext);
+              }
+              if (!isRecord(response)) {
+                resolve(unavailableMoveResult(capability.name, ["move.response"]));
+                return;
+              }
+              if (response.success) {
+                const data2 = response.data;
+                const movedCount = isRecord(data2) && Array.isArray(data2.itemIds) ? data2.itemIds.length : 0;
+                const messageKey = movedCount > 1 ? "notification.item.allToClub" : "notification.item.oneToClub";
+                const message2 = movedCount > 1 ? localize.call(localization, messageKey, [movedCount]) : localize.call(localization, messageKey);
+                queue.call(notification, [message2, notificationType.NEUTRAL]);
+                resolve({ success: true, movedCount });
+                return;
+              }
+              const message = localize.call(localization, "notification.item.moveFailed");
+              queue.call(notification, [message, notificationType.NEGATIVE]);
+              const data = response.data;
+              const untradeableSwap = Boolean(isRecord(data) && data.untradeableSwap);
+              if (!untradeableSwap) {
+                handleStatus.call(networkErrorManager, response.status);
+              }
+              resolve({
+                success: false,
+                movedCount: 0,
+                untradeableSwap,
+                status: response.status
+              });
+            } catch (error) {
+              resolve(unavailableMoveResult(capability.name, [], error));
+            }
+          };
+          try {
+            observe.call(observable, observerContext, onResponse);
+          } catch (error) {
+            settled = true;
+            resolve(unavailableMoveResult(capability.name, [], error));
+          }
+        });
+      } catch (error) {
+        return Promise.resolve(unavailableMoveResult(capability.name, [], error));
+      }
+    }
+    /**
+     * @param {unknown} item
+     * @param {number} price
+     * @param {unknown} observerContext
+     * @param {() => void} [onBeforeBid]
+     * @returns {Promise<unknown>}
+     */
+    purchaseItemToClub(item, price, observerContext, onBeforeBid = () => {
+    }) {
+      const capability = this.inspect(EA_CAPABILITIES.ITEM_PURCHASE_TO_CLUB);
+      if (!capability.supported) {
+        return Promise.resolve(unavailablePurchaseResult(capability.missing));
+      }
+      const services2 = this.getServices();
+      const runtime = this.getItemRuntime();
+      if (!isRecord(services2) || !isRecord(runtime) || !isRecord(item)) {
+        return Promise.resolve(unavailablePurchaseResult(["services", "itemRuntime", "item"]));
+      }
+      const itemService = services2.Item;
+      const userService = services2.User;
+      const itemPile = runtime.ItemPile;
+      const gameCurrency = runtime.GameCurrency;
+      const utasErrorCode = runtime.UtasErrorCode;
+      if (!isRecord(itemService) || !isRecord(userService) || !isRecord(itemPile) || !isRecord(gameCurrency) || !isRecord(utasErrorCode)) {
+        return Promise.resolve(unavailablePurchaseResult(capability.missing));
+      }
+      const getAuctionData = item.getAuctionData;
+      const getUser = userService.getUser;
+      const bid = itemService.bid;
+      const move = itemService.move;
+      if (typeof getAuctionData !== "function" || typeof getUser !== "function" || typeof bid !== "function" || typeof move !== "function") {
+        return Promise.resolve(
+          unavailablePurchaseResult([
+            "item.getAuctionData",
+            "services.User.getUser",
+            "services.Item.bid",
+            "services.Item.move"
+          ])
+        );
+      }
+      try {
+        const auction = getAuctionData.call(item);
+        const user = getUser.call(userService);
+        if (!isRecord(auction) || !isRecord(user) || typeof user.getCurrency !== "function") {
+          return Promise.resolve(
+            unavailablePurchaseResult(["item.auctionData", "services.User.getUser().getCurrency"])
+          );
+        }
+        const currency = user.getCurrency(gameCurrency.COINS);
+        const canBuy = auction.canBuy;
+        const getSecondsRemaining = auction.getSecondsRemaining;
+        if (!isRecord(currency) || typeof canBuy !== "function" || typeof getSecondsRemaining !== "function") {
+          return Promise.resolve(
+            unavailablePurchaseResult([
+              "user.currency.amount",
+              "auction.canBuy",
+              "auction.getSecondsRemaining"
+            ])
+          );
+        }
+        if (!canBuy.call(auction, Number(currency.amount) || 0)) {
+          return Promise.resolve({ success: false, reason: "insufficient-funds" });
+        }
+        if (Number(getSecondsRemaining.call(auction)) <= 0) {
+          return Promise.resolve({ success: false, reason: "expired" });
+        }
+        onBeforeBid();
+        const bidObservable = bid.call(itemService, item, Number(price));
+        if (!isRecord(bidObservable) || typeof bidObservable.observe !== "function") {
+          return Promise.resolve(unavailablePurchaseResult(["services.Item.bid.observe"]));
+        }
+        const observeBid = bidObservable.observe;
+        return new Promise((resolve) => {
+          let settled = false;
+          const onBid = (sender, bidResponse) => {
+            if (settled) return;
+            try {
+              if (isRecord(sender) && typeof sender.unobserve === "function") {
+                sender.unobserve(observerContext);
+              }
+              if (!isRecord(bidResponse) || !bidResponse.success) {
+                settled = true;
+                const error = isRecord(bidResponse) ? bidResponse.error : void 0;
+                const permissionDenied = isRecord(error) && error.code === utasErrorCode.PERMISSION_DENIED;
+                resolve({ success: false, reason: "bid-failed", permissionDenied });
+                return;
+              }
+              const moveObservable = move.call(itemService, item, itemPile.CLUB);
+              if (!isRecord(moveObservable) || typeof moveObservable.observe !== "function") {
+                settled = true;
+                resolve(purchasedMoveFailure(price, ["services.Item.move.observe"]));
+                return;
+              }
+              const observeMove = moveObservable.observe;
+              const onMove = (moveSender, moveResponse) => {
+                if (settled) return;
+                settled = true;
+                try {
+                  if (isRecord(moveSender) && typeof moveSender.unobserve === "function") {
+                    moveSender.unobserve(observerContext);
+                  }
+                  if (isRecord(moveResponse) && moveResponse.success) {
+                    resolve({ success: true, price: Number(price) });
+                  } else {
+                    resolve(purchasedMoveFailure(price));
+                  }
+                } catch (error) {
+                  resolve(purchasedMoveFailure(price, [], error));
+                }
+              };
+              try {
+                observeMove.call(moveObservable, observerContext, onMove);
+              } catch (error) {
+                settled = true;
+                resolve(purchasedMoveFailure(price, [], error));
+              }
+            } catch (error) {
+              settled = true;
+              resolve(
+                isRecord(bidResponse) && bidResponse.success ? purchasedMoveFailure(price, [], error) : unavailablePurchaseResult([], error)
+              );
+            }
+          };
+          try {
+            observeBid.call(bidObservable, observerContext, onBid);
+          } catch (error) {
+            settled = true;
+            resolve(unavailablePurchaseResult([], error));
+          }
+        });
+      } catch (error) {
+        return Promise.resolve(unavailablePurchaseResult([], error));
+      }
+    }
+    /**
+     * @param {unknown} item
+     * @param {number} startingPrice
+     * @param {number} buyNowPrice
+     * @param {number} durationSeconds
+     * @param {unknown} observerContext
+     * @returns {Promise<unknown>}
+     */
+    listItemForSale(item, startingPrice, buyNowPrice, durationSeconds, observerContext) {
+      const capability = this.inspect(EA_CAPABILITIES.ITEM_LIST_FOR_SALE);
+      if (!capability.supported) {
+        return Promise.resolve(unavailableListingResult(capability.missing));
+      }
+      const services2 = this.getServices();
+      const runtime = this.getItemRuntime();
+      if (!isRecord(services2) || !isRecord(runtime)) {
+        return Promise.resolve(unavailableListingResult(["services", "itemRuntime"]));
+      }
+      const itemService = services2.Item;
+      const localization = services2.Localization;
+      const notification = services2.Notification;
+      const notificationType = runtime.UINotificationType;
+      const networkErrorManager = runtime.NetworkErrorManager;
+      const httpStatusCode = runtime.HttpStatusCode;
+      const utasErrorCode = runtime.UtasErrorCode;
+      if (!isRecord(itemService) || !isRecord(localization) || !isRecord(notification) || !isRecord(notificationType) || !isRecord(networkErrorManager) || !isRecord(httpStatusCode) || !isRecord(utasErrorCode)) {
+        return Promise.resolve(unavailableListingResult(capability.missing));
+      }
+      const list = itemService.list;
+      const localize = localization.localize;
+      const queue = notification.queue;
+      const checkCriticalStatus = networkErrorManager.checkCriticalStatus;
+      const handleStatus = networkErrorManager.handleStatus;
+      if (typeof list !== "function" || typeof localize !== "function" || typeof queue !== "function" || typeof checkCriticalStatus !== "function" || typeof handleStatus !== "function") {
+        return Promise.resolve(unavailableListingResult(capability.missing));
+      }
+      try {
+        const observable = list.call(
+          itemService,
+          item,
+          Number(startingPrice),
+          Number(buyNowPrice),
+          Number(durationSeconds)
+        );
+        if (!isRecord(observable) || typeof observable.observe !== "function") {
+          return Promise.resolve(unavailableListingResult(["services.Item.list.observe"]));
+        }
+        const observe = observable.observe;
+        return new Promise((resolve) => {
+          let settled = false;
+          const onResponse = (sender, response) => {
+            if (settled) return;
+            settled = true;
+            try {
+              if (isRecord(sender) && typeof sender.unobserve === "function") {
+                sender.unobserve(observerContext);
+              }
+              if (!isRecord(response)) {
+                resolve(unavailableListingResult(["listing.response"]));
+                return;
+              }
+              if (response.success) {
+                resolve({ success: true });
+                return;
+              }
+              const error = isRecord(response.error) ? response.error : void 0;
+              const code = error?.code ?? response.status;
+              if (checkCriticalStatus.call(networkErrorManager, code)) {
+                handleStatus.call(networkErrorManager, code);
+                resolve({ success: false, critical: true, code });
+                return;
+              }
+              let messageKey = "popup.error.list.InvalidState";
+              switch (code) {
+                case httpStatusCode.FORBIDDEN:
+                  messageKey = "popup.error.list.forbidden.message";
+                  break;
+                case utasErrorCode.PERMISSION_DENIED:
+                  messageKey = "popup.error.list.PermissionDenied";
+                  break;
+                case utasErrorCode.STATE_INVALID:
+                  messageKey = "popup.error.list.InvalidState";
+                  break;
+                case utasErrorCode.DESTINATION_FULL:
+                  messageKey = "popup.error.tradetoken.SellItemTradePileFull";
+                  break;
+                case utasErrorCode.CARD_IN_TRADE:
+                  messageKey = "popup.error.tradetoken.ItemInTradeOffer";
+                  break;
+              }
+              const message = localize.call(localization, messageKey);
+              queue.call(notification, [message, notificationType.NEGATIVE]);
+              resolve({ success: false, critical: false, code, messageKey });
+            } catch (error) {
+              resolve(unavailableListingResult([], error));
+            }
+          };
+          try {
+            observe.call(observable, observerContext, onResponse);
+          } catch (error) {
+            settled = true;
+            resolve(unavailableListingResult([], error));
+          }
+        });
+      } catch (error) {
+        return Promise.resolve(unavailableListingResult([], error));
+      }
+    }
+    /** @returns {Promise<unknown>} */
+    async resetUnassignedItems() {
+      const capability = this.inspect(EA_CAPABILITIES.UNASSIGNED_RESET);
+      if (!capability.supported) {
+        return unavailableUnassignedResetResult(capability.missing);
+      }
+      const services2 = this.getServices();
+      if (!isRecord(services2) || !isRecord(services2.Item)) {
+        return unavailableUnassignedResetResult(["services.Item"]);
+      }
+      const itemDao = services2.Item.itemDao;
+      const itemRepo = isRecord(itemDao) ? itemDao.itemRepo : void 0;
+      const unassigned = isRecord(itemRepo) ? itemRepo.unassigned : void 0;
+      const reset = isRecord(unassigned) ? unassigned.reset : void 0;
+      if (typeof reset !== "function") {
+        return unavailableUnassignedResetResult([
+          "services.Item.itemDao.itemRepo.unassigned.reset"
+        ]);
+      }
+      try {
+        await reset.call(unassigned);
+        return { success: true };
+      } catch (error) {
+        return unavailableUnassignedResetResult([], error);
+      }
+    }
+    /**
+     * @param {number} definitionId
+     * @returns {unknown}
+     */
+    getStaticItemData(definitionId) {
+      const capability = this.inspect(EA_CAPABILITIES.ITEM_STATIC_DATA);
+      if (!capability.supported) {
+        return unavailableItemRepositoryResult(capability.name, capability.missing);
+      }
+      const repositories2 = this.getRepositories();
+      const itemRepository = isRecord(repositories2) ? repositories2.Item : void 0;
+      const getStaticDataByDefId = isRecord(itemRepository) ? itemRepository.getStaticDataByDefId : void 0;
+      if (typeof getStaticDataByDefId !== "function") {
+        return unavailableItemRepositoryResult(capability.name, capability.missing);
+      }
+      try {
+        return { success: true, data: getStaticDataByDefId.call(itemRepository, definitionId) };
+      } catch (error) {
+        return unavailableItemRepositoryResult(capability.name, [], error);
+      }
+    }
+    /**
+     * @param {number} maxItems
+     * @returns {unknown}
+     */
+    isPurchaseCapacityReached(maxItems) {
+      const capability = this.inspect(EA_CAPABILITIES.ITEM_PURCHASE_CAPACITY);
+      if (!capability.supported) {
+        return unavailableItemRepositoryResult(capability.name, capability.missing);
+      }
+      const repositories2 = this.getRepositories();
+      const runtime = this.getItemRuntime();
+      const itemRepository = isRecord(repositories2) ? repositories2.Item : void 0;
+      const itemPile = isRecord(runtime) ? runtime.ItemPile : void 0;
+      const numItemsInCache = isRecord(itemRepository) ? itemRepository.numItemsInCache : void 0;
+      if (!isRecord(itemPile) || typeof numItemsInCache !== "function") {
+        return unavailableItemRepositoryResult(capability.name, capability.missing);
+      }
+      try {
+        return {
+          success: true,
+          reached: Number(numItemsInCache.call(itemRepository, itemPile.PURCHASED)) >= Number(maxItems)
+        };
+      } catch (error) {
+        return unavailableItemRepositoryResult(capability.name, [], error);
+      }
+    }
+    /**
+     * @param {unknown} id
+     * @returns {unknown}
+     */
+    findListingItem(id) {
+      const capability = this.inspect(EA_CAPABILITIES.ITEM_LISTING_INVENTORY);
+      if (!capability.supported) {
+        return unavailableItemRepositoryResult(capability.name, capability.missing);
+      }
+      const repositories2 = this.getRepositories();
+      const itemRepository = isRecord(repositories2) ? repositories2.Item : void 0;
+      if (!isRecord(itemRepository)) {
+        return unavailableItemRepositoryResult(capability.name, capability.missing);
+      }
+      const transfer = itemRepository.transfer;
+      const unassigned = itemRepository.unassigned;
+      const club = itemRepository.club;
+      const clubItems = isRecord(club) ? club.items : void 0;
+      if (!isRecord(transfer) || !isRecord(unassigned) || !isRecord(clubItems) || typeof transfer.get !== "function" || typeof unassigned.get !== "function" || typeof clubItems.get !== "function" || !isRecord(transfer._collection)) {
+        return unavailableItemRepositoryResult(capability.name, capability.missing);
+      }
+      try {
+        const item = transfer.get.call(transfer, id) || unassigned.get.call(unassigned, id) || clubItems.get.call(clubItems, id);
+        return {
+          success: true,
+          item,
+          alreadyListed: Object.prototype.hasOwnProperty.call(transfer._collection, String(id))
+        };
+      } catch (error) {
+        return unavailableItemRepositoryResult(capability.name, [], error);
+      }
+    }
+    /** @returns {unknown} */
+    hasTransferListingCapacity() {
+      const capability = this.inspect(EA_CAPABILITIES.ITEM_LISTING_INVENTORY);
+      if (!capability.supported) {
+        return unavailableItemRepositoryResult(capability.name, capability.missing);
+      }
+      const repositories2 = this.getRepositories();
+      const runtime = this.getItemRuntime();
+      const itemRepository = isRecord(repositories2) ? repositories2.Item : void 0;
+      const itemPile = isRecord(runtime) ? runtime.ItemPile : void 0;
+      const getPileSize = isRecord(itemRepository) ? itemRepository.getPileSize : void 0;
+      const numItemsInCache = isRecord(itemRepository) ? itemRepository.numItemsInCache : void 0;
+      if (!isRecord(itemPile) || typeof getPileSize !== "function" || typeof numItemsInCache !== "function") {
+        return unavailableItemRepositoryResult(capability.name, capability.missing);
+      }
+      try {
+        const capacity = Number(getPileSize.call(itemRepository, itemPile.TRANSFER));
+        const used = Number(numItemsInCache.call(itemRepository, itemPile.TRANSFER));
+        return { success: true, hasCapacity: capacity - used > 0 };
+      } catch (error) {
+        return unavailableItemRepositoryResult(capability.name, [], error);
+      }
+    }
+    clearTransferMarketCache() {
+      if (!this.supports(EA_CAPABILITIES.MARKET_SEARCH)) {
+        return false;
+      }
+      const services2 = this.getServices();
+      if (!isRecord(services2) || !isRecord(services2.Item)) return false;
+      const clear = services2.Item.clearTransferMarketCache;
+      if (typeof clear !== "function") return false;
+      clear.call(services2.Item);
+      return true;
+    }
+    /**
+     * @param {unknown} criteria
+     * @param {number} type
+     * @param {unknown} observerContext
+     * @returns {Promise<unknown>}
+     */
+    searchTransferMarket(criteria, type, observerContext) {
+      const capability = this.inspect(EA_CAPABILITIES.MARKET_SEARCH);
+      if (!capability.supported) {
+        return Promise.resolve(unavailableResult(capability.name, capability.missing));
+      }
+      const services2 = this.getServices();
+      if (!isRecord(services2) || !isRecord(services2.Item)) {
+        return Promise.resolve(unavailableResult(capability.name, ["services.Item"]));
+      }
+      const search = services2.Item.searchTransferMarket;
+      if (typeof search !== "function") {
+        return Promise.resolve(
+          unavailableResult(capability.name, ["services.Item.searchTransferMarket"])
+        );
+      }
+      try {
+        const observable = search.call(services2.Item, criteria, type);
+        if (!isRecord(observable)) {
+          return Promise.resolve(
+            unavailableResult(capability.name, ["services.Item.searchTransferMarket.observe"])
+          );
+        }
+        const observe = observable.observe;
+        if (typeof observe !== "function") {
+          return Promise.resolve(
+            unavailableResult(capability.name, ["services.Item.searchTransferMarket.observe"])
+          );
+        }
+        return new Promise((resolve) => {
+          const onResponse = (_sender, response) => resolve(response);
+          observe.call(observable, observerContext, onResponse);
+        });
+      } catch (error) {
+        return Promise.resolve(unavailableResult(capability.name, [], error));
+      }
+    }
+  };
+
   // src/fsu/domain/MarketActionService.js
   var MarketActionService = class {
     _getAuctionPrice(i, p, helpers) {
       const { debug: debug2 = { log: () => {
-      } }, getInfo, notice, xmlHttpRequest } = helpers;
+      } }, ea, getInfo, notice, xmlHttpRequest } = helpers;
       const info = getInfo();
-      return new Promise((res) => {
+      return new Promise((resolve) => {
         xmlHttpRequest({
           method: "GET",
           url: `https://utas.mob.v5.prd.futc-ext.gcp.ea.com/ut/game/fc26/transfermarket?num=21&start=0&type=player&maskedDefId=${i}&maxb=${p}`,
@@ -10939,18 +11971,25 @@
           },
           onload: function(response) {
             if (response.status == 404 || response.status == 401) {
-              info.base.sId = services.Authentication.utasSession.id;
+              const refreshedSessionId = ea?.getUtasSessionId() || null;
+              if (refreshedSessionId) {
+                info.base.sId = refreshedSessionId;
+              } else {
+                debug2.log("EA capability unavailable", ea?.inspect?.(EA_CAPABILITIES.UTAS_SESSION));
+              }
               notice("notice.loaderror", 2);
+              resolve([]);
             } else {
               const transferMarketResponse = safeParseJson(responseText(response), { auctionInfo: [] }, {
                 label: "transfer-market-auctions",
                 onError: (error, context) => debug2.log(`${context.label} parse failed`, error)
               });
-              res(transferMarketResponse.auctionInfo || []);
+              resolve(transferMarketResponse.auctionInfo || []);
             }
           },
           onerror: function() {
             notice("notice.loaderror", 2);
+            resolve([]);
           }
         });
       });
@@ -10979,7 +12018,9 @@
       let priceList = result.map((i) => i.buyNowPrice) || [];
       if (result.length == 0) {
         for (let i = 0; i < 5; i++) {
-          price = UTCurrencyInputControl.getIncrementAboveVal(price);
+          const nextPrice = helpers.ea.incrementMarketPrice(price, "above");
+          if (nextPrice === null) break;
+          price = nextPrice;
           debug2.log(`升价第${i}次循环，当前查询价格${price}`);
           let tempResult = await this._getAuctionPrice(defId, price, helpers);
           tempResult.map((i2) => {
@@ -10991,7 +12032,9 @@
         }
       } else if (result.length == 21) {
         for (let i = 0; i < 5; i++) {
-          price = UTCurrencyInputControl.getIncrementBelowVal(price);
+          const nextPrice = helpers.ea.incrementMarketPrice(price, "below");
+          if (nextPrice === null) break;
+          price = nextPrice;
           debug2.log(`降价第${i}次循环，当前查询价格${price}`);
           let tempResult = await this._getAuctionPrice(defId, price, helpers);
           tempResult.map((i2) => {
@@ -11041,11 +12084,18 @@
         fy: fy2,
         debug: debug2,
         isPhone: isPhone2,
-        getCurrentController
+        getCurrentController,
+        ea
       } = helpers;
       const info = getInfo();
       info.run.bulkbuy = true;
-      if (repositories.Item.numItemsInCache(ItemPile.PURCHASED) >= MAX_NEW_ITEMS) {
+      const purchaseCapacity = ea.isPurchaseCapacityReached(MAX_NEW_ITEMS);
+      if (!purchaseCapacity.success) {
+        debug2.log("EA purchase-capacity capability unavailable", purchaseCapacity.error);
+        notice("notice.loaderror", 2);
+        return;
+      }
+      if (purchaseCapacity.reached) {
         notice(["buyplayer.error", "", fy2("buyplayer.error.child5")], 2);
         return;
       }
@@ -11059,7 +12109,13 @@
         let defId, playerName, buyStatus = false;
         if (Number.isInteger(player)) {
           defId = player;
-          playerName = repositories.Item.getStaticDataByDefId(defId).name;
+          const staticData = ea.getStaticItemData(defId);
+          if (!staticData.success || !staticData.data) {
+            debug2.log("EA static-item capability unavailable", staticData.error);
+            notice("buyplayer.getinfo.error", 2);
+            continue;
+          }
+          playerName = staticData.data.name;
         } else if (typeof player == "object" && player.isPlayer()) {
           defId = player.definitionId;
           playerName = player.getStaticData().name;
@@ -11073,61 +12129,49 @@
         priceList.sort((a, b) => b._auction.buyNowPrice - a._auction.buyNowPrice);
         debug2.log(priceList);
         changeLoadingText("buyplayer.loadingclose", loadingInfo);
-        if (!priceList || priceList.length == 0) {
+        if (priceList.length == 0) {
           notice(["buyplayer.error", playerName, fy2("buyplayer.error.child3")], 2);
         } else {
           let currentPlayer = priceList[priceList.length - 1];
-          let currentData = currentPlayer.getAuctionData();
-          if (!currentData.canBuy(services.User.getUser().getCurrency(GameCurrency.COINS).amount)) {
-            notice(["buyplayer.error", playerName, fy2("buyplayer.error.child2")], 2);
-          } else {
-            if (0 < currentData.getSecondsRemaining()) {
-              await new Promise((resolve) => {
-                sendPinEvents("Item - Detail View");
-                services.Item.bid(currentPlayer, currentPlayer._auction.buyNowPrice).observe(
-                  this,
-                  async function(sender, data) {
-                    if (data.success) {
-                      notice(
-                        ["buyplayer.success", playerName, currentPlayer._auction.buyNowPrice],
-                        0
-                      );
-                      quantity += 1;
-                      cost += currentPlayer._auction.buyNowPrice;
-                      services.Item.move(currentPlayer, ItemPile.CLUB).observe(this, (e2, t) => {
-                        if (e2.unobserve(this), t.success) {
-                          notice(["buyplayer.sendclub.success", playerName], 0);
-                          buyStatus = true;
-                          if (isPhone2() && playersNumber == 1) {
-                            let controller = getCurrentController();
-                            if (controller.className == "UTSquadItemDetailsNavigationController") {
-                              controller.getParentViewController()._eBackButtonTapped();
-                            }
-                          }
-                          resolve();
-                        } else {
-                          notice(["buyplayer.sendclub.error", playerName], 2);
-                          resolve();
-                        }
-                      });
-                    } else {
-                      let denied = data.error && data.error.code === UtasErrorCode.PERMISSION_DENIED;
-                      notice(
-                        [
-                          "buyplayer.error",
-                          playerName,
-                          `${denied ? fy2("buyplayer.error.child1") : ""}`
-                        ],
-                        2
-                      );
-                      resolve();
-                    }
-                  }
-                );
-              });
-            } else {
-              notice(["buyplayer.error", playerName, fy2("buyplayer.error.child4")], 2);
+          const purchasePrice = currentPlayer._auction.buyNowPrice;
+          const purchaseResult = await ea.purchaseItemToClub(
+            currentPlayer,
+            purchasePrice,
+            this,
+            () => sendPinEvents("Item - Detail View")
+          );
+          if (purchaseResult.success || purchaseResult.purchased) {
+            notice(["buyplayer.success", playerName, purchasePrice], 0);
+            quantity += 1;
+            cost += purchasePrice;
+          }
+          if (purchaseResult.success) {
+            notice(["buyplayer.sendclub.success", playerName], 0);
+            buyStatus = true;
+            if (isPhone2() && playersNumber == 1) {
+              let controller = getCurrentController();
+              if (controller.className == "UTSquadItemDetailsNavigationController") {
+                controller.getParentViewController()._eBackButtonTapped();
+              }
             }
+          } else if (purchaseResult.reason === "insufficient-funds") {
+            notice(["buyplayer.error", playerName, fy2("buyplayer.error.child2")], 2);
+          } else if (purchaseResult.reason === "expired") {
+            notice(["buyplayer.error", playerName, fy2("buyplayer.error.child4")], 2);
+          } else if (purchaseResult.reason === "bid-failed") {
+            notice(
+              [
+                "buyplayer.error",
+                playerName,
+                `${purchaseResult.permissionDenied ? fy2("buyplayer.error.child1") : ""}`
+              ],
+              2
+            );
+          } else if (purchaseResult.reason === "move-failed") {
+            notice(["buyplayer.sendclub.error", playerName], 2);
+          } else {
+            debug2.log("Bulk purchase unavailable", purchaseResult.error);
+            notice("notice.loaderror", 2);
           }
         }
         if (!buyStatus) {
@@ -11154,93 +12198,94 @@
         fy: fy2,
         debug: debug2,
         isPhone: isPhone2,
-        getCurrentController
+        getCurrentController,
+        ea
       } = helpers;
       showLoader();
+      let shouldMarkBuyError = false;
       let defId = 0, playerName = "";
       if (Number.isInteger(player)) {
         defId = player;
-        playerName = repositories.Item.getStaticDataByDefId(defId).name;
+        const staticData = ea.getStaticItemData(defId);
+        if (!staticData.success || !staticData.data) {
+          debug2.log("EA static-item capability unavailable", staticData.error);
+          hideLoader();
+          notice("notice.loaderror", 2);
+          return;
+        }
+        playerName = staticData.data.name;
       } else if (typeof player == "object" && player.isPlayer()) {
         defId = player.definitionId;
         playerName = player.getStaticData().name;
       }
       if (!defId) {
+        hideLoader();
         return;
       }
-      if (repositories.Item.numItemsInCache(ItemPile.PURCHASED) >= MAX_NEW_ITEMS) {
+      const purchaseCapacity = ea.isPurchaseCapacityReached(MAX_NEW_ITEMS);
+      if (!purchaseCapacity.success) {
+        debug2.log("EA purchase-capacity capability unavailable", purchaseCapacity.error);
+        notice("notice.loaderror", 2);
+        hideLoader();
+        return;
+      }
+      if (purchaseCapacity.reached) {
         notice(["buyplayer.error", playerName, fy2("buyplayer.error.child5")], 2);
-        state = false;
+        shouldMarkBuyError = true;
       } else {
         let priceList = await this.readAuctionPrices(player, void 0, void 0, helpers);
         priceList.sort((a, b) => b._auction.buyNowPrice - a._auction.buyNowPrice);
         debug2.log(priceList);
         changeLoadingText("buyplayer.loadingclose");
-        if (!priceList || priceList.length == 0) {
+        if (priceList.length == 0) {
           notice(["buyplayer.error", playerName, fy2("buyplayer.error.child3")], 2);
-          state = false;
+          shouldMarkBuyError = true;
         } else {
           let currentPlayer = priceList[priceList.length - 1];
-          let currentData = currentPlayer.getAuctionData();
-          if (!currentData.canBuy(services.User.getUser().getCurrency(GameCurrency.COINS).amount)) {
-            notice(["buyplayer.error", playerName, fy2("buyplayer.error.child2")], 2);
-            state = false;
-          } else {
-            if (0 < currentData.getSecondsRemaining()) {
-              return new Promise(async (resolve) => {
-                sendPinEvents("Item - Detail View");
-                services.Item.bid(currentPlayer, currentPlayer._auction.buyNowPrice).observe(
-                  this,
-                  async function(sender, data) {
-                    if (data.success) {
-                      notice(
-                        ["buyplayer.success", playerName, currentPlayer._auction.buyNowPrice],
-                        0
-                      );
-                      services.Item.move(currentPlayer, ItemPile.CLUB).observe(this, (e2, t) => {
-                        if (e2.unobserve(this), t.success) {
-                          notice(["buyplayer.sendclub.success", playerName], 0);
-                          if (isPhone2()) {
-                            let controller = getCurrentController();
-                            if (controller.className == "UTSquadItemDetailsNavigationController") {
-                              controller.getParentViewController()._eBackButtonTapped();
-                            }
-                          }
-                        } else {
-                          notice(["buyplayer.sendclub.error", playerName], 2);
-                          state = false;
-                        }
-                        hideLoader();
-                      });
-                    } else {
-                      let denied = data.error && data.error.code === UtasErrorCode.PERMISSION_DENIED;
-                      notice(
-                        [
-                          "buyplayer.error",
-                          playerName,
-                          `${denied ? fy2("buyplayer.error.child1") : ""}`
-                        ],
-                        2
-                      );
-                      state = false;
-                      cardAddBuyErrorTips(defId);
-                      if (view) {
-                        view.getSuperview().items._collection[view.getSuperview().items._index].render(player);
-                      }
-                      hideLoader();
-                    }
-                  }
-                );
-                resolve();
-              });
-            } else {
-              notice(["buyplayer.error", playerName, fy2("buyplayer.error.child4")], 2);
-              state = false;
+          const purchasePrice = currentPlayer._auction.buyNowPrice;
+          const purchaseResult = await ea.purchaseItemToClub(
+            currentPlayer,
+            purchasePrice,
+            this,
+            () => sendPinEvents("Item - Detail View")
+          );
+          if (purchaseResult.success || purchaseResult.purchased) {
+            notice(["buyplayer.success", playerName, purchasePrice], 0);
+          }
+          if (purchaseResult.success) {
+            notice(["buyplayer.sendclub.success", playerName], 0);
+            if (isPhone2()) {
+              let controller = getCurrentController();
+              if (controller.className == "UTSquadItemDetailsNavigationController") {
+                controller.getParentViewController()._eBackButtonTapped();
+              }
             }
+          } else if (purchaseResult.reason === "insufficient-funds") {
+            notice(["buyplayer.error", playerName, fy2("buyplayer.error.child2")], 2);
+            shouldMarkBuyError = true;
+          } else if (purchaseResult.reason === "expired") {
+            notice(["buyplayer.error", playerName, fy2("buyplayer.error.child4")], 2);
+            shouldMarkBuyError = true;
+          } else if (purchaseResult.reason === "bid-failed") {
+            notice(
+              [
+                "buyplayer.error",
+                playerName,
+                `${purchaseResult.permissionDenied ? fy2("buyplayer.error.child1") : ""}`
+              ],
+              2
+            );
+            shouldMarkBuyError = true;
+          } else if (purchaseResult.reason === "move-failed") {
+            notice(["buyplayer.sendclub.error", playerName], 2);
+          } else {
+            debug2.log("EA purchase unavailable", purchaseResult.error || purchaseResult);
+            notice("notice.loaderror", 2);
+            shouldMarkBuyError = true;
           }
         }
       }
-      if (!state) {
+      if (shouldMarkBuyError) {
         cardAddBuyErrorTips(defId);
         if (view) {
           view.getSuperview().items._collection[view.getSuperview().items._index].render(player);
@@ -11256,110 +12301,113 @@
         wait,
         notice,
         sendPinEvents,
-        futbinId: futbinId2
+        futbinId: futbinId2,
+        debug: debug2,
+        ea
       } = helpers;
       const info = getInfo();
       changeLoadingText("readauction.loadingclose", loadingInfo);
       let attempts = "queries_number" in info.set ? info.set.queries_number : 5;
       let defId = Number.isInteger(player) ? player : typeof player == "object" && "definitionId" in player ? player.definitionId : Number(player);
-      let searchCriteria = new UTSearchCriteriaDTO();
-      searchCriteria.defId = [defId];
-      searchCriteria.type = SearchType.PLAYER;
-      searchCriteria.category = SearchCategory.ANY;
-      let searchModel = new UTBucketedItemSearchViewModel();
-      searchModel.searchFeature = ItemSearchFeature.MARKET;
-      searchModel.defaultSearchCriteria.type = searchCriteria.type;
-      searchModel.defaultSearchCriteria.category = searchCriteria.category;
-      searchModel.updateSearchCriteria(searchCriteria);
+      if (!Number.isFinite(defId)) return [];
+      const marketSearch = ea.createPlayerMarketSearch(defId);
+      if (!marketSearch) {
+        debug2.log("EA capability unavailable", ea.inspect(EA_CAPABILITIES.MARKET_QUERY_MODEL));
+        notice("readauction.error", 2);
+        return [];
+      }
       let result = [];
-      if (searchCriteria.defId.length) {
-        let queried = [];
-        if (price) {
-          searchCriteria.maxBuy = Number(price);
-        } else {
-          try {
-            if (_.has(info.futbinId, defId)) {
-              await futbinId2.getPrice(defId, info.futbinId[defId]);
-            } else {
-              await futbinId2.getId(player);
-            }
-          } catch {
-            return;
+      let queried = [];
+      if (price) {
+        marketSearch.setMaxBuy(Number(price));
+      } else {
+        try {
+          if (_.has(info.futbinId, defId)) {
+            await futbinId2.getPrice(defId, info.futbinId[defId]);
+          } else {
+            await futbinId2.getId(player);
           }
-          searchCriteria.maxBuy = getCachePrice(defId, 1).num;
+        } catch {
+          return [];
         }
-        searchModel.updateSearchCriteria(searchCriteria);
-        changeLoadingText("readauction.loadingclose2", loadingInfo);
-        while (attempts-- > 0) {
-          changeLoadingText(
-            ["readauction.loadingclose3", `${searchModel.searchCriteria.maxBuy.toLocaleString()}`],
-            loadingInfo
-          );
-          if (queried.includes(searchModel.searchCriteria.maxBuy)) {
-            break;
-          }
-          services.Item.clearTransferMarketCache();
-          let response = await this.searchTransferMarket(searchModel.searchCriteria, 1, helpers);
-          if (response.success) {
-            sendPinEvents("Transfer Market Results - List View");
-            result = result.concat(response.data.items);
-            let currentQuery = searchCriteria.maxBuy;
-            queried.push(currentQuery);
-            if (response.data.items.length == 0) {
-              currentQuery = UTCurrencyInputControl.getIncrementAboveVal(currentQuery);
-            } else if (response.data.items.length == 21) {
-              currentQuery = UTCurrencyInputControl.getIncrementBelowVal(currentQuery);
-            } else {
+        marketSearch.setMaxBuy(getCachePrice(defId, 1).num);
+      }
+      changeLoadingText("readauction.loadingclose2", loadingInfo);
+      while (attempts-- > 0) {
+        const currentMaxBuy = marketSearch.getMaxBuy();
+        changeLoadingText(
+          ["readauction.loadingclose3", `${currentMaxBuy.toLocaleString()}`],
+          loadingInfo
+        );
+        if (queried.includes(currentMaxBuy)) {
+          break;
+        }
+        ea.clearTransferMarketCache();
+        let response = await this.searchTransferMarket(marketSearch.getCriteria(), 1, helpers);
+        const items = response?.success && Array.isArray(response?.data?.items) ? response.data.items : null;
+        if (items) {
+          sendPinEvents("Transfer Market Results - List View");
+          result = result.concat(items);
+          queried.push(currentMaxBuy);
+          if (items.length == 0 || items.length == 21) {
+            const direction = items.length == 0 ? "above" : "below";
+            const nextPrice = ea.incrementMarketPrice(currentMaxBuy, direction);
+            if (nextPrice === null) {
+              debug2.log("EA capability unavailable", ea.inspect(EA_CAPABILITIES.CURRENCY_STEPS));
               break;
             }
-            searchCriteria.maxBuy = currentQuery;
-            searchModel.updateSearchCriteria(searchCriteria);
+            marketSearch.setMaxBuy(nextPrice);
           } else {
-            notice("readauction.error", 2);
             break;
           }
-          if (attempts > 0) {
-            await wait(0.2, 0.5);
-          }
+        } else {
+          notice("readauction.error", 2);
+          break;
+        }
+        if (attempts > 0) {
+          await wait(0.2, 0.5);
         }
       }
       return result;
     }
-    searchTransferMarket(criteria, type, _helpers) {
-      return new Promise(async (resolve) => {
-        services.Item.searchTransferMarket(criteria, type).observe(this, async function(sender, response) {
-          resolve(response);
-        });
-      });
+    searchTransferMarket(criteria, type, helpers) {
+      return helpers.ea.searchTransferMarket(criteria, type, this);
     }
-    transferToClub(controller, list, helpers) {
-      const { notice, isPhone: isPhone2 } = helpers;
-      services.Item.move(list, ItemPile.CLUB).observe(controller, (e2, t) => {
-        if (e2.unobserve(controller), t.success) {
-          let i = t.data.itemIds.length, o = 1 < i ? services.Localization.localize("notification.item.allToClub", [i]) : services.Localization.localize("notification.item.oneToClub");
-          services.Notification.queue([o, UINotificationType.NEUTRAL]);
-          if (i < list.length) {
-            notice(["transfertoclub.unable", list.length - i], 2);
-          }
-          if (isPhone2()) {
-            controller.refreshList();
-          }
-        } else {
-          t.data.untradeableSwap ? services.Notification.queue([
-            services.Localization.localize("notification.item.moveFailed"),
-            UINotificationType.NEGATIVE
-          ]) : (services.Notification.queue([
-            services.Localization.localize("notification.item.moveFailed"),
-            UINotificationType.NEGATIVE
-          ]), NetworkErrorManager.handleStatus(t.status));
+    async transferToClub(controller, list, helpers) {
+      const { notice, isPhone: isPhone2, ea, debug: debug2 } = helpers;
+      const result = await ea.moveItemsToClub(list, controller);
+      if (result.success) {
+        if (result.movedCount < list.length) {
+          notice(["transfertoclub.unable", list.length - result.movedCount], 2);
         }
-      });
+        if (isPhone2()) {
+          controller.refreshList();
+        }
+      } else if (result.error?.code === "EA_CAPABILITY_UNAVAILABLE") {
+        debug2.log("EA capability unavailable", result.error);
+        notice("notice.loaderror", 2);
+      }
     }
     async playerToAuction(d, p, time, helpers) {
-      const { futbinId: futbinId2, getInfo, getCachePrice, notice, playerGetLimits, getCurrentController } = helpers;
+      const {
+        futbinId: futbinId2,
+        getInfo,
+        getCachePrice,
+        notice,
+        playerGetLimits,
+        getCurrentController,
+        debug: debug2,
+        ea
+      } = helpers;
       const info = getInfo();
-      let i = repositories.Item.transfer.get(d) || repositories.Item.unassigned.get(d) || repositories.Item.club.items.get(d);
-      let t = repositories.Item.transfer._collection.hasOwnProperty(d);
+      const listingItem = ea.findListingItem(d);
+      if (!listingItem.success) {
+        debug2.log("EA listing-inventory capability unavailable", listingItem.error);
+        notice("notice.loaderror", 2);
+        return false;
+      }
+      const i = listingItem.item;
+      const t = listingItem.alreadyListed;
       if (i) {
         try {
           if (_.has(info.futbinId, i.definitionId)) {
@@ -11371,7 +12419,13 @@
           return;
         }
         const price = getCachePrice(i.definitionId, 1).num;
-        if ((repositories.Item.getPileSize(ItemPile.TRANSFER) - repositories.Item.numItemsInCache(ItemPile.TRANSFER) > 0 || t) && price) {
+        const listingCapacity = ea.hasTransferListingCapacity();
+        if (!listingCapacity.success) {
+          debug2.log("EA listing-inventory capability unavailable", listingCapacity.error);
+          notice("notice.loaderror", 2);
+          return false;
+        }
+        if ((listingCapacity.hasCapacity || t) && price) {
           await playerGetLimits(i);
           if (i.hasPriceLimits()) {
             if (p < i._itemPriceLimits.minimum || p > i._itemPriceLimits.maximum) {
@@ -11379,40 +12433,27 @@
               return;
             }
           }
-          let lp = UTCurrencyInputControl.getIncrementBelowVal(price);
-          await services.Item.list(i, lp, price, time * 3600).observe(
-            getCurrentController(),
-            async (e2, t2) => {
-              if (e2.unobserve(getCurrentController()), t2.success) {
-                notice(["notice.auctionsuccess", i._staticData.name, price], 0);
-              } else {
-                let ix = t2.error ? t2.error.code : t2.status;
-                if (NetworkErrorManager.checkCriticalStatus(ix)) NetworkErrorManager.handleStatus(ix);
-                else {
-                  const listErrorKey = (() => {
-                    switch (ix) {
-                      case HttpStatusCode.FORBIDDEN:
-                        return "popup.error.list.forbidden.message";
-                      case UtasErrorCode.PERMISSION_DENIED:
-                        return "popup.error.list.PermissionDenied";
-                      case UtasErrorCode.STATE_INVALID:
-                        return "popup.error.list.InvalidState";
-                      case UtasErrorCode.DESTINATION_FULL:
-                        return "popup.error.tradetoken.SellItemTradePileFull";
-                      case UtasErrorCode.CARD_IN_TRADE:
-                        return "popup.error.tradetoken.ItemInTradeOffer";
-                      default:
-                        return "popup.error.list.InvalidState";
-                    }
-                  })();
-                  services.Notification.queue([
-                    services.Localization.localize(listErrorKey),
-                    UINotificationType.NEGATIVE
-                  ]);
-                }
-              }
-            }
+          const startingPrice = ea.incrementMarketPrice(price, "below");
+          if (startingPrice === null) {
+            debug2.log("EA currency-step capability unavailable");
+            notice("notice.loaderror", 2);
+            return false;
+          }
+          const result = await ea.listItemForSale(
+            i,
+            startingPrice,
+            price,
+            time * 3600,
+            getCurrentController()
           );
+          if (result.success) {
+            notice(["notice.auctionsuccess", i._staticData.name, price], 0);
+          } else if (result.error?.code === "EA_CAPABILITY_UNAVAILABLE") {
+            debug2.log("EA listing capability unavailable", result.error);
+            notice("notice.loaderror", 2);
+            return false;
+          }
+          return result.success;
         } else {
           notice("notice.auctionmax", 2);
           return false;
@@ -11433,7 +12474,8 @@
         debug: debug2,
         isPhone: isPhone2,
         getCurrentController,
-        getLeftController
+        getLeftController,
+        ea
       } = helpers;
       const info = getInfo();
       e2.setInteractionState(0);
@@ -11464,7 +12506,12 @@
       e2.setInteractionState(e2._parent._fsuAkbCurrent);
       let currentController = isPhone2() ? getCurrentController() : getLeftController();
       if (currentController.className == "UTUnassignedItemsViewController") {
-        await services.Item.itemDao.itemRepo.unassigned.reset();
+        const resetResult = await ea.resetUnassignedItems();
+        if (!resetResult.success) {
+          debug2.log("EA unassigned reset capability unavailable", resetResult.error);
+          notice("notice.loaderror", 2);
+          return;
+        }
         await currentController.getUnassignedItems();
       } else {
         currentController.refreshList();
@@ -12238,7 +13285,7 @@
       if (!Number.isFinite(rating)) {
         continue;
       }
-      prices[rating] = Number.parseInt(value, 10) || 0;
+      prices[rating] = Number.parseInt(String(value), 10) || 0;
     }
     return prices;
   }
@@ -12246,7 +13293,7 @@
     info.base.price = parseLowpricePlatform(data, info.base.platform);
   }
   function resolvePriceByRating(info, rating) {
-    return Number.parseInt(info.base?.price?.[rating], 10) || 0;
+    return Number.parseInt(String(info.base.price?.[rating] ?? ""), 10) || 0;
   }
   function buildPriceByRating(info, ratings) {
     const priceByRating = {};
@@ -12922,15 +13969,15 @@
       const t = [];
       const i = info.league == 2 ? " " : "";
       _.map(j, (sj) => {
-        let lt = `${sj.c}<span>×</span>`;
+        let lt = `${escapeHtml(sj.c)}<span>×</span>`;
         if (_.has(sj.t, "rating")) {
-          lt += `${localize("squads.rating")}${i}:${i}${sj.t.rating}`;
+          lt += `${escapeHtml(localize("squads.rating"))}${i}:${i}${escapeHtml(sj.t.rating)}`;
         } else {
           if (_.has(sj.t, "gs")) {
-            lt += localize(`item.raretype${sj.t.gs ? 1 : 0}`);
+            lt += escapeHtml(localize(`item.raretype${sj.t.gs ? 1 : 0}`));
           }
           if (_.has(sj.t, "rs")) {
-            lt += i + localize(`search.cardLevels.cardLevel${sj.t.rs + 1}`);
+            lt += i + escapeHtml(localize(`search.cardLevels.cardLevel${sj.t.rs + 1}`));
           }
         }
         t.push(lt);
@@ -13101,6 +14148,26 @@
   // src/fsu/core/DomainHelpers.js
   function createDomainHelpers(ctx) {
     const { events, info, repositories: repositories2, services: services2, cntlr: cntlr2, debug: debug2, fy: fy2, eafy, futbinId: futbinId2, pdb, isPhone: isPhone2 } = ctx;
+    const ea = new EaRuntimeAdapter({
+      getServices: () => services2,
+      getRepositories: () => repositories2,
+      getItemRuntime: () => ({
+        ItemPile: typeof ItemPile === "undefined" ? void 0 : ItemPile,
+        GameCurrency: typeof GameCurrency === "undefined" ? void 0 : GameCurrency,
+        UtasErrorCode: typeof UtasErrorCode === "undefined" ? void 0 : UtasErrorCode,
+        HttpStatusCode: typeof HttpStatusCode === "undefined" ? void 0 : HttpStatusCode,
+        UINotificationType: typeof UINotificationType === "undefined" ? void 0 : UINotificationType,
+        NetworkErrorManager: typeof NetworkErrorManager === "undefined" ? void 0 : NetworkErrorManager
+      }),
+      getMarketRuntime: () => ({
+        UTSearchCriteriaDTO: typeof UTSearchCriteriaDTO === "undefined" ? void 0 : UTSearchCriteriaDTO,
+        UTBucketedItemSearchViewModel: typeof UTBucketedItemSearchViewModel === "undefined" ? void 0 : UTBucketedItemSearchViewModel,
+        UTCurrencyInputControl: typeof UTCurrencyInputControl === "undefined" ? void 0 : UTCurrencyInputControl,
+        SearchType: typeof SearchType === "undefined" ? void 0 : SearchType,
+        SearchCategory: typeof SearchCategory === "undefined" ? void 0 : SearchCategory,
+        ItemSearchFeature: typeof ItemSearchFeature === "undefined" ? void 0 : ItemSearchFeature
+      })
+    });
     const eventProxy = (name) => (...args) => events[name](...args);
     return {
       market() {
@@ -13113,6 +14180,7 @@
           createButton: eventProxy("createButton"),
           pdb,
           notice: eventProxy("notice"),
+          ea,
           xmlHttpRequest: ctx.GM_xmlhttpRequest,
           showLoader: () => events.showLoader(),
           hideLoader: () => events.hideLoader(),

@@ -1,39 +1,82 @@
 # Security Policy
 
-## Supported Versions
+## Supported versions
 
-| Version | Supported |
-| ------- | --------- |
-| Latest release on [GitHub Releases](https://github.com/color8892/fsu-fut-enhancer/releases/latest) | Yes |
-| Older releases | No |
+| Version | Security support |
+|---------|------------------|
+| Latest [GitHub Release](https://github.com/color8892/fsu-fut-enhancer/releases/latest) | Supported |
+| `main` | Best effort; development code |
+| Older releases and forks | Not supported |
 
-## Reporting a Vulnerability
+## Security model
 
-**Please do not open a public GitHub issue for security vulnerabilities.**
+FSU runs across three trust boundaries:
 
-Use one of these channels:
+1. The Chrome extension service worker and isolated content script.
+2. The EA FUT page world, including EA and third-party page scripts.
+3. Remote EA, pricing, SBC, and configuration services.
 
-1. **Private vulnerability report** (preferred):  
-   On the repository page, go to **Security** → **Report a vulnerability**  
-   ([Private reporting](https://github.com/color8892/fsu-fut-enhancer/security/advisories/new))
+Code running in the page world is not trusted merely because it is on an allowed EA origin. Messages arriving from `window.postMessage` must be treated as attacker-controlled.
 
-2. **GitHub Security Advisory**:  
-   If you are a maintainer, use **Security** → **Advisories** → **New draft**.
+### Required controls
 
-We aim to acknowledge reports within **7 days** and provide a status update within **30 days** when possible.
+- Content scripts and web-accessible resources are limited to FUT Web App pages.
+- Background requests use an origin and path allowlist; callers cannot authorize arbitrary URLs.
+- HTTP methods, forwarded headers, credentials, redirects, timeout, and response size are constrained by the background policy.
+- Executable JavaScript is packaged with the extension. Remote code fallbacks are not allowed.
+- Remote text must use `textContent` or escaping before entering a trusted HTML helper.
+- New host permissions require a documented feature need and rejection tests.
 
-## What to Include
+See [ARCHITECTURE.md](ARCHITECTURE.md#extension-安全邊界) for the implementation flow.
 
-- Description of the issue and potential impact
-- Steps to reproduce (FUT Web App URL, FSU version, browser)
-- Whether the issue is in the extension, a third-party API integration, or EA's web app
+## Data handling
 
-## Scope Notes
+FSU stores user preferences and local feature caches in `chrome.storage.local`. It may process FUT session identifiers in memory when making EA requests. These values must never be written to logs, fixtures, screenshots, issues, or repository files.
 
-- FSU is an unofficial browser extension for EA FC Ultimate Team Web App.
-- Issues in EA's website, Chrome, or third-party price/SBC APIs may be out of scope for this repo.
-- Reports about violating EA Terms of Service are not security vulnerabilities.
+The repository must not contain:
 
-## Safe Harbor
+- EA account identifiers or session tokens
+- cookies, authorization headers, `X-UT-SID`, or HAR captures
+- private API credentials
+- unsanitized EA bundle snapshots containing user data
 
-We appreciate responsible disclosure. We will not pursue action against researchers who report issues in good faith and avoid privacy violations, data destruction, or disruption to other users.
+Third-party API responses are untrusted input. Compromise or incorrect output from a pricing service must not grant script execution in the FUT page.
+
+## Reporting a vulnerability
+
+Do not open a public issue for a suspected vulnerability.
+
+Use GitHub private vulnerability reporting:
+
+[Report a vulnerability privately](https://github.com/color8892/fsu-fut-enhancer/security/advisories/new)
+
+Maintainers should use **Security → Advisories → New draft** when coordinating a fix. We aim to acknowledge reports within 7 days and provide a status update within 30 days when possible.
+
+Include:
+
+- affected FSU version and browser version
+- affected URL, component, and trust boundary
+- reproduction steps with secrets removed
+- expected impact and whether user interaction is required
+- suggested mitigation, if known
+
+## Scope
+
+In scope:
+
+- extension privilege escalation or permission abuse
+- cross-origin request policy bypass
+- page-to-extension message forgery with additional security impact
+- script or HTML injection caused by FSU
+- exposure of locally stored FSU data or FUT session values
+
+Generally out of scope:
+
+- vulnerabilities that exist only in EA, Chrome, or a third-party API
+- stale or inaccurate market data without a security impact
+- reports solely about EA Terms of Service compliance
+- denial of service requiring deliberate local modification of extension files
+
+## Safe harbor
+
+We appreciate good-faith research that avoids privacy violations, account access, destructive actions, market abuse, and disruption to other users. Do not test against accounts or data you do not own or have permission to use.

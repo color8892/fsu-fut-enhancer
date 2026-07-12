@@ -2,6 +2,83 @@
   "use strict";
 
   const CONTENT_SOURCE = "fsu-extension-content";
+  const MAX_RESPONSE_BYTES = 5 * 1024 * 1024;
+
+  function createSecurityError(message) {
+    const error = new Error(message);
+    error.name = "SecurityError";
+    return error;
+  }
+
+  const REQUEST_RULES = [
+    {
+      origin: "https://api.fut.to",
+      path: /^\/26\/(?:updata|meta|fast|pack|sbc|ggrating|evolutions|inpacks|other|fgconfig|playermeta|lowprice)\.json$/,
+      credentials: "omit"
+    },
+    {
+      origin: "https://www.fut.gg",
+      path: /^\/api\/(?:fut\/player-prices\/26\/|squads\/\d+)$/,
+      credentials: "include"
+    },
+    {
+      origin: "https://www.futbin.org",
+      path: /^\/futbin\/api\/\d+\/(?:getChallengeTopSquads|getSquadByID|getChallengesBySetId|fetchPriceInformation|getFilteredPlayers|fetchPlayerInformationMinimal)$/,
+      credentials: "omit"
+    },
+    {
+      origin: "https://enhancer-api.futnext.com",
+      path: /^\/players\/prices$/,
+      credentials: "omit"
+    },
+    {
+      origin: "https://www.futnext.com",
+      path: /^\//,
+      credentials: "omit"
+    },
+    {
+      origin: "https://utas.mob.v5.prd.futc-ext.gcp.ea.com",
+      path: /^\/ut\/game\/fc26\/transfermarket$/,
+      credentials: "omit",
+      headers: new Set(["accept", "content-type", "x-ut-sid"])
+    }
+  ];
+
+  class RequestPolicy {
+    constructor(rules = REQUEST_RULES) {
+      this.rules = rules;
+    }
+
+    authorize(details) {
+      if (!details || typeof details.url !== "string") {
+        throw new TypeError("GM_xmlhttpRequest requires a URL.");
+      }
+
+      let url;
+      try {
+        url = new URL(details.url);
+      } catch {
+        throw new TypeError("GM_xmlhttpRequest received an invalid URL.");
+      }
+
+      const method = String(details.method || "GET").toUpperCase();
+      const rule = this.rules.find(
+        (candidate) => candidate.origin === url.origin && candidate.path.test(url.pathname)
+      );
+
+      if (!rule || method !== "GET") {
+        throw createSecurityError("The requested endpoint is not allowed.");
+      }
+
+      return {
+        ...details,
+        url: url.href,
+        method,
+        credentials: rule.credentials,
+        allowedHeaders: rule.headers || new Set(["accept", "content-type", "cache-control", "pragma", "x-requested-with"])
+      };
+    }
+  }
 
   const FORBIDDEN_REQUEST_HEADERS = new Set([
     "accept-charset",
@@ -45,18 +122,14 @@
       const path = url.pathname;
 
       if (host === "www.ea.com") {
-        return path.includes("/ea-sports-fc/ultimate-team/web-app/");
+        return /^\/(?:[a-z]{2}(?:-[a-z]{2})?\/)?ea-sports-fc\/ultimate-team\/web-app\//i.test(path);
       }
 
       if (host === "www.easports.com") {
-        return /^\/[^/]+\/ea-sports-fc\/ultimate-team\/web-app\//.test(path);
+        return /^\/[a-z]{2}(?:-[a-z]{2})?\/ea-sports-fc\/ultimate-team\/web-app\//i.test(path);
       }
 
-      if (host === "www.easysbc.io") {
-        return path.startsWith("/evolutions");
-      }
-
-      return host === "www.futbin.com" || host === "www.fut.gg";
+      return false;
     }
   }
 
@@ -65,7 +138,7 @@
       this.forbiddenHeaders = forbiddenHeaders;
     }
 
-    normalizeHeaders(headers) {
+    normalizeHeaders(headers, allowedHeaders) {
       const normalized = {};
 
       if (!headers || typeof headers !== "object") {
@@ -80,6 +153,7 @@
 
         if (
           this.forbiddenHeaders.has(lowerName) ||
+          (allowedHeaders && !allowedHeaders.has(lowerName)) ||
           lowerName.startsWith("proxy-") ||
           lowerName.startsWith("sec-")
         ) {
@@ -110,9 +184,9 @@
       const method = String(details.method || "GET").toUpperCase();
       const options = {
         method,
-        headers: this.normalizeHeaders(details.headers),
-        credentials: details.anonymous ? "omit" : "include",
-        redirect: "follow",
+        headers: this.normalizeHeaders(details.headers, details.allowedHeaders),
+        credentials: details.credentials || "omit",
+        redirect: "error",
         signal
       };
 
@@ -128,20 +202,19 @@
   }
 
   class GmRequestService {
-    constructor(fetchImpl, normalizer = new RequestNormalizer()) {
+    constructor(fetchImpl, normalizer = new RequestNormalizer(), policy = new RequestPolicy()) {
       this.fetchImpl = fetchImpl;
       this.normalizer = normalizer;
+      this.policy = policy;
     }
 
     async perform(details) {
-      if (!details || typeof details.url !== "string") {
-        throw new TypeError("GM_xmlhttpRequest requires a URL.");
-      }
+      const authorizedDetails = this.policy.authorize(details);
 
       const controller = new AbortController();
       let timeoutId = null;
       let timedOut = false;
-      const timeoutMs = Number(details.timeout) || 0;
+      const timeoutMs = Math.min(Math.max(Number(authorizedDetails.timeout) || 0, 0), 30000);
 
       if (timeoutMs > 0) {
         timeoutId = setTimeout(() => {
@@ -152,10 +225,13 @@
 
       try {
         const response = await this.fetchImpl(
-          details.url,
-          this.normalizer.buildFetchOptions(details, controller.signal)
+          authorizedDetails.url,
+          this.normalizer.buildFetchOptions(authorizedDetails, controller.signal)
         );
         const responseText = await response.text();
+        if (new TextEncoder().encode(responseText).byteLength > MAX_RESPONSE_BYTES) {
+          throw new RangeError("The response exceeds the extension size limit.");
+        }
         const responseHeaders = Array.from(response.headers.entries())
           .map(([key, value]) => `${key}: ${value}`)
           .join("\r\n");
@@ -275,6 +351,7 @@
 
   const senderPolicy = new SenderPolicy();
   const requestNormalizer = new RequestNormalizer();
+  const requestPolicy = new RequestPolicy();
   const errorSerializer = new ErrorSerializer();
 
   function isAllowedSender(senderUrl) {
@@ -301,7 +378,7 @@
     new BackgroundMessageRouter({
       runtimeApi: chrome.runtime,
       senderPolicy,
-      requestService: new GmRequestService(fetch.bind(globalScope), requestNormalizer),
+      requestService: new GmRequestService(fetch.bind(globalScope), requestNormalizer, requestPolicy),
       tabService: new TabService(chrome.tabs),
       errorSerializer
     }).register();
@@ -313,6 +390,7 @@
       ErrorSerializer,
       GmRequestService,
       RequestNormalizer,
+      RequestPolicy,
       SenderPolicy,
       TabService,
       buildFetchOptions,

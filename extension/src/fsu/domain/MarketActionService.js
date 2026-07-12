@@ -1,10 +1,11 @@
 import { responseText, safeParseJson } from "../infra/JsonParsing.js";
+import { EA_CAPABILITIES } from "../ea/EaRuntimeAdapter.js";
 
 export class MarketActionService {
   _getAuctionPrice(i, p, helpers) {
-    const { debug = { log: () => {} }, getInfo, notice, xmlHttpRequest } = helpers;
+    const { debug = { log: () => {} }, ea, getInfo, notice, xmlHttpRequest } = helpers;
     const info = getInfo();
-    return new Promise((res) => {
+    return new Promise((resolve) => {
       xmlHttpRequest({
         method: "GET",
         url: `https://utas.mob.v5.prd.futc-ext.gcp.ea.com/ut/game/fc26/transfermarket?num=21&start=0&type=player&maskedDefId=${i}&maxb=${p}`,
@@ -14,18 +15,25 @@ export class MarketActionService {
         },
         onload: function (response) {
           if (response.status == 404 || response.status == 401) {
-            info.base.sId = services.Authentication.utasSession.id;
+            const refreshedSessionId = ea?.getUtasSessionId() || null;
+            if (refreshedSessionId) {
+              info.base.sId = refreshedSessionId;
+            } else {
+              debug.log("EA capability unavailable", ea?.inspect?.(EA_CAPABILITIES.UTAS_SESSION));
+            }
             notice("notice.loaderror", 2);
+            resolve([]);
           } else {
             const transferMarketResponse = safeParseJson(responseText(response), { auctionInfo: [] }, {
               label: "transfer-market-auctions",
               onError: (error, context) => debug.log(`${context.label} parse failed`, error)
             });
-            res(transferMarketResponse.auctionInfo || []);
+            resolve(transferMarketResponse.auctionInfo || []);
           }
         },
         onerror: function () {
           notice("notice.loaderror", 2);
+          resolve([]);
         }
       });
     });
@@ -56,7 +64,9 @@ export class MarketActionService {
     let priceList = result.map((i) => i.buyNowPrice) || [];
     if (result.length == 0) {
       for (let i = 0; i < 5; i++) {
-        price = UTCurrencyInputControl.getIncrementAboveVal(price);
+        const nextPrice = helpers.ea.incrementMarketPrice(price, "above");
+        if (nextPrice === null) break;
+        price = nextPrice;
         debug.log(`升价第${i}次循环，当前查询价格${price}`);
         let tempResult = await this._getAuctionPrice(defId, price, helpers);
         tempResult.map((i) => {
@@ -68,7 +78,9 @@ export class MarketActionService {
       }
     } else if (result.length == 21) {
       for (let i = 0; i < 5; i++) {
-        price = UTCurrencyInputControl.getIncrementBelowVal(price);
+        const nextPrice = helpers.ea.incrementMarketPrice(price, "below");
+        if (nextPrice === null) break;
+        price = nextPrice;
         debug.log(`降价第${i}次循环，当前查询价格${price}`);
         let tempResult = await this._getAuctionPrice(defId, price, helpers);
         tempResult.map((i) => {
@@ -118,12 +130,19 @@ export class MarketActionService {
       fy,
       debug,
       isPhone,
-      getCurrentController
+      getCurrentController,
+      ea
     } = helpers;
     const info = getInfo();
 
     info.run.bulkbuy = true;
-    if (repositories.Item.numItemsInCache(ItemPile.PURCHASED) >= MAX_NEW_ITEMS) {
+    const purchaseCapacity = ea.isPurchaseCapacityReached(MAX_NEW_ITEMS);
+    if (!purchaseCapacity.success) {
+      debug.log("EA purchase-capacity capability unavailable", purchaseCapacity.error);
+      notice("notice.loaderror", 2);
+      return;
+    }
+    if (purchaseCapacity.reached) {
       notice(["buyplayer.error", "", fy("buyplayer.error.child5")], 2);
       return;
     }
@@ -141,7 +160,13 @@ export class MarketActionService {
         buyStatus = false;
       if (Number.isInteger(player)) {
         defId = player;
-        playerName = repositories.Item.getStaticDataByDefId(defId).name;
+        const staticData = ea.getStaticItemData(defId);
+        if (!staticData.success || !staticData.data) {
+          debug.log("EA static-item capability unavailable", staticData.error);
+          notice("buyplayer.getinfo.error", 2);
+          continue;
+        }
+        playerName = staticData.data.name;
       } else if (typeof player == "object" && player.isPlayer()) {
         defId = player.definitionId;
         playerName = player.getStaticData().name;
@@ -156,61 +181,49 @@ export class MarketActionService {
       priceList.sort((a, b) => b._auction.buyNowPrice - a._auction.buyNowPrice);
       debug.log(priceList);
       changeLoadingText("buyplayer.loadingclose", loadingInfo);
-      if (!priceList || priceList.length == 0) {
+      if (priceList.length == 0) {
         notice(["buyplayer.error", playerName, fy("buyplayer.error.child3")], 2);
       } else {
         let currentPlayer = priceList[priceList.length - 1];
-        let currentData = currentPlayer.getAuctionData();
-        if (!currentData.canBuy(services.User.getUser().getCurrency(GameCurrency.COINS).amount)) {
-          notice(["buyplayer.error", playerName, fy("buyplayer.error.child2")], 2);
-        } else {
-          if (0 < currentData.getSecondsRemaining()) {
-            await new Promise((resolve) => {
-              sendPinEvents("Item - Detail View");
-              services.Item.bid(currentPlayer, currentPlayer._auction.buyNowPrice).observe(
-                this,
-                async function (sender, data) {
-                  if (data.success) {
-                    notice(
-                      ["buyplayer.success", playerName, currentPlayer._auction.buyNowPrice],
-                      0
-                    );
-                    quantity += 1;
-                    cost += currentPlayer._auction.buyNowPrice;
-                    services.Item.move(currentPlayer, ItemPile.CLUB).observe(this, (e, t) => {
-                      if ((e.unobserve(this), t.success)) {
-                        notice(["buyplayer.sendclub.success", playerName], 0);
-                        buyStatus = true;
-                        if (isPhone() && playersNumber == 1) {
-                          let controller = getCurrentController();
-                          if (controller.className == "UTSquadItemDetailsNavigationController") {
-                            controller.getParentViewController()._eBackButtonTapped();
-                          }
-                        }
-                        resolve();
-                      } else {
-                        notice(["buyplayer.sendclub.error", playerName], 2);
-                        resolve();
-                      }
-                    });
-                  } else {
-                    let denied = data.error && data.error.code === UtasErrorCode.PERMISSION_DENIED;
-                    notice(
-                      [
-                        "buyplayer.error",
-                        playerName,
-                        `${denied ? fy("buyplayer.error.child1") : ""}`
-                      ],
-                      2
-                    );
-                    resolve();
-                  }
-                }
-              );
-            });
-          } else {
-            notice(["buyplayer.error", playerName, fy("buyplayer.error.child4")], 2);
+        const purchasePrice = currentPlayer._auction.buyNowPrice;
+        const purchaseResult = await ea.purchaseItemToClub(
+          currentPlayer,
+          purchasePrice,
+          this,
+          () => sendPinEvents("Item - Detail View")
+        );
+        if (purchaseResult.success || purchaseResult.purchased) {
+          notice(["buyplayer.success", playerName, purchasePrice], 0);
+          quantity += 1;
+          cost += purchasePrice;
+        }
+        if (purchaseResult.success) {
+          notice(["buyplayer.sendclub.success", playerName], 0);
+          buyStatus = true;
+          if (isPhone() && playersNumber == 1) {
+            let controller = getCurrentController();
+            if (controller.className == "UTSquadItemDetailsNavigationController") {
+              controller.getParentViewController()._eBackButtonTapped();
+            }
           }
+        } else if (purchaseResult.reason === "insufficient-funds") {
+          notice(["buyplayer.error", playerName, fy("buyplayer.error.child2")], 2);
+        } else if (purchaseResult.reason === "expired") {
+          notice(["buyplayer.error", playerName, fy("buyplayer.error.child4")], 2);
+        } else if (purchaseResult.reason === "bid-failed") {
+          notice(
+            [
+              "buyplayer.error",
+              playerName,
+              `${purchaseResult.permissionDenied ? fy("buyplayer.error.child1") : ""}`
+            ],
+            2
+          );
+        } else if (purchaseResult.reason === "move-failed") {
+          notice(["buyplayer.sendclub.error", playerName], 2);
+        } else {
+          debug.log("Bulk purchase unavailable", purchaseResult.error);
+          notice("notice.loaderror", 2);
         }
       }
       if (!buyStatus) {
@@ -242,97 +255,96 @@ export class MarketActionService {
       fy,
       debug,
       isPhone,
-      getCurrentController
+      getCurrentController,
+      ea
     } = helpers;
 
     showLoader();
+    let shouldMarkBuyError = false;
     let defId = 0,
       playerName = "";
     if (Number.isInteger(player)) {
       defId = player;
-      playerName = repositories.Item.getStaticDataByDefId(defId).name;
+      const staticData = ea.getStaticItemData(defId);
+      if (!staticData.success || !staticData.data) {
+        debug.log("EA static-item capability unavailable", staticData.error);
+        hideLoader();
+        notice("notice.loaderror", 2);
+        return;
+      }
+      playerName = staticData.data.name;
     } else if (typeof player == "object" && player.isPlayer()) {
       defId = player.definitionId;
       playerName = player.getStaticData().name;
     }
     if (!defId) {
+      hideLoader();
       return;
     }
-    if (repositories.Item.numItemsInCache(ItemPile.PURCHASED) >= MAX_NEW_ITEMS) {
+    const purchaseCapacity = ea.isPurchaseCapacityReached(MAX_NEW_ITEMS);
+    if (!purchaseCapacity.success) {
+      debug.log("EA purchase-capacity capability unavailable", purchaseCapacity.error);
+      notice("notice.loaderror", 2);
+      hideLoader();
+      return;
+    }
+    if (purchaseCapacity.reached) {
       notice(["buyplayer.error", playerName, fy("buyplayer.error.child5")], 2);
-      state = false;
+      shouldMarkBuyError = true;
     } else {
       let priceList = await this.readAuctionPrices(player, undefined, undefined, helpers);
       priceList.sort((a, b) => b._auction.buyNowPrice - a._auction.buyNowPrice);
       debug.log(priceList);
       changeLoadingText("buyplayer.loadingclose");
-      if (!priceList || priceList.length == 0) {
+      if (priceList.length == 0) {
         notice(["buyplayer.error", playerName, fy("buyplayer.error.child3")], 2);
-        state = false;
+        shouldMarkBuyError = true;
       } else {
         let currentPlayer = priceList[priceList.length - 1];
-        let currentData = currentPlayer.getAuctionData();
-        if (!currentData.canBuy(services.User.getUser().getCurrency(GameCurrency.COINS).amount)) {
-          notice(["buyplayer.error", playerName, fy("buyplayer.error.child2")], 2);
-          state = false;
-        } else {
-          if (0 < currentData.getSecondsRemaining()) {
-            return new Promise(async (resolve) => {
-              sendPinEvents("Item - Detail View");
-              services.Item.bid(currentPlayer, currentPlayer._auction.buyNowPrice).observe(
-                this,
-                async function (sender, data) {
-                  if (data.success) {
-                    notice(
-                      ["buyplayer.success", playerName, currentPlayer._auction.buyNowPrice],
-                      0
-                    );
-                    services.Item.move(currentPlayer, ItemPile.CLUB).observe(this, (e, t) => {
-                      if ((e.unobserve(this), t.success)) {
-                        notice(["buyplayer.sendclub.success", playerName], 0);
-                        if (isPhone()) {
-                          let controller = getCurrentController();
-                          if (controller.className == "UTSquadItemDetailsNavigationController") {
-                            controller.getParentViewController()._eBackButtonTapped();
-                          }
-                        }
-                      } else {
-                        notice(["buyplayer.sendclub.error", playerName], 2);
-                        state = false;
-                      }
-                      hideLoader();
-                    });
-                  } else {
-                    let denied = data.error && data.error.code === UtasErrorCode.PERMISSION_DENIED;
-                    notice(
-                      [
-                        "buyplayer.error",
-                        playerName,
-                        `${denied ? fy("buyplayer.error.child1") : ""}`
-                      ],
-                      2
-                    );
-                    state = false;
-                    cardAddBuyErrorTips(defId);
-                    if (view) {
-                      view
-                        .getSuperview()
-                        .items._collection[view.getSuperview().items._index].render(player);
-                    }
-                    hideLoader();
-                  }
-                }
-              );
-              resolve();
-            });
-          } else {
-            notice(["buyplayer.error", playerName, fy("buyplayer.error.child4")], 2);
-            state = false;
+        const purchasePrice = currentPlayer._auction.buyNowPrice;
+        const purchaseResult = await ea.purchaseItemToClub(
+          currentPlayer,
+          purchasePrice,
+          this,
+          () => sendPinEvents("Item - Detail View")
+        );
+        if (purchaseResult.success || purchaseResult.purchased) {
+          notice(["buyplayer.success", playerName, purchasePrice], 0);
+        }
+        if (purchaseResult.success) {
+          notice(["buyplayer.sendclub.success", playerName], 0);
+          if (isPhone()) {
+            let controller = getCurrentController();
+            if (controller.className == "UTSquadItemDetailsNavigationController") {
+              controller.getParentViewController()._eBackButtonTapped();
+            }
           }
+        } else if (purchaseResult.reason === "insufficient-funds") {
+          notice(["buyplayer.error", playerName, fy("buyplayer.error.child2")], 2);
+          shouldMarkBuyError = true;
+        } else if (purchaseResult.reason === "expired") {
+          notice(["buyplayer.error", playerName, fy("buyplayer.error.child4")], 2);
+          shouldMarkBuyError = true;
+        } else if (purchaseResult.reason === "bid-failed") {
+          notice(
+            [
+              "buyplayer.error",
+              playerName,
+              `${purchaseResult.permissionDenied ? fy("buyplayer.error.child1") : ""}`
+            ],
+            2
+          );
+          shouldMarkBuyError = true;
+        } else if (purchaseResult.reason === "move-failed") {
+          notice(["buyplayer.sendclub.error", playerName], 2);
+        } else {
+          debug.log("EA purchase unavailable", purchaseResult.error || purchaseResult);
+          notice("notice.loaderror", 2);
+          shouldMarkBuyError = true;
         }
       }
     }
-    if (!state) {
+    if (shouldMarkBuyError) {
       cardAddBuyErrorTips(defId);
       if (view) {
         view.getSuperview().items._collection[view.getSuperview().items._index].render(player);
@@ -349,7 +361,9 @@ export class MarketActionService {
       wait,
       notice,
       sendPinEvents,
-      futbinId
+      futbinId,
+      debug,
+      ea
     } = helpers;
     const info = getInfo();
 
@@ -360,120 +374,111 @@ export class MarketActionService {
       : typeof player == "object" && "definitionId" in player
         ? player.definitionId
         : Number(player);
-    let searchCriteria = new UTSearchCriteriaDTO();
-    searchCriteria.defId = [defId];
-    searchCriteria.type = SearchType.PLAYER;
-    searchCriteria.category = SearchCategory.ANY;
-    let searchModel = new UTBucketedItemSearchViewModel();
-    searchModel.searchFeature = ItemSearchFeature.MARKET;
-    searchModel.defaultSearchCriteria.type = searchCriteria.type;
-    searchModel.defaultSearchCriteria.category = searchCriteria.category;
-    searchModel.updateSearchCriteria(searchCriteria);
+    if (!Number.isFinite(defId)) return [];
+    const marketSearch = ea.createPlayerMarketSearch(defId);
+    if (!marketSearch) {
+      debug.log("EA capability unavailable", ea.inspect(EA_CAPABILITIES.MARKET_QUERY_MODEL));
+      notice("readauction.error", 2);
+      return [];
+    }
     let result = [];
-    if (searchCriteria.defId.length) {
-      let queried = [];
-      if (price) {
-        searchCriteria.maxBuy = Number(price);
-      } else {
-        try {
-          if (_.has(info.futbinId, defId)) {
-            await futbinId.getPrice(defId, info.futbinId[defId]);
-          } else {
-            await futbinId.getId(player);
-          }
-        } catch {
-          return;
+    let queried = [];
+    if (price) {
+      marketSearch.setMaxBuy(Number(price));
+    } else {
+      try {
+        if (_.has(info.futbinId, defId)) {
+          await futbinId.getPrice(defId, info.futbinId[defId]);
+        } else {
+          await futbinId.getId(player);
         }
-        searchCriteria.maxBuy = getCachePrice(defId, 1).num;
+      } catch {
+        return [];
       }
-      searchModel.updateSearchCriteria(searchCriteria);
-      changeLoadingText("readauction.loadingclose2", loadingInfo);
-      while (attempts-- > 0) {
-        changeLoadingText(
-          ["readauction.loadingclose3", `${searchModel.searchCriteria.maxBuy.toLocaleString()}`],
-          loadingInfo
-        );
-        if (queried.includes(searchModel.searchCriteria.maxBuy)) {
-          break;
-        }
-        services.Item.clearTransferMarketCache();
-        let response = await this.searchTransferMarket(searchModel.searchCriteria, 1, helpers);
-        if (response.success) {
-          sendPinEvents("Transfer Market Results - List View");
-          result = result.concat(response.data.items);
-          let currentQuery = searchCriteria.maxBuy;
-          queried.push(currentQuery);
-          if (response.data.items.length == 0) {
-            currentQuery = UTCurrencyInputControl.getIncrementAboveVal(currentQuery);
-          } else if (response.data.items.length == 21) {
-            currentQuery = UTCurrencyInputControl.getIncrementBelowVal(currentQuery);
-          } else {
+      marketSearch.setMaxBuy(getCachePrice(defId, 1).num);
+    }
+    changeLoadingText("readauction.loadingclose2", loadingInfo);
+    while (attempts-- > 0) {
+      const currentMaxBuy = marketSearch.getMaxBuy();
+      changeLoadingText(
+        ["readauction.loadingclose3", `${currentMaxBuy.toLocaleString()}`],
+        loadingInfo
+      );
+      if (queried.includes(currentMaxBuy)) {
+        break;
+      }
+      ea.clearTransferMarketCache();
+      let response = await this.searchTransferMarket(marketSearch.getCriteria(), 1, helpers);
+      const items = response?.success && Array.isArray(response?.data?.items)
+        ? response.data.items
+        : null;
+      if (items) {
+        sendPinEvents("Transfer Market Results - List View");
+        result = result.concat(items);
+        queried.push(currentMaxBuy);
+        if (items.length == 0 || items.length == 21) {
+          const direction = items.length == 0 ? "above" : "below";
+          const nextPrice = ea.incrementMarketPrice(currentMaxBuy, direction);
+          if (nextPrice === null) {
+            debug.log("EA capability unavailable", ea.inspect(EA_CAPABILITIES.CURRENCY_STEPS));
             break;
           }
-          searchCriteria.maxBuy = currentQuery;
-          searchModel.updateSearchCriteria(searchCriteria);
+          marketSearch.setMaxBuy(nextPrice);
         } else {
-          notice("readauction.error", 2);
           break;
         }
-        if (attempts > 0) {
-          await wait(0.2, 0.5);
-        }
+      } else {
+        notice("readauction.error", 2);
+        break;
+      }
+      if (attempts > 0) {
+        await wait(0.2, 0.5);
       }
     }
     return result;
   }
 
-  searchTransferMarket(criteria, type, _helpers) {
-    return new Promise(async (resolve) => {
-      services.Item.searchTransferMarket(criteria, type).observe(this, async function (sender, response) {
-        resolve(response);
-      });
-    });
+  searchTransferMarket(criteria, type, helpers) {
+    return helpers.ea.searchTransferMarket(criteria, type, this);
   }
 
-  transferToClub(controller, list, helpers) {
-    const { notice, isPhone } = helpers;
-
-    services.Item.move(list, ItemPile.CLUB).observe(controller, (e, t) => {
-      if ((e.unobserve(controller), t.success)) {
-        let i = t.data.itemIds.length,
-          o =
-            1 < i
-              ? services.Localization.localize("notification.item.allToClub", [i])
-              : services.Localization.localize("notification.item.oneToClub");
-        services.Notification.queue([o, UINotificationType.NEUTRAL]);
-        if (i < list.length) {
-          notice(["transfertoclub.unable", list.length - i], 2);
-        }
-        if (isPhone()) {
-          controller.refreshList();
-        }
-      } else {
-        t.data.untradeableSwap
-          ? services.Notification.queue([
-              services.Localization.localize("notification.item.moveFailed"),
-              UINotificationType.NEGATIVE
-            ])
-          : (services.Notification.queue([
-              services.Localization.localize("notification.item.moveFailed"),
-              UINotificationType.NEGATIVE
-            ]),
-            NetworkErrorManager.handleStatus(t.status));
+  async transferToClub(controller, list, helpers) {
+    const { notice, isPhone, ea, debug } = helpers;
+    const result = await ea.moveItemsToClub(list, controller);
+    if (result.success) {
+      if (result.movedCount < list.length) {
+        notice(["transfertoclub.unable", list.length - result.movedCount], 2);
       }
-    });
+      if (isPhone()) {
+        controller.refreshList();
+      }
+    } else if (result.error?.code === "EA_CAPABILITY_UNAVAILABLE") {
+      debug.log("EA capability unavailable", result.error);
+      notice("notice.loaderror", 2);
+    }
   }
 
   async playerToAuction(d, p, time, helpers) {
-    const { futbinId, getInfo, getCachePrice, notice, playerGetLimits, getCurrentController } =
-      helpers;
+    const {
+      futbinId,
+      getInfo,
+      getCachePrice,
+      notice,
+      playerGetLimits,
+      getCurrentController,
+      debug,
+      ea
+    } = helpers;
     const info = getInfo();
 
-    let i =
-      repositories.Item.transfer.get(d) ||
-      repositories.Item.unassigned.get(d) ||
-      repositories.Item.club.items.get(d);
-    let t = repositories.Item.transfer._collection.hasOwnProperty(d);
+    const listingItem = ea.findListingItem(d);
+    if (!listingItem.success) {
+      debug.log("EA listing-inventory capability unavailable", listingItem.error);
+      notice("notice.loaderror", 2);
+      return false;
+    }
+    const i = listingItem.item;
+    const t = listingItem.alreadyListed;
     if (i) {
       //25.13 读取futbin最新的价格
       try {
@@ -487,13 +492,13 @@ export class MarketActionService {
       }
       const price = getCachePrice(i.definitionId, 1).num;
 
-      if (
-        (repositories.Item.getPileSize(ItemPile.TRANSFER) -
-          repositories.Item.numItemsInCache(ItemPile.TRANSFER) >
-          0 ||
-          t) &&
-        price
-      ) {
+      const listingCapacity = ea.hasTransferListingCapacity();
+      if (!listingCapacity.success) {
+        debug.log("EA listing-inventory capability unavailable", listingCapacity.error);
+        notice("notice.loaderror", 2);
+        return false;
+      }
+      if ((listingCapacity.hasCapacity || t) && price) {
         await playerGetLimits(i);
         if (i.hasPriceLimits()) {
           if (p < i._itemPriceLimits.minimum || p > i._itemPriceLimits.maximum) {
@@ -501,40 +506,27 @@ export class MarketActionService {
             return;
           }
         }
-        let lp = UTCurrencyInputControl.getIncrementBelowVal(price);
-        await services.Item.list(i, lp, price, time * 3600).observe(
-          getCurrentController(),
-          async (e, t) => {
-            if ((e.unobserve(getCurrentController()), t.success)) {
-              notice(["notice.auctionsuccess", i._staticData.name, price], 0);
-            } else {
-              let ix = t.error ? t.error.code : t.status;
-              if (NetworkErrorManager.checkCriticalStatus(ix)) NetworkErrorManager.handleStatus(ix);
-              else {
-                const listErrorKey = (() => {
-                  switch (ix) {
-                    case HttpStatusCode.FORBIDDEN:
-                      return "popup.error.list.forbidden.message";
-                    case UtasErrorCode.PERMISSION_DENIED:
-                      return "popup.error.list.PermissionDenied";
-                    case UtasErrorCode.STATE_INVALID:
-                      return "popup.error.list.InvalidState";
-                    case UtasErrorCode.DESTINATION_FULL:
-                      return "popup.error.tradetoken.SellItemTradePileFull";
-                    case UtasErrorCode.CARD_IN_TRADE:
-                      return "popup.error.tradetoken.ItemInTradeOffer";
-                    default:
-                      return "popup.error.list.InvalidState";
-                  }
-                })();
-                services.Notification.queue([
-                  services.Localization.localize(listErrorKey),
-                  UINotificationType.NEGATIVE
-                ]);
-              }
-            }
-          }
+        const startingPrice = ea.incrementMarketPrice(price, "below");
+        if (startingPrice === null) {
+          debug.log("EA currency-step capability unavailable");
+          notice("notice.loaderror", 2);
+          return false;
+        }
+        const result = await ea.listItemForSale(
+          i,
+          startingPrice,
+          price,
+          time * 3600,
+          getCurrentController()
         );
+        if (result.success) {
+          notice(["notice.auctionsuccess", i._staticData.name, price], 0);
+        } else if (result.error?.code === "EA_CAPABILITY_UNAVAILABLE") {
+          debug.log("EA listing capability unavailable", result.error);
+          notice("notice.loaderror", 2);
+          return false;
+        }
+        return result.success;
       } else {
         notice("notice.auctionmax", 2);
         return false;
@@ -556,7 +548,8 @@ export class MarketActionService {
       debug,
       isPhone,
       getCurrentController,
-      getLeftController
+      getLeftController,
+      ea
     } = helpers;
     const info = getInfo();
 
@@ -591,7 +584,12 @@ export class MarketActionService {
     e.setInteractionState(e._parent._fsuAkbCurrent);
     let currentController = isPhone() ? getCurrentController() : getLeftController();
     if (currentController.className == "UTUnassignedItemsViewController") {
-      await services.Item.itemDao.itemRepo.unassigned.reset();
+      const resetResult = await ea.resetUnassignedItems();
+      if (!resetResult.success) {
+        debug.log("EA unassigned reset capability unavailable", resetResult.error);
+        notice("notice.loaderror", 2);
+        return;
+      }
       await currentController.getUnassignedItems();
     } else {
       currentController.refreshList();

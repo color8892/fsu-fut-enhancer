@@ -1,4 +1,5 @@
 import { safeParseJson } from "../infra/JsonParsing.js";
+import { escapeHtml } from "../ui/HtmlSafety.js";
 import { SbcResponseAdapter } from "./SbcResponseAdapter.js";
 
 export class SbcDataService {
@@ -281,15 +282,15 @@ export class SbcDataService {
     const i = info.league == 2 ? " " : "";
 
     _.map(j, (sj) => {
-      let lt = `${sj.c}<span>×</span>`;
+      let lt = `${escapeHtml(sj.c)}<span>×</span>`;
       if (_.has(sj.t, "rating")) {
-        lt += `${localize("squads.rating")}${i}:${i}${sj.t.rating}`;
+        lt += `${escapeHtml(localize("squads.rating"))}${i}:${i}${escapeHtml(sj.t.rating)}`;
       } else {
         if (_.has(sj.t, "gs")) {
-          lt += localize(`item.raretype${sj.t.gs ? 1 : 0}`);
+          lt += escapeHtml(localize(`item.raretype${sj.t.gs ? 1 : 0}`));
         }
         if (_.has(sj.t, "rs")) {
-          lt += i + localize(`search.cardLevels.cardLevel${sj.t.rs + 1}`);
+          lt += i + escapeHtml(localize(`search.cardLevels.cardLevel${sj.t.rs + 1}`));
         }
       }
       t.push(lt);

@@ -116,6 +116,17 @@ export function runSbcServiceTests() {
   assert.deepStrictEqual(sbcDataService.adaptSbcChallengesResponse({ challenges: [] }), {
     challenges: []
   });
+  const safeFastSbcText = sbcDataService.getFastSbcSubText(
+    [{ c: '<img src=x onerror="alert(1)">', t: { rating: "<svg>" } }],
+    {
+      getInfo: () => ({ league: 1 }),
+      localize: () => "Rating"
+    }
+  );
+  assert.ok(!safeFastSbcText.includes("<img"));
+  assert.ok(!safeFastSbcText.includes("<svg"));
+  assert.ok(safeFastSbcText.includes("&lt;img"));
+  assert.ok(safeFastSbcText.includes("&lt;svg&gt;"));
 
   const fastSbcService = new FastSbcService();
   const helpers = {

@@ -18,6 +18,7 @@ import { runSbcResponseAdapterTests } from "./sbc-response-adapter.test.mjs";
 import { runJsonParsingTests } from "./json-parsing.test.mjs";
 import { runMarketActionServiceTests } from "./market-action-service.test.mjs";
 import { runRemoteConfigServiceTests } from "./remote-config-service.test.mjs";
+import { runEaRuntimeAdapterTests } from "./ea-runtime-adapter.test.mjs";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
 const root = path.resolve(__dirname, "..");
@@ -50,6 +51,10 @@ function assertManifest() {
   assert.ok(manifest.host_permissions.includes("https://www.ea.com/*"));
   assert.ok(manifest.host_permissions.includes("https://api.fut.to/*"));
   assert.ok(!manifest.host_permissions.includes("<all_urls>"));
+  assert.ok(
+    manifest.content_scripts[0].matches.every((match) => match.includes("ultimate-team/web-app")),
+    "Content scripts must only run on the FUT Web App"
+  );
 
   for (const script of manifest.content_scripts[0].js) {
     assert.ok(fs.existsSync(path.join(root, script)), `Missing content script: ${script}`);
@@ -73,8 +78,12 @@ function assertSenderAllowlist() {
     background.isAllowedSender("https://www.easports.com/en/ea-sports-fc/ultimate-team/web-app/"),
     true
   );
-  assert.strictEqual(background.isAllowedSender("https://www.futbin.com/26/player/1"), true);
-  assert.strictEqual(background.isAllowedSender("https://www.fut.gg/players/1/"), true);
+  assert.strictEqual(background.isAllowedSender("https://www.futbin.com/26/player/1"), false);
+  assert.strictEqual(background.isAllowedSender("https://www.fut.gg/players/1/"), false);
+  assert.strictEqual(
+    background.isAllowedSender("https://www.ea.com/other/ea-sports-fc/ultimate-team/web-app/"),
+    false
+  );
   assert.strictEqual(background.isAllowedSender("https://example.com/"), false);
   assert.strictEqual(background.isAllowedSender("http://www.fut.gg/players/1/"), false);
 }
@@ -104,7 +113,8 @@ function assertFetchOptions() {
 
   assert.strictEqual(getOptions.method, "GET");
   assert.strictEqual("body" in getOptions, false);
-  assert.strictEqual(getOptions.credentials, "include");
+  assert.strictEqual(getOptions.credentials, "omit");
+  assert.strictEqual(getOptions.redirect, "error");
 
   const postOptions = background.buildFetchOptions({
     method: "POST",
@@ -123,7 +133,7 @@ function assertExportedClasses() {
   assert.deepStrictEqual(normalizer.normalizeHeaders({ Accept: "json" }), { Accept: "json" });
 
   const policy = new background.SenderPolicy();
-  assert.strictEqual(policy.isAllowed("https://www.fut.gg/players/1/"), true);
+  assert.strictEqual(policy.isAllowed("https://www.fut.gg/players/1/"), false);
 
   const error = new Error("boom");
   error.isTimeout = true;
@@ -132,6 +142,58 @@ function assertExportedClasses() {
     message: "boom",
     isTimeout: true
   });
+}
+
+function assertRequestPolicy() {
+  const policy = new background.RequestPolicy();
+  const futGgRequest = policy.authorize({
+    method: "GET",
+    url: "https://www.fut.gg/api/fut/player-prices/26/?ids=123"
+  });
+  assert.strictEqual(futGgRequest.credentials, "include");
+
+  const configRequest = policy.authorize({
+    url: "https://api.fut.to/26/meta.json?revision=1"
+  });
+  assert.strictEqual(configRequest.credentials, "omit");
+
+  assert.throws(
+    () => policy.authorize({ url: "https://api.fut.to/26/not-allowed.json" }),
+    (error) => error.name === "SecurityError"
+  );
+  assert.throws(
+    () => policy.authorize({ method: "POST", url: "https://api.fut.to/26/meta.json" }),
+    (error) => error.name === "SecurityError"
+  );
+  assert.throws(
+    () => policy.authorize({ url: "https://example.com/collect" }),
+    (error) => error.name === "SecurityError"
+  );
+
+  const marketRequest = policy.authorize({
+    url: "https://utas.mob.v5.prd.futc-ext.gcp.ea.com/ut/game/fc26/transfermarket?num=21",
+    headers: {
+      "X-UT-SID": "session",
+      "X-Requested-With": "blocked-for-this-endpoint"
+    }
+  });
+  assert.deepStrictEqual(background.buildFetchOptions(marketRequest).headers, {
+    "X-UT-SID": "session"
+  });
+}
+
+async function assertRequestServiceRejectsUnapprovedUrl() {
+  let fetchCalled = false;
+  const service = new background.GmRequestService(async () => {
+    fetchCalled = true;
+    return new Response("unexpected");
+  });
+
+  await assert.rejects(
+    () => service.perform({ method: "GET", url: "https://example.com/private" }),
+    (error) => error.name === "SecurityError"
+  );
+  assert.strictEqual(fetchCalled, false);
 }
 
 async function assertTabService() {
@@ -221,6 +283,16 @@ function assertUserscriptBundle() {
   assert.ok(userscript.includes("FSU_BASE_STYLE"));
   assert.ok(userscript.includes("ModuleRegistry"));
   assert.ok(userscript.includes("MarketActionService"));
+  assert.ok(userscript.includes("EaRuntimeAdapter"));
+  assert.ok(userscript.includes("EaMarketSearchSession"));
+  assert.ok(userscript.includes("EA_CAPABILITY_UNAVAILABLE"));
+  assert.ok(userscript.includes("item.move-to-club"));
+  assert.ok(userscript.includes("item.purchase-to-club"));
+  assert.ok(userscript.includes("item.list-for-sale"));
+  assert.ok(userscript.includes("unassigned.reset"));
+  assert.ok(userscript.includes("item.static-data"));
+  assert.ok(userscript.includes("item.purchase-capacity"));
+  assert.ok(userscript.includes("item.listing-inventory"));
   assert.ok(userscript.includes("showPlayerListPopup"));
   assert.ok(userscript.includes("AcademyCalcService"));
   assert.ok(userscript.includes("FgRatingService"));
@@ -296,6 +368,8 @@ assertSenderAllowlist();
 assertHeaderNormalization();
 assertFetchOptions();
 assertExportedClasses();
+assertRequestPolicy();
+await assertRequestServiceRejectsUnapprovedUrl();
 assertMessageRouterSecurity();
 assertUserscriptBundle();
 await assertPriceService();
@@ -314,6 +388,7 @@ runEaBundleCheckTests();
 runHtmlSafetyTests();
 runSbcResponseAdapterTests();
 runRemoteConfigServiceTests();
+await runEaRuntimeAdapterTests();
 await runMarketActionServiceTests();
 await assertTabService();
 console.log("All extension tests passed.");
