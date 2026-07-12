@@ -167,10 +167,21 @@
 
   // src/fsu/infra/HttpClient.js
   var FsuHttpClient = class {
+    /**
+     * @param {any} xmlHttpRequest
+     * @param {string} userAgent
+     */
     constructor(xmlHttpRequest, userAgent) {
       this.xmlHttpRequest = xmlHttpRequest;
       this.userAgent = userAgent;
     }
+    /**
+     * @param {string} method
+     * @param {string} url
+     * @param {any} [body]
+     * @param {string} [contentType]
+     * @returns {Promise<any>}
+     */
     request(method, url, body, contentType) {
       return new Promise((resolve, reject) => {
         this.xmlHttpRequest({
@@ -181,6 +192,7 @@
             "User-Agent": this.userAgent,
             "Content-Type": contentType ? contentType : "application/json"
           },
+          /** @param {any} res */
           onload: (res) => {
             if (res.status !== 200 && res.status !== 201) {
               reject(res.status);
@@ -188,6 +200,7 @@
             }
             resolve(res.responseText);
           },
+          /** @param {any} error */
           onerror: (error) => {
             console.error("Request failed:", error);
             if (error.status) {
@@ -203,18 +216,37 @@
 
   // src/fsu/infra/JsonStore.js
   var FsuJsonStore = class {
+    /**
+     * @param {any} getValue
+     * @param {any} setValue
+     */
     constructor(getValue, setValue) {
       this.getValue = getValue;
       this.setValue = setValue;
     }
+    /**
+     * @param {string} key
+     * @param {Record<string, any>} [fallback]
+     * @returns {Record<string, any>}
+     */
     getObject(key, fallback = {}) {
       const value = this.getJson(key, fallback);
       return value && typeof value === "object" && !Array.isArray(value) ? value : fallback;
     }
+    /**
+     * @param {string} key
+     * @param {any[]} [fallback]
+     * @returns {any[]}
+     */
     getArray(key, fallback = []) {
       const value = this.getJson(key, fallback);
       return Array.isArray(value) ? value : fallback;
     }
+    /**
+     * @param {string} key
+     * @param {any} fallback
+     * @returns {any}
+     */
     getJson(key, fallback) {
       try {
         const raw = this.getValue(key, JSON.stringify(fallback));
@@ -225,6 +257,10 @@
         return fallback;
       }
     }
+    /**
+     * @param {string} key
+     * @param {any} value
+     */
     setJson(key, value) {
       this.setValue(key, JSON.stringify(value));
     }
@@ -300,14 +336,94 @@
     }
   };
 
+  // src/fsu/infra/Schema.js
+  var SchemaValidationError = class extends Error {
+    /**
+     * @param {string} message
+     */
+    constructor(message) {
+      super(message);
+      this.name = "SchemaValidationError";
+    }
+  };
+  var isNumber = (v) => typeof v === "number";
+  var isString = (v) => typeof v === "string";
+  var isObject = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
+  var isArray = (v) => Array.isArray(v);
+  var isArrayOf = (guard) => {
+    const check = (v) => isArray(v) && v.every(guard);
+    return check;
+  };
+  var isOptional = (guard) => {
+    const check = (v) => v === void 0 || v === null || guard(v);
+    return check;
+  };
+  function isUpdataConfig(v) {
+    return isObject(v) && typeof v.version === "number" && isOptional(isString)(v.updateURL) && isObject(v.api);
+  }
+  function isMetaConfig(v) {
+    return isObject(v) && isOptional(isObject)(v.bodyType) && isOptional((val) => isNumber(val) || isObject(val))(v.baseBodyType) && isOptional(isArrayOf(isNumber))(v.realFace);
+  }
+  function isFastSbcConfig(v) {
+    return isObject(v) && Object.values(v).every(
+      (item) => isObject(item) && isNumber(item.t)
+    );
+  }
+  function isPackConfig(v) {
+    return isObject(v);
+  }
+  function isSbcConfig(v) {
+    return isObject(v) && isOptional(isArrayOf(isNumber))(v.reward) && isOptional(isArray)(v.new);
+  }
+  function isGgRatingConfig(v) {
+    return isObject(v);
+  }
+  function isEvolutionsConfig(v) {
+    return isObject(v) && isOptional(isArray)(v.new);
+  }
+  function isInpacksConfig(v) {
+    return isObject(v) && isOptional(isArrayOf(isNumber))(v.defIds) && isOptional(isArrayOf(isNumber))(v.rarityIds);
+  }
+  function isOtherConfig(v) {
+    return isObject(v) && isOptional(isObject)(v.dynamic) && isOptional(isObject)(v.chem);
+  }
+  function isFgConfig(v) {
+    return isObject(v);
+  }
+  function isPlayerMetaConfig(v) {
+    return isArray(v) && v.every((item) => isArray(item));
+  }
+  function isLowpriceConfig(v) {
+    return isObject(v);
+  }
+  function isFutGgPrices(v) {
+    return isObject(v) && isOptional(isArray)(v.data);
+  }
+  function isFutNextPrices(v) {
+    return isArray(v) && v.every((item) => isObject(item) && isArray(item.prices));
+  }
+  function isFutbinPriceInfo(v) {
+    return isObject(v);
+  }
+  function isFutbinFilteredPlayers(v) {
+    return isObject(v) && isOptional(isArray)(v.data);
+  }
+  function isFutbinMinimalInfo(v) {
+    return isObject(v) && isOptional(isArray)(v.data);
+  }
+
   // src/fsu/infra/JsonParsing.js
   function safeParseJson(rawValue, fallback, options = {}) {
-    const { label = "JSON", onError } = options;
+    const { label = "JSON", onError, schema } = options;
     if (rawValue === void 0 || rawValue === null || rawValue === "") {
       return fallback;
     }
     try {
-      return JSON.parse(String(rawValue));
+      const parsed = JSON.parse(String(rawValue));
+      if (schema && !schema(parsed)) {
+        throw new SchemaValidationError(`Schema validation failed for: ${label}`);
+      }
+      return parsed;
     } catch (error) {
       if (typeof onError === "function") {
         onError(error, { label, rawValue });
@@ -345,9 +461,10 @@
     request(method, url, body, contentType) {
       return this.httpClient.request(method, url, body, contentType);
     }
-    parseJsonResponse(response, fallback, label) {
+    parseJsonResponse(response, fallback, label, schema = void 0) {
       return safeParseJson(response, fallback, {
         label,
+        schema,
         onError: (error, context) => this.debug.log(`${context.label} parse failed`, error)
       });
     }
@@ -409,7 +526,7 @@
             "GET",
             `${baseUrl}player-prices/26/?ids=${params}${platform}`
           );
-          const originalJson = this.parseJsonResponse(response, { data: [] }, "futgg-player-prices");
+          const originalJson = this.parseJsonResponse(response, { data: [] }, "futgg-player-prices", isFutGgPrices);
           _.map(originalJson.data || [], (item) => {
             if (item.price !== null || item.isExtinct || item.isSbc || item.isObjective || item.premiumSeasonPassLevel !== null || item.standardSeasonPassLevel !== null) {
               let price = 0;
@@ -433,7 +550,7 @@
             "GET",
             `https://enhancer-api.futnext.com/players/prices?ids=${params}&platform=${info.base.platform}`
           );
-          const originalJson = this.parseJsonResponse(response, [], "futnext-player-prices");
+          const originalJson = this.parseJsonResponse(response, [], "futnext-player-prices", isFutNextPrices);
           _.map(originalJson || [], (item) => {
             if (item.prices.length) {
               priceJson[item.definitionId] = {
@@ -457,7 +574,7 @@
           "GET",
           `https://www.futbin.org/futbin/api/${info.base.year}/fetchPriceInformation?playerresource=${playerResourceId}&platform=${platform}`
         );
-        const originalJson = this.parseJsonResponse(response, {}, "futbin-price-information");
+        const originalJson = this.parseJsonResponse(response, {}, "futbin-price-information", isFutbinPriceInfo);
         const price = originalJson.LCPrice ?? 0;
         const priceJson = {
           n: price,
@@ -503,7 +620,7 @@
           "GET",
           `https://www.futbin.org/futbin/api/${info.base.year}/getFilteredPlayers?platform=${platform}&nation=${nation}&league=${league}&rating=${rating}-${rating}&club=${team}&sort=rating&position=${position}&order=desc&page=1`
         );
-        const data = this.parseJsonResponse(response, { data: [] }, "futbin-filtered-players");
+        const data = this.parseJsonResponse(response, { data: [] }, "futbin-filtered-players", isFutbinFilteredPlayers);
         _.forEach(data.data || [], (itemData) => {
           this.setPriceFromFutbinData(itemData, itemData.resource_id);
           this.setFutbinMapping(itemData.resource_id, itemData.ID);
@@ -521,7 +638,7 @@
           "GET",
           `https://www.futbin.org/futbin/api/${info.base.year}/fetchPlayerInformationMinimal?ID=${futbinId2}&platform=${platform}`
         );
-        const data = this.parseJsonResponse(response, { data: [] }, "futbin-player-information");
+        const data = this.parseJsonResponse(response, { data: [] }, "futbin-player-information", isFutbinMinimalInfo);
         _.forEach(data.data || [], (itemData) => {
           this.setPriceFromFutbinData(itemData, itemData.Player_Resource);
         });
@@ -10366,8 +10483,9 @@
     /**
      * @param {object} ctx - Shared futweb runtime context
      */
-    constructor(ctx) {
+    constructor(ctx, patchRegistry = null) {
       this.ctx = ctx;
+      this.patchRegistry = patchRegistry;
       this.installState = "idle";
       this.phaseResults = [];
     }
@@ -10390,26 +10508,46 @@
     }
     installEarly() {
       const c = this.ctx;
-      this.applyBaseStyle();
-      this.wirePriceService();
-      installUnassignedPatches(c.pick("call", "events", "fy", "cntlr", "info", "debug"));
-      Object.assign(c.events, c.ctx.createSbcChemistryService(c.repositories.TeamConfig).createEventsFacade());
-      installLoginPatches(c.pick("call", "events", "info", "services", "debug", "fy", "GM_getValue", "GM_xmlhttpRequest"));
-      installNavigationPatches(c.pick("call", "events", "info", "isPhone", "SBCCount"));
-      this.installTacticsRolePatch();
-      installSquadBuilderPatches(c.pick("call", "events", "fy", "info", "build"));
-      installPlayerCardPatches(c.pick("call", "events", "fy", "cntlr", "info", "lock"));
+      this.runFeaturePatch("base-style", () => this.applyBaseStyle());
+      this.runFeaturePatch("price-service", () => this.wirePriceService());
+      this.runFeaturePatch("unassigned", () => installUnassignedPatches(c.pick("call", "events", "fy", "cntlr", "info", "debug")));
+      this.runFeaturePatch("sbc-chemistry-service", () => Object.assign(c.events, c.ctx.createSbcChemistryService(c.repositories.TeamConfig).createEventsFacade()));
+      this.runFeaturePatch("login", () => installLoginPatches(c.pick("call", "events", "info", "services", "debug", "fy", "GM_getValue", "GM_xmlhttpRequest")));
+      this.runFeaturePatch("navigation", () => installNavigationPatches(c.pick("call", "events", "info", "isPhone", "SBCCount")));
+      this.runFeaturePatch("tactics-role", () => this.installTacticsRolePatchInternal());
+      this.runFeaturePatch("squad-builder", () => installSquadBuilderPatches(c.pick("call", "events", "fy", "info", "build")));
+      this.runFeaturePatch("player-cards", () => installPlayerCardPatches(c.pick("call", "events", "fy", "cntlr", "info", "lock")));
     }
-    installTacticsRolePatch() {
+    installTacticsRolePatchInternal() {
       const { call } = this.ctx;
-      UTTacticsRoleSelectViewController.prototype.viewDidAppear = function(...args) {
-        call.view.tacticsRole.call(this, ...args);
-      };
+      if (!this.patchRegistry) {
+        UTTacticsRoleSelectViewController.prototype.viewDidAppear = function(...args) {
+          call.view.tacticsRole.call(this, ...args);
+        };
+        return;
+      }
+      const result = this.patchRegistry.install({
+        id: "tactics-role.view-did-appear",
+        resolveTarget: () => typeof UTTacticsRoleSelectViewController === "undefined" ? null : UTTacticsRoleSelectViewController.prototype,
+        verify: (target) => typeof target?.viewDidAppear === "function" && typeof call.view?.tacticsRole === "function",
+        apply: (target) => {
+          const original = target.viewDidAppear;
+          target.viewDidAppear = function(...args) {
+            return call.view.tacticsRole.call(this, ...args);
+          };
+          return () => {
+            target.viewDidAppear = original;
+          };
+        }
+      });
+      if (result.status === "failed") {
+        throw new Error(result.error);
+      }
     }
     installHubAndLists() {
       const c = this.ctx;
-      installPicksRewardsPatches(c.pick("call", "events", "info", "fy", "isPhone", "debug"));
-      installSquadOverviewViewPatches(
+      this.runFeaturePatch("picks-rewards", () => installPicksRewardsPatches(c.pick("call", "events", "info", "fy", "isPhone", "debug")));
+      this.runFeaturePatch("squad-overview-view", () => installSquadOverviewViewPatches(
         c.pick(
           "call",
           "events",
@@ -10423,26 +10561,26 @@
           "SBCEligibilityKey",
           "GM_openInTab"
         )
-      );
-      installSectionedListPatches(c.pick("call", "events", "info", "fy", "cntlr", "services", "debug"));
-      registerBuildIgnoreEvents(c.pick("events", "info", "fy", "set", "build", "debug"));
-      installPlayerListPatches(c.pick("call", "events", "info", "cntlr", "isPhone", "debug", "repositories", "services", "fy"));
-      installSbcHubPatches(c.pick("info", "events", "services", "fy", "cntlr"));
-      installAcademyHubPatches(c.pick("info", "events", "fy", "repositories", "debug"));
-      registerSbcInfoFillEvent(c.pick("events", "info", "fy", "html", "repositories"));
-      registerSbcNavEvents(
+      ));
+      this.runFeaturePatch("sectioned-list", () => installSectionedListPatches(c.pick("call", "events", "info", "fy", "cntlr", "services", "debug")));
+      this.runFeaturePatch("build-ignore", () => registerBuildIgnoreEvents(c.pick("events", "info", "fy", "set", "build", "debug")));
+      this.runFeaturePatch("player-list", () => installPlayerListPatches(c.pick("call", "events", "info", "cntlr", "isPhone", "debug", "repositories", "services", "fy")));
+      this.runFeaturePatch("sbc-hub", () => installSbcHubPatches(c.pick("info", "events", "services", "fy", "cntlr")));
+      this.runFeaturePatch("academy-hub", () => installAcademyHubPatches(c.pick("info", "events", "fy", "repositories", "debug")));
+      this.runFeaturePatch("sbc-info-fill", () => registerSbcInfoFillEvent(c.pick("events", "info", "fy", "html", "repositories")));
+      this.runFeaturePatch("sbc-nav-events", () => registerSbcNavEvents(
         c.pick("events", "info", "fy", "cntlr", "isPhone", "repositories", "services", "futbinId", "GM_openInTab")
-      );
+      ));
     }
     installSbcCore() {
       const c = this.ctx;
-      installPlayerBioPatches(c.pick("events", "info", "cntlr", "services", "debug", "fy", "repositories"));
-      installPanelPatches(c.pick("call", "events", "info", "fy", "cntlr", "isPhone"));
-      this.wireSbcMatchEvents();
-      registerSbcSubstitutionEvents({ events: c.events });
-      installObjectivesHubPatches(c.pick("call", "events", "info", "fy", "isPhone", "services"));
-      registerHomeHubEvents(c.pick("events", "info", "cntlr", "isPhone", "services"));
-      installHomeHubPatches(c.pick("call", "events", "info", "fy", "cntlr", "services", "debug", "fsuSC"));
+      this.runFeaturePatch("player-bio", () => installPlayerBioPatches(c.pick("events", "info", "cntlr", "services", "debug", "fy", "repositories")));
+      this.runFeaturePatch("panel-patches", () => installPanelPatches(c.pick("call", "events", "info", "fy", "cntlr", "isPhone")));
+      this.runFeaturePatch("sbc-match-events", () => this.wireSbcMatchEvents());
+      this.runFeaturePatch("sbc-substitution", () => registerSbcSubstitutionEvents({ events: c.events }));
+      this.runFeaturePatch("objectives-hub", () => installObjectivesHubPatches(c.pick("call", "events", "info", "fy", "isPhone", "services")));
+      this.runFeaturePatch("home-hub-events", () => registerHomeHubEvents(c.pick("events", "info", "cntlr", "isPhone", "services")));
+      this.runFeaturePatch("home-hub-patches", () => installHomeHubPatches(c.pick("call", "events", "info", "fy", "cntlr", "services", "debug", "fsuSC")));
     }
     wireSbcMatchEvents() {
       const { events, sbcPlayerMatchService } = this.ctx;
@@ -10456,10 +10594,10 @@
     }
     installMarketAndSquad() {
       const c = this.ctx;
-      installMarketPatches(
+      this.runFeaturePatch("market", () => installMarketPatches(
         c.pick("call", "events", "info", "cntlr", "isPhone", "fy", "debug", "repositories", "services", "GM_setValue")
-      );
-      installStorePatches(
+      ));
+      this.runFeaturePatch("store", () => installStorePatches(
         c.pick(
           "call",
           "events",
@@ -10474,13 +10612,13 @@
           "AssetLocationUtils",
           "unsafeWindow"
         )
-      );
-      installSearchPatches(c.pick("call", "events", "info", "isPhone", "cntlr", "fy"));
-      registerSearchEvents(c.pick("call", "events", "info", "cntlr", "isPhone"));
-      installSbcSquadSubmitPatches(
+      ));
+      this.runFeaturePatch("search-patches", () => installSearchPatches(c.pick("call", "events", "info", "isPhone", "cntlr", "fy")));
+      this.runFeaturePatch("search-events", () => registerSearchEvents(c.pick("call", "events", "info", "cntlr", "isPhone")));
+      this.runFeaturePatch("sbc-squad-submit", () => installSbcSquadSubmitPatches(
         c.pick("call", "events", "info", "repositories", "services", "cntlr", "debug", "fy")
-      );
-      registerSbcFillEvents(
+      ));
+      this.runFeaturePatch("sbc-fill-events", () => registerSbcFillEvents(
         c.pick(
           "call",
           "events",
@@ -10497,8 +10635,8 @@
           "sbcTemplateService",
           "sbcSquadSaveService"
         )
-      );
-      installSbcFillPatches(
+      ));
+      this.runFeaturePatch("sbc-fill-patches", () => installSbcFillPatches(
         c.pick(
           "call",
           "events",
@@ -10514,11 +10652,11 @@
           "enums",
           "GM_setValue"
         )
-      );
-      registerSbcTileEvents(
+      ));
+      this.runFeaturePatch("sbc-tile-events", () => registerSbcTileEvents(
         c.pick("events", "info", "fy", "cntlr", "isPhone", "services", "GM_setValue", "AssetLocationUtils")
-      );
-      registerSbcRewardEvents(
+      ));
+      this.runFeaturePatch("sbc-reward-events", () => registerSbcRewardEvents(
         c.pick(
           "events",
           "info",
@@ -10530,8 +10668,8 @@
           "oneFillCriteriaService",
           "SBCEligibilityKey"
         )
-      );
-      registerFastSbcEvents(
+      ));
+      this.runFeaturePatch("fast-sbc", () => registerFastSbcEvents(
         c.pick(
           "events",
           "cntlr",
@@ -10542,40 +10680,40 @@
           "fy",
           "fastSbcPlannerService"
         )
-      );
+      ));
     }
     installClubAndUi() {
       const c = this.ctx;
-      installClubSelectPatches(c.pick("call", "events", "info", "fy", "cntlr", "isPhone", "repositories", "services", "debug"));
-      registerClubSelectEvents(c.pick("events", "info", "cntlr", "isPhone", "services", "repositories", "debug", "fy"));
-      installClubSelectSearchPatches(c.pick("call", "events", "info", "fy", "cntlr", "repositories", "services"));
-      installRewardPatches(c.pick("call", "events", "info", "fy", "cntlr", "repositories", "debug"));
-      installClubHubPatches(c.pick("call", "events", "info", "fy", "cntlr", "isPhone", "repositories", "services"));
-      registerListFilterEvents(c.pick("events", "repositories"));
-      registerUiUtilsEvents(c.pick("events", "info", "cntlr", "debug", "fy", "services"));
-      installUiUtilsPatches();
-      installLocalizationPatch(c.pick("call"));
-      registerPlayerMetaEvents(c.pick("events", "info", "fy", "services"));
+      this.runFeaturePatch("club-select", () => installClubSelectPatches(c.pick("call", "events", "info", "fy", "cntlr", "isPhone", "repositories", "services", "debug")));
+      this.runFeaturePatch("club-select-events", () => registerClubSelectEvents(c.pick("events", "info", "cntlr", "isPhone", "services", "repositories", "debug", "fy")));
+      this.runFeaturePatch("club-select-search", () => installClubSelectSearchPatches(c.pick("call", "events", "info", "fy", "cntlr", "repositories", "services")));
+      this.runFeaturePatch("rewards", () => installRewardPatches(c.pick("call", "events", "info", "fy", "cntlr", "repositories", "debug")));
+      this.runFeaturePatch("club-hub", () => installClubHubPatches(c.pick("call", "events", "info", "fy", "cntlr", "isPhone", "repositories", "services")));
+      this.runFeaturePatch("list-filter", () => registerListFilterEvents(c.pick("events", "repositories")));
+      this.runFeaturePatch("ui-utils", () => registerUiUtilsEvents(c.pick("events", "info", "cntlr", "debug", "fy", "services")));
+      this.runFeaturePatch("ui-utils-patches", () => installUiUtilsPatches());
+      this.runFeaturePatch("localization", () => installLocalizationPatch(c.pick("call")));
+      this.runFeaturePatch("player-meta", () => registerPlayerMetaEvents(c.pick("events", "info", "fy", "services")));
     }
     installLate() {
       const c = this.ctx;
-      installSbcSubmitPatch({
+      this.runFeaturePatch("sbc-submit", () => installSbcSubmitPatch({
         sbcCountService: c.ctx.sbcCountService,
         onCountChanged: () => c.SBCCount.changeCount()
-      });
-      registerMiscEvents(c.pick("events", "info", "cntlr", "services", "repositories", "debug", "fy"));
-      installMiscPatches(c.pick("events", "info", "fy", "debug"));
-      installSbcRequirementsPatch(c.pick("events", "info", "fy", "repositories"));
-      registerLifecycleEvents(c.pick("events", "info", "fy", "debug"));
-      installLifecyclePatches(c.pick("events", "cntlr", "isPhone", "info"));
-      installAcademyDetailsPatches(
+      }));
+      this.runFeaturePatch("misc-events", () => registerMiscEvents(c.pick("events", "info", "cntlr", "services", "repositories", "debug", "fy")));
+      this.runFeaturePatch("misc-patches", () => installMiscPatches(c.pick("events", "info", "fy", "debug")));
+      this.runFeaturePatch("sbc-requirements", () => installSbcRequirementsPatch(c.pick("events", "info", "fy", "repositories")));
+      this.runFeaturePatch("lifecycle-events", () => registerLifecycleEvents(c.pick("events", "info", "fy", "debug")));
+      this.runFeaturePatch("lifecycle-patches", () => installLifecyclePatches(c.pick("events", "cntlr", "isPhone", "info")));
+      this.runFeaturePatch("academy-details", () => installAcademyDetailsPatches(
         c.pick("info", "events", "repositories", "services", "cntlr", "isPhone", "debug")
-      );
-      registerSbcIgnoreTextEvent(c.pick("events", "info", "fy"));
-      installSbcSquadOverviewPatches(
+      ));
+      this.runFeaturePatch("sbc-ignore-text", () => registerSbcIgnoreTextEvent(c.pick("events", "info", "fy")));
+      this.runFeaturePatch("sbc-squad-overview", () => installSbcSquadOverviewPatches(
         c.pick("events", "info", "fy", "cntlr", "isPhone", "repositories", "debug", "SBCEligibilityKey")
-      );
-      installSbcSquadDetailPanelPatches(c.pick("events", "info", "cntlr"));
+      ));
+      this.runFeaturePatch("sbc-squad-detail-panel", () => installSbcSquadDetailPanelPatches(c.pick("events", "info", "cntlr")));
     }
     installAll() {
       if (this.installState !== "idle") {
@@ -10603,13 +10741,51 @@
       };
     }
     /**
+     * Runs a specific feature patch block, protecting against duplicate execution and isolating failures.
+     * @param {string} id
+     * @param {() => void} installFn
+     */
+    runFeaturePatch(id, installFn) {
+      if (!this.patchRegistry) {
+        try {
+          installFn();
+        } catch (error) {
+          this.ctx.debug?.log(`Patch ${id} failed`, error);
+          this.currentPhaseErrors.push({ id, error });
+        }
+        return;
+      }
+      const result = this.patchRegistry.install({
+        id,
+        resolveTarget: () => true,
+        apply: () => {
+          installFn();
+        }
+      });
+      if (result.status === "failed") {
+        const err = new Error(result.error);
+        this.ctx.debug?.log(`Patch ${id} failed`, err);
+        this.currentPhaseErrors.push({ id, error: err });
+      }
+    }
+    /**
      * @param {string} name
      * @param {() => void} install
      */
     runPhase(name, install) {
+      this.currentPhaseErrors = [];
       try {
         install.call(this);
-        this.phaseResults.push({ name, status: "installed" });
+        if (this.currentPhaseErrors.length > 0) {
+          const errorMsg = this.currentPhaseErrors.map((e2) => `${e2.id}: ${e2.error instanceof Error ? e2.error.message : String(e2.error)}`).join("; ");
+          this.phaseResults.push({
+            name,
+            status: "failed",
+            error: errorMsg
+          });
+        } else {
+          this.phaseResults.push({ name, status: "installed" });
+        }
       } catch (error) {
         this.phaseResults.push({
           name,
@@ -14876,9 +15052,10 @@
       this.nowSeconds = nowSeconds;
       this.applyLowprice = applyLowprice;
     }
-    parseResponse(res, fallback, label) {
+    parseResponse(res, fallback, label, schema = void 0) {
       return safeParseJson(responseText(res), fallback, {
         label,
+        schema,
         onError: (error, context) => this.debug.log(`${context.label} parse failed`, error)
       });
     }
@@ -14904,7 +15081,7 @@
       if (res.status == 404) {
         this.notice("notice.upgradefailed", 2);
       } else {
-        const data = this.parseResponse(res, {}, "updata.json");
+        const data = this.parseResponse(res, {}, "updata.json", isUpdataConfig);
         const myVersion = Number(this.scriptVersion) || 0;
         if (data.version > myVersion) {
           urlText = this.fy("top.upgrade");
@@ -14920,33 +15097,33 @@
     }
     loadApiData() {
       const api = this.info.api;
-      this.loadEndpoint(api, "meta", "meta.json", {}, (data) => this.applyMeta(data));
-      this.loadEndpoint(api, "fastsbc", "fast.json", {}, (data) => this.applyFastSbc(data));
+      this.loadEndpoint(api, "meta", "meta.json", {}, (data) => this.applyMeta(data), isMetaConfig);
+      this.loadEndpoint(api, "fastsbc", "fast.json", {}, (data) => this.applyFastSbc(data), isFastSbcConfig);
       this.loadEndpoint(api, "pack", "pack.json", {}, (data) => {
         this.info.base.oddo = data;
-      });
-      this.loadEndpoint(api, "sbc", "sbc.json", { reward: [], new: [] }, (data) => this.applySbc(data));
+      }, isPackConfig);
+      this.loadEndpoint(api, "sbc", "sbc.json", { reward: [], new: [] }, (data) => this.applySbc(data), isSbcConfig);
       this.loadEndpoint(api, "ggrating", "ggrating.json", {}, (data) => {
         this.info.GGRRAR = data;
         this.debug.log(`GGRRAR加载完毕！`);
-      });
+      }, isGgRatingConfig);
       this.loadEndpoint(api, "evolutions", "evolutions.json", { new: [] }, (data) => {
         this.info.evolutions.new = data.new || [];
         this.debug.log(`evolutions加载完毕！`);
-      });
-      this.loadEndpoint(api, "inpacks", "inpacks.json", {}, (data) => this.applyInpacks(data));
-      this.loadEndpoint(api, "other", "other.json", {}, (data) => this.applyOther(data));
+      }, isEvolutionsConfig);
+      this.loadEndpoint(api, "inpacks", "inpacks.json", {}, (data) => this.applyInpacks(data), isInpacksConfig);
+      this.loadEndpoint(api, "other", "other.json", {}, (data) => this.applyOther(data), isOtherConfig);
       this.loadEndpoint(api, "fgconfig", "fgconfig.json", {}, (data) => {
         this.info.fgconfig = data;
         this.debug.log(`fgconfig加载完毕！`);
-      });
-      this.loadEndpoint(api, "playermeta", "playermeta.json", [], (data) => this.applyPlayerMeta(data));
+      }, isFgConfig);
+      this.loadEndpoint(api, "playermeta", "playermeta.json", [], (data) => this.applyPlayerMeta(data), isPlayerMetaConfig);
       this.loadEndpoint(api, "lowprice", "lowprice.json", {}, (data) => {
         this.applyLowprice(this.info, data);
         this.debug.log(`lowprice加载完毕！`);
-      });
+      }, isLowpriceConfig);
     }
-    loadEndpoint(api, apiKey, fileName, fallback, applyData) {
+    loadEndpoint(api, apiKey, fileName, fallback, applyData, schema = void 0) {
       if (!_.has(api, apiKey)) {
         return;
       }
@@ -14958,7 +15135,7 @@
           "Cache-Control": "max-age=31536000"
         },
         onload: (res) => {
-          applyData(this.parseResponse(res, fallback, fileName));
+          applyData(this.parseResponse(res, fallback, fileName, schema));
         }
       });
     }
@@ -15330,7 +15507,7 @@
     Object.assign(html, HTML_TEMPLATES);
     call.view = createViewCallMap(patchRegistry);
     Object.assign(call, createCallMaps());
-    new PatchInstaller(fsuCtx).installAll();
+    new PatchInstaller(fsuCtx, patchRegistry).installAll();
     registerLateModules(fsuCtx);
     exposeDebugGlobals(fsuCtx);
   }
@@ -15339,6 +15516,7 @@
   var PatchRegistry = class {
     constructor() {
       this.backups = {};
+      this.installed = /* @__PURE__ */ new Map();
     }
     backup(key, original) {
       this.backups[key] = original;
@@ -15357,6 +15535,53 @@
         view[key] = this.backup(key, original);
       }
       return view;
+    }
+    /**
+     * @param {{
+     *   id: string,
+     *   resolveTarget: () => unknown,
+     *   verify?: (target: unknown) => boolean,
+     *   apply: (target: unknown) => void | (() => void)
+     * }} descriptor
+     */
+    install({ id, resolveTarget, verify = () => true, apply }) {
+      if (this.installed.has(id)) {
+        return { id, status: "already-installed" };
+      }
+      try {
+        const target = resolveTarget();
+        if (!target) {
+          return { id, status: "skipped", reason: "target-unavailable" };
+        }
+        if (!verify(target)) {
+          return { id, status: "skipped", reason: "verification-failed" };
+        }
+        const restore = apply(target);
+        this.installed.set(id, { restore: typeof restore === "function" ? restore : null });
+        return { id, status: "installed" };
+      } catch (error) {
+        return {
+          id,
+          status: "failed",
+          error: error instanceof Error ? error.message : String(error)
+        };
+      }
+    }
+    /** @param {string} id */
+    restore(id) {
+      const patch = this.installed.get(id);
+      if (!patch) return { id, status: "not-installed" };
+      try {
+        patch.restore?.();
+        this.installed.delete(id);
+        return { id, status: "restored" };
+      } catch (error) {
+        return {
+          id,
+          status: "failed",
+          error: error instanceof Error ? error.message : String(error)
+        };
+      }
     }
   };
 
@@ -16013,6 +16238,7 @@
       GM_xmlhttpRequest,
       GM_openInTab,
       GM_info,
+      patchRegistry,
       ...sbcServices
     });
     runMidBootstrap({ fsuCtx, ctx, events, fy: fy2 });

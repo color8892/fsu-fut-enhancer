@@ -51,8 +51,9 @@ export class PatchInstaller {
   /**
    * @param {object} ctx - Shared futweb runtime context
    */
-  constructor(ctx) {
+  constructor(ctx, patchRegistry = null) {
     this.ctx = ctx;
+    this.patchRegistry = patchRegistry;
     this.installState = "idle";
     this.phaseResults = [];
   }
@@ -79,28 +80,52 @@ export class PatchInstaller {
 
   installEarly() {
     const c = this.ctx;
-    this.applyBaseStyle();
-    this.wirePriceService();
-    installUnassignedPatches(c.pick("call", "events", "fy", "cntlr", "info", "debug"));
-    Object.assign(c.events, c.ctx.createSbcChemistryService(c.repositories.TeamConfig).createEventsFacade());
-    installLoginPatches(c.pick("call", "events", "info", "services", "debug", "fy", "GM_getValue", "GM_xmlhttpRequest"));
-    installNavigationPatches(c.pick("call", "events", "info", "isPhone", "SBCCount"));
-    this.installTacticsRolePatch();
-    installSquadBuilderPatches(c.pick("call", "events", "fy", "info", "build"));
-    installPlayerCardPatches(c.pick("call", "events", "fy", "cntlr", "info", "lock"));
+    this.runFeaturePatch("base-style", () => this.applyBaseStyle());
+    this.runFeaturePatch("price-service", () => this.wirePriceService());
+    this.runFeaturePatch("unassigned", () => installUnassignedPatches(c.pick("call", "events", "fy", "cntlr", "info", "debug")));
+    this.runFeaturePatch("sbc-chemistry-service", () => Object.assign(c.events, c.ctx.createSbcChemistryService(c.repositories.TeamConfig).createEventsFacade()));
+    this.runFeaturePatch("login", () => installLoginPatches(c.pick("call", "events", "info", "services", "debug", "fy", "GM_getValue", "GM_xmlhttpRequest")));
+    this.runFeaturePatch("navigation", () => installNavigationPatches(c.pick("call", "events", "info", "isPhone", "SBCCount")));
+    this.runFeaturePatch("tactics-role", () => this.installTacticsRolePatchInternal());
+    this.runFeaturePatch("squad-builder", () => installSquadBuilderPatches(c.pick("call", "events", "fy", "info", "build")));
+    this.runFeaturePatch("player-cards", () => installPlayerCardPatches(c.pick("call", "events", "fy", "cntlr", "info", "lock")));
   }
 
-  installTacticsRolePatch() {
+  installTacticsRolePatchInternal() {
     const { call } = this.ctx;
-    UTTacticsRoleSelectViewController.prototype.viewDidAppear = function (...args) {
-      call.view.tacticsRole.call(this, ...args);
-    };
+    if (!this.patchRegistry) {
+      UTTacticsRoleSelectViewController.prototype.viewDidAppear = function (...args) {
+        call.view.tacticsRole.call(this, ...args);
+      };
+      return;
+    }
+    const result = this.patchRegistry.install({
+      id: "tactics-role.view-did-appear",
+      resolveTarget: () =>
+        typeof UTTacticsRoleSelectViewController === "undefined"
+          ? null
+          : UTTacticsRoleSelectViewController.prototype,
+      verify: (target) =>
+        typeof target?.viewDidAppear === "function" && typeof call.view?.tacticsRole === "function",
+      apply: (target) => {
+        const original = target.viewDidAppear;
+        target.viewDidAppear = function (...args) {
+          return call.view.tacticsRole.call(this, ...args);
+        };
+        return () => {
+          target.viewDidAppear = original;
+        };
+      }
+    });
+    if (result.status === "failed") {
+      throw new Error(result.error);
+    }
   }
 
   installHubAndLists() {
     const c = this.ctx;
-    installPicksRewardsPatches(c.pick("call", "events", "info", "fy", "isPhone", "debug"));
-    installSquadOverviewViewPatches(
+    this.runFeaturePatch("picks-rewards", () => installPicksRewardsPatches(c.pick("call", "events", "info", "fy", "isPhone", "debug")));
+    this.runFeaturePatch("squad-overview-view", () => installSquadOverviewViewPatches(
       c.pick(
         "call",
         "events",
@@ -114,27 +139,27 @@ export class PatchInstaller {
         "SBCEligibilityKey",
         "GM_openInTab"
       )
-    );
-    installSectionedListPatches(c.pick("call", "events", "info", "fy", "cntlr", "services", "debug"));
-    registerBuildIgnoreEvents(c.pick("events", "info", "fy", "set", "build", "debug"));
-    installPlayerListPatches(c.pick("call", "events", "info", "cntlr", "isPhone", "debug", "repositories", "services", "fy"));
-    installSbcHubPatches(c.pick("info", "events", "services", "fy", "cntlr"));
-    installAcademyHubPatches(c.pick("info", "events", "fy", "repositories", "debug"));
-    registerSbcInfoFillEvent(c.pick("events", "info", "fy", "html", "repositories"));
-    registerSbcNavEvents(
+    ));
+    this.runFeaturePatch("sectioned-list", () => installSectionedListPatches(c.pick("call", "events", "info", "fy", "cntlr", "services", "debug")));
+    this.runFeaturePatch("build-ignore", () => registerBuildIgnoreEvents(c.pick("events", "info", "fy", "set", "build", "debug")));
+    this.runFeaturePatch("player-list", () => installPlayerListPatches(c.pick("call", "events", "info", "cntlr", "isPhone", "debug", "repositories", "services", "fy")));
+    this.runFeaturePatch("sbc-hub", () => installSbcHubPatches(c.pick("info", "events", "services", "fy", "cntlr")));
+    this.runFeaturePatch("academy-hub", () => installAcademyHubPatches(c.pick("info", "events", "fy", "repositories", "debug")));
+    this.runFeaturePatch("sbc-info-fill", () => registerSbcInfoFillEvent(c.pick("events", "info", "fy", "html", "repositories")));
+    this.runFeaturePatch("sbc-nav-events", () => registerSbcNavEvents(
       c.pick("events", "info", "fy", "cntlr", "isPhone", "repositories", "services", "futbinId", "GM_openInTab")
-    );
+    ));
   }
 
   installSbcCore() {
     const c = this.ctx;
-    installPlayerBioPatches(c.pick("events", "info", "cntlr", "services", "debug", "fy", "repositories"));
-    installPanelPatches(c.pick("call", "events", "info", "fy", "cntlr", "isPhone"));
-    this.wireSbcMatchEvents();
-    registerSbcSubstitutionEvents({ events: c.events });
-    installObjectivesHubPatches(c.pick("call", "events", "info", "fy", "isPhone", "services"));
-    registerHomeHubEvents(c.pick("events", "info", "cntlr", "isPhone", "services"));
-    installHomeHubPatches(c.pick("call", "events", "info", "fy", "cntlr", "services", "debug", "fsuSC"));
+    this.runFeaturePatch("player-bio", () => installPlayerBioPatches(c.pick("events", "info", "cntlr", "services", "debug", "fy", "repositories")));
+    this.runFeaturePatch("panel-patches", () => installPanelPatches(c.pick("call", "events", "info", "fy", "cntlr", "isPhone")));
+    this.runFeaturePatch("sbc-match-events", () => this.wireSbcMatchEvents());
+    this.runFeaturePatch("sbc-substitution", () => registerSbcSubstitutionEvents({ events: c.events }));
+    this.runFeaturePatch("objectives-hub", () => installObjectivesHubPatches(c.pick("call", "events", "info", "fy", "isPhone", "services")));
+    this.runFeaturePatch("home-hub-events", () => registerHomeHubEvents(c.pick("events", "info", "cntlr", "isPhone", "services")));
+    this.runFeaturePatch("home-hub-patches", () => installHomeHubPatches(c.pick("call", "events", "info", "fy", "cntlr", "services", "debug", "fsuSC")));
   }
 
   wireSbcMatchEvents() {
@@ -151,10 +176,10 @@ export class PatchInstaller {
 
   installMarketAndSquad() {
     const c = this.ctx;
-    installMarketPatches(
+    this.runFeaturePatch("market", () => installMarketPatches(
       c.pick("call", "events", "info", "cntlr", "isPhone", "fy", "debug", "repositories", "services", "GM_setValue")
-    );
-    installStorePatches(
+    ));
+    this.runFeaturePatch("store", () => installStorePatches(
       c.pick(
         "call",
         "events",
@@ -169,13 +194,13 @@ export class PatchInstaller {
         "AssetLocationUtils",
         "unsafeWindow"
       )
-    );
-    installSearchPatches(c.pick("call", "events", "info", "isPhone", "cntlr", "fy"));
-    registerSearchEvents(c.pick("call", "events", "info", "cntlr", "isPhone"));
-    installSbcSquadSubmitPatches(
+    ));
+    this.runFeaturePatch("search-patches", () => installSearchPatches(c.pick("call", "events", "info", "isPhone", "cntlr", "fy")));
+    this.runFeaturePatch("search-events", () => registerSearchEvents(c.pick("call", "events", "info", "cntlr", "isPhone")));
+    this.runFeaturePatch("sbc-squad-submit", () => installSbcSquadSubmitPatches(
       c.pick("call", "events", "info", "repositories", "services", "cntlr", "debug", "fy")
-    );
-    registerSbcFillEvents(
+    ));
+    this.runFeaturePatch("sbc-fill-events", () => registerSbcFillEvents(
       c.pick(
         "call",
         "events",
@@ -192,8 +217,8 @@ export class PatchInstaller {
         "sbcTemplateService",
         "sbcSquadSaveService"
       )
-    );
-    installSbcFillPatches(
+    ));
+    this.runFeaturePatch("sbc-fill-patches", () => installSbcFillPatches(
       c.pick(
         "call",
         "events",
@@ -209,11 +234,11 @@ export class PatchInstaller {
         "enums",
         "GM_setValue"
       )
-    );
-    registerSbcTileEvents(
+    ));
+    this.runFeaturePatch("sbc-tile-events", () => registerSbcTileEvents(
       c.pick("events", "info", "fy", "cntlr", "isPhone", "services", "GM_setValue", "AssetLocationUtils")
-    );
-    registerSbcRewardEvents(
+    ));
+    this.runFeaturePatch("sbc-reward-events", () => registerSbcRewardEvents(
       c.pick(
         "events",
         "info",
@@ -225,8 +250,8 @@ export class PatchInstaller {
         "oneFillCriteriaService",
         "SBCEligibilityKey"
       )
-    );
-    registerFastSbcEvents(
+    ));
+    this.runFeaturePatch("fast-sbc", () => registerFastSbcEvents(
       c.pick(
         "events",
         "cntlr",
@@ -237,42 +262,42 @@ export class PatchInstaller {
         "fy",
         "fastSbcPlannerService"
       )
-    );
+    ));
   }
 
   installClubAndUi() {
     const c = this.ctx;
-    installClubSelectPatches(c.pick("call", "events", "info", "fy", "cntlr", "isPhone", "repositories", "services", "debug"));
-    registerClubSelectEvents(c.pick("events", "info", "cntlr", "isPhone", "services", "repositories", "debug", "fy"));
-    installClubSelectSearchPatches(c.pick("call", "events", "info", "fy", "cntlr", "repositories", "services"));
-    installRewardPatches(c.pick("call", "events", "info", "fy", "cntlr", "repositories", "debug"));
-    installClubHubPatches(c.pick("call", "events", "info", "fy", "cntlr", "isPhone", "repositories", "services"));
-    registerListFilterEvents(c.pick("events", "repositories"));
-    registerUiUtilsEvents(c.pick("events", "info", "cntlr", "debug", "fy", "services"));
-    installUiUtilsPatches();
-    installLocalizationPatch(c.pick("call"));
-    registerPlayerMetaEvents(c.pick("events", "info", "fy", "services"));
+    this.runFeaturePatch("club-select", () => installClubSelectPatches(c.pick("call", "events", "info", "fy", "cntlr", "isPhone", "repositories", "services", "debug")));
+    this.runFeaturePatch("club-select-events", () => registerClubSelectEvents(c.pick("events", "info", "cntlr", "isPhone", "services", "repositories", "debug", "fy")));
+    this.runFeaturePatch("club-select-search", () => installClubSelectSearchPatches(c.pick("call", "events", "info", "fy", "cntlr", "repositories", "services")));
+    this.runFeaturePatch("rewards", () => installRewardPatches(c.pick("call", "events", "info", "fy", "cntlr", "repositories", "debug")));
+    this.runFeaturePatch("club-hub", () => installClubHubPatches(c.pick("call", "events", "info", "fy", "cntlr", "isPhone", "repositories", "services")));
+    this.runFeaturePatch("list-filter", () => registerListFilterEvents(c.pick("events", "repositories")));
+    this.runFeaturePatch("ui-utils", () => registerUiUtilsEvents(c.pick("events", "info", "cntlr", "debug", "fy", "services")));
+    this.runFeaturePatch("ui-utils-patches", () => installUiUtilsPatches());
+    this.runFeaturePatch("localization", () => installLocalizationPatch(c.pick("call")));
+    this.runFeaturePatch("player-meta", () => registerPlayerMetaEvents(c.pick("events", "info", "fy", "services")));
   }
 
   installLate() {
     const c = this.ctx;
-    installSbcSubmitPatch({
+    this.runFeaturePatch("sbc-submit", () => installSbcSubmitPatch({
       sbcCountService: c.ctx.sbcCountService,
       onCountChanged: () => c.SBCCount.changeCount()
-    });
-    registerMiscEvents(c.pick("events", "info", "cntlr", "services", "repositories", "debug", "fy"));
-    installMiscPatches(c.pick("events", "info", "fy", "debug"));
-    installSbcRequirementsPatch(c.pick("events", "info", "fy", "repositories"));
-    registerLifecycleEvents(c.pick("events", "info", "fy", "debug"));
-    installLifecyclePatches(c.pick("events", "cntlr", "isPhone", "info"));
-    installAcademyDetailsPatches(
+    }));
+    this.runFeaturePatch("misc-events", () => registerMiscEvents(c.pick("events", "info", "cntlr", "services", "repositories", "debug", "fy")));
+    this.runFeaturePatch("misc-patches", () => installMiscPatches(c.pick("events", "info", "fy", "debug")));
+    this.runFeaturePatch("sbc-requirements", () => installSbcRequirementsPatch(c.pick("events", "info", "fy", "repositories")));
+    this.runFeaturePatch("lifecycle-events", () => registerLifecycleEvents(c.pick("events", "info", "fy", "debug")));
+    this.runFeaturePatch("lifecycle-patches", () => installLifecyclePatches(c.pick("events", "cntlr", "isPhone", "info")));
+    this.runFeaturePatch("academy-details", () => installAcademyDetailsPatches(
       c.pick("info", "events", "repositories", "services", "cntlr", "isPhone", "debug")
-    );
-    registerSbcIgnoreTextEvent(c.pick("events", "info", "fy"));
-    installSbcSquadOverviewPatches(
+    ));
+    this.runFeaturePatch("sbc-ignore-text", () => registerSbcIgnoreTextEvent(c.pick("events", "info", "fy")));
+    this.runFeaturePatch("sbc-squad-overview", () => installSbcSquadOverviewPatches(
       c.pick("events", "info", "fy", "cntlr", "isPhone", "repositories", "debug", "SBCEligibilityKey")
-    );
-    installSbcSquadDetailPanelPatches(c.pick("events", "info", "cntlr"));
+    ));
+    this.runFeaturePatch("sbc-squad-detail-panel", () => installSbcSquadDetailPanelPatches(c.pick("events", "info", "cntlr")));
   }
 
   installAll() {
@@ -305,13 +330,56 @@ export class PatchInstaller {
   }
 
   /**
+   * Runs a specific feature patch block, protecting against duplicate execution and isolating failures.
+   * @param {string} id
+   * @param {() => void} installFn
+   */
+  runFeaturePatch(id, installFn) {
+    if (!this.patchRegistry) {
+      try {
+        installFn();
+      } catch (error) {
+        this.ctx.debug?.log(`Patch ${id} failed`, error);
+        this.currentPhaseErrors.push({ id, error });
+      }
+      return;
+    }
+
+    const result = this.patchRegistry.install({
+      id,
+      resolveTarget: () => true,
+      apply: () => {
+        installFn();
+      }
+    });
+
+    if (result.status === "failed") {
+      const err = new Error(result.error);
+      this.ctx.debug?.log(`Patch ${id} failed`, err);
+      this.currentPhaseErrors.push({ id, error: err });
+    }
+  }
+
+  /**
    * @param {string} name
    * @param {() => void} install
    */
   runPhase(name, install) {
+    this.currentPhaseErrors = [];
     try {
       install.call(this);
-      this.phaseResults.push({ name, status: "installed" });
+      if (this.currentPhaseErrors.length > 0) {
+        const errorMsg = this.currentPhaseErrors
+          .map((e) => `${e.id}: ${e.error instanceof Error ? e.error.message : String(e.error)}`)
+          .join("; ");
+        this.phaseResults.push({
+          name,
+          status: "failed",
+          error: errorMsg
+        });
+      } else {
+        this.phaseResults.push({ name, status: "installed" });
+      }
     } catch (error) {
       this.phaseResults.push({
         name,

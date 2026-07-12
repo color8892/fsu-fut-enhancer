@@ -1,5 +1,19 @@
 import { responseText, safeParseJson } from "../infra/JsonParsing.js";
 import { applyLowpriceToInfo } from "../infra/RatingPrices.js";
+import {
+  isUpdataConfig,
+  isMetaConfig,
+  isFastSbcConfig,
+  isPackConfig,
+  isSbcConfig,
+  isGgRatingConfig,
+  isEvolutionsConfig,
+  isInpacksConfig,
+  isOtherConfig,
+  isFgConfig,
+  isPlayerMetaConfig,
+  isLowpriceConfig
+} from "../infra/Schema.js";
 
 const API_BASE_URL = "https://api.fut.to/26";
 const README_URL = "https://mfrasi851i.feishu.cn/wiki/wikcng1Ih7fFRidBfMdNS9SrucR";
@@ -27,9 +41,10 @@ export class RemoteConfigService {
     this.applyLowprice = applyLowprice;
   }
 
-  parseResponse(res, fallback, label) {
+  parseResponse(res, fallback, label, schema = undefined) {
     return safeParseJson(responseText(res), fallback, {
       label,
+      schema,
       onError: (error, context) => this.debug.log(`${context.label} parse failed`, error)
     });
   }
@@ -58,7 +73,7 @@ export class RemoteConfigService {
     if (res.status == 404) {
       this.notice("notice.upgradefailed", 2);
     } else {
-      const data = this.parseResponse(res, {}, "updata.json");
+      const data = this.parseResponse(res, {}, "updata.json", isUpdataConfig);
       const myVersion = Number(this.scriptVersion) || 0;
 
       if (data.version > myVersion) {
@@ -78,34 +93,34 @@ export class RemoteConfigService {
 
   loadApiData() {
     const api = this.info.api;
-    this.loadEndpoint(api, "meta", "meta.json", {}, (data) => this.applyMeta(data));
-    this.loadEndpoint(api, "fastsbc", "fast.json", {}, (data) => this.applyFastSbc(data));
+    this.loadEndpoint(api, "meta", "meta.json", {}, (data) => this.applyMeta(data), isMetaConfig);
+    this.loadEndpoint(api, "fastsbc", "fast.json", {}, (data) => this.applyFastSbc(data), isFastSbcConfig);
     this.loadEndpoint(api, "pack", "pack.json", {}, (data) => {
       this.info.base.oddo = data;
-    });
-    this.loadEndpoint(api, "sbc", "sbc.json", { reward: [], new: [] }, (data) => this.applySbc(data));
+    }, isPackConfig);
+    this.loadEndpoint(api, "sbc", "sbc.json", { reward: [], new: [] }, (data) => this.applySbc(data), isSbcConfig);
     this.loadEndpoint(api, "ggrating", "ggrating.json", {}, (data) => {
       this.info.GGRRAR = data;
       this.debug.log(`GGRRAR加载完毕！`);
-    });
+    }, isGgRatingConfig);
     this.loadEndpoint(api, "evolutions", "evolutions.json", { new: [] }, (data) => {
       this.info.evolutions.new = data.new || [];
       this.debug.log(`evolutions加载完毕！`);
-    });
-    this.loadEndpoint(api, "inpacks", "inpacks.json", {}, (data) => this.applyInpacks(data));
-    this.loadEndpoint(api, "other", "other.json", {}, (data) => this.applyOther(data));
+    }, isEvolutionsConfig);
+    this.loadEndpoint(api, "inpacks", "inpacks.json", {}, (data) => this.applyInpacks(data), isInpacksConfig);
+    this.loadEndpoint(api, "other", "other.json", {}, (data) => this.applyOther(data), isOtherConfig);
     this.loadEndpoint(api, "fgconfig", "fgconfig.json", {}, (data) => {
       this.info.fgconfig = data;
       this.debug.log(`fgconfig加载完毕！`);
-    });
-    this.loadEndpoint(api, "playermeta", "playermeta.json", [], (data) => this.applyPlayerMeta(data));
+    }, isFgConfig);
+    this.loadEndpoint(api, "playermeta", "playermeta.json", [], (data) => this.applyPlayerMeta(data), isPlayerMetaConfig);
     this.loadEndpoint(api, "lowprice", "lowprice.json", {}, (data) => {
       this.applyLowprice(this.info, data);
       this.debug.log(`lowprice加载完毕！`);
-    });
+    }, isLowpriceConfig);
   }
 
-  loadEndpoint(api, apiKey, fileName, fallback, applyData) {
+  loadEndpoint(api, apiKey, fileName, fallback, applyData, schema = undefined) {
     if (!_.has(api, apiKey)) {
       return;
     }
@@ -118,7 +133,7 @@ export class RemoteConfigService {
         "Cache-Control": "max-age=31536000"
       },
       onload: (res) => {
-        applyData(this.parseResponse(res, fallback, fileName));
+        applyData(this.parseResponse(res, fallback, fileName, schema));
       }
     });
   }

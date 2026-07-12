@@ -1,6 +1,7 @@
 export class PatchRegistry {
   constructor() {
     this.backups = {};
+    this.installed = new Map();
   }
 
   backup(key, original) {
@@ -22,5 +23,54 @@ export class PatchRegistry {
       view[key] = this.backup(key, original);
     }
     return view;
+  }
+
+  /**
+   * @param {{
+   *   id: string,
+   *   resolveTarget: () => unknown,
+   *   verify?: (target: unknown) => boolean,
+   *   apply: (target: unknown) => void | (() => void)
+   * }} descriptor
+   */
+  install({ id, resolveTarget, verify = () => true, apply }) {
+    if (this.installed.has(id)) {
+      return { id, status: "already-installed" };
+    }
+    try {
+      const target = resolveTarget();
+      if (!target) {
+        return { id, status: "skipped", reason: "target-unavailable" };
+      }
+      if (!verify(target)) {
+        return { id, status: "skipped", reason: "verification-failed" };
+      }
+      const restore = apply(target);
+      this.installed.set(id, { restore: typeof restore === "function" ? restore : null });
+      return { id, status: "installed" };
+    } catch (error) {
+      return {
+        id,
+        status: "failed",
+        error: error instanceof Error ? error.message : String(error)
+      };
+    }
+  }
+
+  /** @param {string} id */
+  restore(id) {
+    const patch = this.installed.get(id);
+    if (!patch) return { id, status: "not-installed" };
+    try {
+      patch.restore?.();
+      this.installed.delete(id);
+      return { id, status: "restored" };
+    } catch (error) {
+      return {
+        id,
+        status: "failed",
+        error: error instanceof Error ? error.message : String(error)
+      };
+    }
   }
 }

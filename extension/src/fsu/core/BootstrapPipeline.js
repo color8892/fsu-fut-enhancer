@@ -26,7 +26,7 @@ export function finalizeBootstrap({ fsuCtx, patchRegistry, html, call }) {
   call.view = createViewCallMap(patchRegistry);
   Object.assign(call, createCallMaps());
 
-  new PatchInstaller(fsuCtx).installAll();
+  new PatchInstaller(fsuCtx, patchRegistry).installAll();
   registerLateModules(fsuCtx);
   exposeDebugGlobals(fsuCtx);
 }

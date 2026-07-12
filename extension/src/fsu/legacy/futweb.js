@@ -27,6 +27,7 @@ export function futweb() {
             repositories, services, isPhone, set, build, lock, SBCCount, futbinId, eafy,
             SBCEligibilityKey, unsafeWindow, AssetLocationUtils, enums,
             GM_getValue, GM_setValue, GM_xmlhttpRequest, GM_openInTab, GM_info,
+            patchRegistry,
             ...sbcServices
         });
 

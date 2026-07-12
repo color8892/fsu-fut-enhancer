@@ -19,6 +19,9 @@
     "src/fsu/ea/EaRuntimeAdapter.js",
     "src/fsu/infra/JsonParsing.js",
     "src/fsu/infra/RatingPrices.js",
-    "src/fsu/ui/HtmlSafety.js"
+    "src/fsu/ui/HtmlSafety.js",
+    "src/fsu/infra/Schema.js",
+    "src/fsu/infra/JsonStore.js",
+    "src/fsu/infra/HttpClient.js"
   ]
 }
