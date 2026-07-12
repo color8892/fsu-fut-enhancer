@@ -68,6 +68,8 @@
 
 **目標**：讓 prototype patch 可驗證、冪等並可回復。
 
+**狀態**：進行中。`PatchInstaller` 已保留原有六個 phase 的順序，並新增同一實例的重複安裝保護、phase 結果診斷與 phase 級例外隔離。descriptor、目標驗證與 restore 尚未遷移。
+
 預計 API：
 
 ```js

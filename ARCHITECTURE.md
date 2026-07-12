@@ -273,6 +273,8 @@ installXxx(fsuCtx.pick("events", "fy", "call"));
 
 `PatchInstaller.installAll()` 分 **6 個 phase**，順序與舊版 monolith 一致，**不要隨意重排**。
 
+同一個 `PatchInstaller` 實例只會執行一次；重複呼叫會回傳既有診斷。每個 phase 的失敗會記錄到 diagnostics 並繼續後續 phase，方便 EA runtime 變動時定位受影響範圍。這是生命週期遷移的第一步，尚未提供 individual patch 的 `restore()`。
+
 ```mermaid
 flowchart TD
   START([installAll]) --> E[installEarly]

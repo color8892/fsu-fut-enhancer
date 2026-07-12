@@ -10368,6 +10368,8 @@
      */
     constructor(ctx) {
       this.ctx = ctx;
+      this.installState = "idle";
+      this.phaseResults = [];
     }
     applyBaseStyle() {
       const { info } = this.ctx;
@@ -10576,12 +10578,49 @@
       installSbcSquadDetailPanelPatches(c.pick("events", "info", "cntlr"));
     }
     installAll() {
-      this.installEarly();
-      this.installHubAndLists();
-      this.installSbcCore();
-      this.installMarketAndSquad();
-      this.installClubAndUi();
-      this.installLate();
+      if (this.installState !== "idle") {
+        return {
+          status: "already-installed",
+          phases: this.getDiagnostics()
+        };
+      }
+      this.installState = "installing";
+      const phases = [
+        ["early", this.installEarly],
+        ["hub-and-lists", this.installHubAndLists],
+        ["sbc-core", this.installSbcCore],
+        ["market-and-squad", this.installMarketAndSquad],
+        ["club-and-ui", this.installClubAndUi],
+        ["late", this.installLate]
+      ];
+      for (const [name, install] of phases) {
+        this.runPhase(name, install);
+      }
+      this.installState = this.phaseResults.some((result) => result.status === "failed") ? "completed-with-errors" : "installed";
+      return {
+        status: this.installState,
+        phases: this.getDiagnostics()
+      };
+    }
+    /**
+     * @param {string} name
+     * @param {() => void} install
+     */
+    runPhase(name, install) {
+      try {
+        install.call(this);
+        this.phaseResults.push({ name, status: "installed" });
+      } catch (error) {
+        this.phaseResults.push({
+          name,
+          status: "failed",
+          error: error instanceof Error ? error.message : String(error)
+        });
+        this.ctx.debug?.log("Patch phase failed", name, error);
+      }
+    }
+    getDiagnostics() {
+      return this.phaseResults.map((result) => ({ ...result }));
     }
   };
 
