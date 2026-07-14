@@ -23,13 +23,14 @@ export function runNavigationPatchTests() {
     const pushed = [];
     const registry = new PatchRegistry();
     const info = { douagain: {}, set: { sbc_headentrance: false } };
-    const results = installNavigationPatches({
+    const deps = {
       call: { view: { push(controller) { pushed.push(controller); } } },
       events: { createElementWithConfig: () => ({}) },
       info,
       isPhone: () => false,
       SBCCount: { createElement: () => {} }
-    }, registry);
+    };
+    const results = installNavigationPatches(deps, registry);
 
     assert.deepStrictEqual(
       results.map((result) => [result.id, result.status]),
@@ -41,9 +42,22 @@ export function runNavigationPatchTests() {
 
     const controller = new NavigationController();
     controller.directPushes = [];
+    controller.didAppearCount = 0;
+    controller.currentController = {};
+    controller.getView = () => ({ _navbar: null });
     controller.didPush({ className: "UTSBCSquadSplitViewController" });
     assert.strictEqual(controller.directPushes.length, 0);
     assert.deepStrictEqual(pushed, [{ className: "UTSBCSquadSplitViewController" }]);
+    controller.viewDidAppear();
+    assert.strictEqual(controller.didAppearCount, 1);
+
+    assert.deepStrictEqual(
+      installNavigationPatches(deps, registry).map((result) => [result.id, result.status]),
+      [
+        ["navigation.did-push", "already-installed"],
+        ["navigation.view-did-appear", "already-installed"]
+      ]
+    );
 
     assert.deepStrictEqual(registry.restore("navigation.did-push"), {
       id: "navigation.did-push",
@@ -55,6 +69,8 @@ export function runNavigationPatchTests() {
       id: "navigation.view-did-appear",
       status: "restored"
     });
+    controller.viewDidAppear();
+    assert.strictEqual(controller.didAppearCount, 2);
   } finally {
     globalThis.UTGameFlowNavigationController = originalNavigation;
     globalThis.UTAcademyHubViewController = originalAcademy;
