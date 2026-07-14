@@ -85,7 +85,7 @@ export class PatchInstaller {
     this.runFeaturePatch("unassigned", () => installUnassignedPatches(c.pick("call", "events", "fy", "cntlr", "info", "debug")));
     this.runFeaturePatch("sbc-chemistry-service", () => Object.assign(c.events, c.ctx.createSbcChemistryService(c.repositories.TeamConfig).createEventsFacade()));
     this.runFeaturePatch("login", () => installLoginPatches(c.pick("call", "events", "info", "services", "debug", "fy", "GM_getValue", "GM_xmlhttpRequest")));
-    this.runFeaturePatch("navigation", () => installNavigationPatches(c.pick("call", "events", "info", "isPhone", "SBCCount")));
+    this.installNavigationPatchGroup();
     this.runFeaturePatch("tactics-role", () => this.installTacticsRolePatchInternal());
     this.runFeaturePatch("squad-builder", () => installSquadBuilderPatches(c.pick("call", "events", "fy", "info", "build")));
     this.runFeaturePatch("player-cards", () => installPlayerCardPatches(c.pick("call", "events", "fy", "cntlr", "info", "lock")));
@@ -119,6 +119,19 @@ export class PatchInstaller {
     });
     if (result.status === "failed") {
       throw new Error(result.error);
+    }
+  }
+
+  installNavigationPatchGroup() {
+    const results = installNavigationPatches(
+      this.ctx.pick("call", "events", "info", "isPhone", "SBCCount"),
+      this.patchRegistry
+    );
+    for (const result of results) {
+      this.currentPhaseFeatures.push(result);
+      if (result.status === "failed") {
+        this.currentPhaseErrors.push({ id: result.id, error: new Error(result.error) });
+      }
     }
   }
 

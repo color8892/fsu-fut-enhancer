@@ -2259,80 +2259,82 @@
   }
 
   // src/fsu/patches/navigation.js
-  function installNavigationPatches(deps) {
+  function resolveNavigationPrototype() {
+    return typeof UTGameFlowNavigationController === "undefined" ? null : UTGameFlowNavigationController.prototype;
+  }
+  function createNavigationPatchDescriptors(deps) {
     const { call, events, info, isPhone: isPhone2, SBCCount } = deps;
-    UTGameFlowNavigationController.prototype.didPush = function(e2) {
-      call.view.push.call(this, e2);
-      if (info.douagain.hasOwnProperty("SBCListHtml") && info.set.sbc_headentrance) {
-        if (e2.className == "UTSBCSquadSplitViewController" || e2.className == "UTSBCSquadOverviewViewController" && info.douagain.SBCListHtml.style.display == "flex") {
-          info.douagain.SBCListHtml.style.display = "none";
-        } else if (info.douagain.SBCListHtml.style.display == "none") {
-          info.douagain.SBCListHtml.style.display = "flex";
-        }
-      }
-    };
-    const UTGameFlowNavigationController_viewDidAppear = UTGameFlowNavigationController.prototype.viewDidAppear;
-    UTGameFlowNavigationController.prototype.viewDidAppear = function(...args) {
-      UTGameFlowNavigationController_viewDidAppear.call(this, ...args);
-      if (this.currentController instanceof UTAcademyHubViewController && this.getView()._navbar == null) {
-        this.getView().appendNavigationBar(this.navigationBar);
-        this.setNavigationVisibility(1, 1);
-      }
-      let nav = this.getView()._navbar;
-      if (nav) {
-        if (nav.className == "UTCurrencyNavigationBarView" && info.set.sbc_headentrance) {
-          if (!info.douagain.hasOwnProperty("SBCListHtml")) {
-            info.douagain.SBCListHtml = events.createElementWithConfig("div", {
-              classList: ["fsu-navsbc"],
-              style: {
-                display: "flex"
+    return [
+      {
+        id: "navigation.did-push",
+        resolveTarget: resolveNavigationPrototype,
+        verify: (target) => typeof target?.didPush === "function" && typeof call.view?.push === "function",
+        apply: (target) => {
+          const original = target.didPush;
+          target.didPush = function(controller) {
+            call.view.push.call(this, controller);
+            if (info.douagain.hasOwnProperty("SBCListHtml") && info.set.sbc_headentrance) {
+              if (controller.className === "UTSBCSquadSplitViewController" || controller.className === "UTSBCSquadOverviewViewController" && info.douagain.SBCListHtml.style.display === "flex") {
+                info.douagain.SBCListHtml.style.display = "none";
+              } else if (info.douagain.SBCListHtml.style.display === "none") {
+                info.douagain.SBCListHtml.style.display = "flex";
               }
-            });
-          }
-          if (isPhone2()) {
-            nav.__root.classList.add("fsu-shownavsbc");
-          }
-          nav._fsuSBCList = info.douagain.SBCListHtml;
-          if (nav.__root.querySelector(".view-navbar-currency")) {
-            nav.__root.insertBefore(nav._fsuSBCList, nav.__currencies);
-          }
+            }
+          };
+          return () => {
+            target.didPush = original;
+          };
         }
-        SBCCount.createElement(this.getView());
-      }
-    };
-    events.playerSelectionSort = (view, player) => {
-      let leagueOrder = [13, 53, 31, 19, 16, 2221, 2222];
-      let playerArr = _.map(player, (i, k) => {
-        return {
-          p: events.getCachePrice(i.definitionId, 1).num,
-          r: i.rating,
-          f: i.rareflag,
-          k,
-          l: _.includes(leagueOrder, i.leagueId) ? _.indexOf(leagueOrder, i.leagueId) : 99999
-        };
-      });
-      let sortKey = ["r", "f", "l"], sortOrder = ["desc", "desc", "asc"];
-      if (_.isEmpty(_.filter(playerArr, { p: 0 }))) {
-        sortKey.unshift("p");
-        sortOrder.unshift("desc");
-      }
-      let pickNumber = 1;
-      const pickNumberText = view.__selectedCounter.textContent;
-      if (pickNumberText && _.includes(pickNumberText, "/")) {
-        const pickNumberParts = pickNumberText.split("/");
-        const tempNumber = parseInt(pickNumberParts[1], 10);
-        if (Number.isInteger(tempNumber) && tempNumber && tempNumber <= playerArr.length) {
-          pickNumber = tempNumber;
+      },
+      {
+        id: "navigation.view-did-appear",
+        resolveTarget: resolveNavigationPrototype,
+        verify: (target) => typeof target?.viewDidAppear === "function",
+        apply: (target) => {
+          const original = target.viewDidAppear;
+          target.viewDidAppear = function(...args) {
+            original.call(this, ...args);
+            if (this.currentController instanceof UTAcademyHubViewController && this.getView()._navbar === null) {
+              this.getView().appendNavigationBar(this.navigationBar);
+              this.setNavigationVisibility(1, 1);
+            }
+            const nav = this.getView()._navbar;
+            if (nav) {
+              if (nav.className === "UTCurrencyNavigationBarView" && info.set.sbc_headentrance) {
+                if (!info.douagain.hasOwnProperty("SBCListHtml")) {
+                  info.douagain.SBCListHtml = events.createElementWithConfig("div", {
+                    classList: ["fsu-navsbc"],
+                    style: { display: "flex" }
+                  });
+                }
+                if (isPhone2()) nav.__root.classList.add("fsu-shownavsbc");
+                nav._fsuSBCList = info.douagain.SBCListHtml;
+                if (nav.__root.querySelector(".view-navbar-currency")) {
+                  nav.__root.insertBefore(nav._fsuSBCList, nav.__currencies);
+                }
+              }
+              SBCCount.createElement(this.getView());
+            }
+          };
+          return () => {
+            target.viewDidAppear = original;
+          };
         }
       }
-      let bestPlayer = _.take(_.orderBy(playerArr, sortKey, sortOrder), pickNumber);
-      if (bestPlayer.length) {
-        _.forOwn(bestPlayer, (i) => {
-          view.__carouselIndicatorDots.classList.add("fsu-pickbest");
-          view.__carouselIndicatorDots.querySelectorAll("li")[i.k].classList.add("best");
-        });
+    ];
+  }
+  function installNavigationPatches(deps, patchRegistry = null) {
+    const descriptors = createNavigationPatchDescriptors(deps);
+    if (patchRegistry) return descriptors.map((descriptor) => patchRegistry.install(descriptor));
+    return descriptors.map((descriptor) => {
+      const target = descriptor.resolveTarget();
+      if (!target) return { id: descriptor.id, status: "skipped", reason: "target-unavailable" };
+      if (!descriptor.verify(target)) {
+        return { id: descriptor.id, status: "skipped", reason: "verification-failed" };
       }
-    };
+      descriptor.apply(target);
+      return { id: descriptor.id, status: "installed" };
+    });
   }
 
   // src/fsu/patches/squad-builder.js
@@ -10513,7 +10515,7 @@
       this.runFeaturePatch("unassigned", () => installUnassignedPatches(c.pick("call", "events", "fy", "cntlr", "info", "debug")));
       this.runFeaturePatch("sbc-chemistry-service", () => Object.assign(c.events, c.ctx.createSbcChemistryService(c.repositories.TeamConfig).createEventsFacade()));
       this.runFeaturePatch("login", () => installLoginPatches(c.pick("call", "events", "info", "services", "debug", "fy", "GM_getValue", "GM_xmlhttpRequest")));
-      this.runFeaturePatch("navigation", () => installNavigationPatches(c.pick("call", "events", "info", "isPhone", "SBCCount")));
+      this.installNavigationPatchGroup();
       this.runFeaturePatch("tactics-role", () => this.installTacticsRolePatchInternal());
       this.runFeaturePatch("squad-builder", () => installSquadBuilderPatches(c.pick("call", "events", "fy", "info", "build")));
       this.runFeaturePatch("player-cards", () => installPlayerCardPatches(c.pick("call", "events", "fy", "cntlr", "info", "lock")));
@@ -10542,6 +10544,18 @@
       });
       if (result.status === "failed") {
         throw new Error(result.error);
+      }
+    }
+    installNavigationPatchGroup() {
+      const results = installNavigationPatches(
+        this.ctx.pick("call", "events", "info", "isPhone", "SBCCount"),
+        this.patchRegistry
+      );
+      for (const result of results) {
+        this.currentPhaseFeatures.push(result);
+        if (result.status === "failed") {
+          this.currentPhaseErrors.push({ id: result.id, error: new Error(result.error) });
+        }
       }
     }
     installHubAndLists() {
