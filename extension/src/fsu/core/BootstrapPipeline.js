@@ -10,7 +10,7 @@ export function runMidBootstrap({ fsuCtx, ctx, events, fy }) {
   installAppInitPatches(fsuCtx.toAppInitPatchesDeps());
   registerEarlyModules(fsuCtx);
   attachServiceNotices(ctx, { events, fy });
-  registerAppInitEvents(fsuCtx.toAppInitEventsDeps());
+  registerAppInitEvents(fsuCtx.toAppInitEventsDeps(), fsuCtx.patchRegistry);
 }
 
 export function finalizeBootstrap({ fsuCtx, patchRegistry, html, call }) {

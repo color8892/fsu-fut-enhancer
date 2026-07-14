@@ -15225,16 +15225,45 @@
   };
 
   // src/fsu/patches/app-init.js
-  function registerAppInitEvents(deps) {
-    const { events, info, fy: fy2 } = deps;
-    UTHomeHubView.prototype.getAcademyTile = function() {
-      if (info.evolutions.newCount > 0 && !this._academyTile.__root.querySelector(".fsu-task")) {
-        this._academyTile.__tileContent.before(
-          events.createDF(`<div class="fsu-task">${info.evolutions.html}</div>`)
-        );
+  function resolveHomeHubPrototype() {
+    return typeof UTHomeHubView === "undefined" ? null : UTHomeHubView.prototype;
+  }
+  function createAppInitEventPatchDescriptors(deps) {
+    const { events, info } = deps;
+    return [
+      {
+        id: "home-hub.academy-tile",
+        resolveTarget: resolveHomeHubPrototype,
+        verify: (target) => typeof target?.getAcademyTile === "function",
+        apply: (target) => {
+          const original = target.getAcademyTile;
+          target.getAcademyTile = function() {
+            if (info.evolutions.newCount > 0 && !this._academyTile.__root.querySelector(".fsu-task")) {
+              this._academyTile.__tileContent.before(
+                events.createDF(`<div class="fsu-task">${info.evolutions.html}</div>`)
+              );
+            }
+            return this._academyTile;
+          };
+          return () => {
+            target.getAcademyTile = original;
+          };
+        }
       }
-      return this._academyTile;
-    };
+    ];
+  }
+  function registerAppInitEvents(deps, patchRegistry = null) {
+    const { events, info, fy: fy2 } = deps;
+    const descriptors = createAppInitEventPatchDescriptors(deps);
+    const patchResults = patchRegistry ? descriptors.map((descriptor) => patchRegistry.install(descriptor)) : descriptors.map((descriptor) => {
+      const target = descriptor.resolveTarget();
+      if (!target) return { id: descriptor.id, status: "skipped", reason: "target-unavailable" };
+      if (!descriptor.verify(target)) {
+        return { id: descriptor.id, status: "skipped", reason: "verification-failed" };
+      }
+      descriptor.apply(target);
+      return { id: descriptor.id, status: "installed" };
+    });
     events.addLoadingElment = () => {
       if (!info.base.close) {
         info.base.close = events.createButton(
@@ -15269,6 +15298,7 @@
         .ut-search-filter-control select option{color: #2d2c36}
     `);
     };
+    return patchResults;
   }
   function installAppInitPatches(deps) {
     const {
@@ -15520,7 +15550,7 @@
     installAppInitPatches(fsuCtx.toAppInitPatchesDeps());
     registerEarlyModules(fsuCtx);
     attachServiceNotices(ctx, { events, fy: fy2 });
-    registerAppInitEvents(fsuCtx.toAppInitEventsDeps());
+    registerAppInitEvents(fsuCtx.toAppInitEventsDeps(), fsuCtx.patchRegistry);
   }
   function finalizeBootstrap({ fsuCtx, patchRegistry, html, call }) {
     const { fsuSC } = registerSettingsScreen({
