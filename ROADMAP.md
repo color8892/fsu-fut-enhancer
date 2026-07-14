@@ -100,6 +100,8 @@ registry.install({
 
 **目標**：縮小 `events`／`info` 的不透明共享狀態。
 
+**狀態**：進行中。JSON parsing、storage、HTTP 與 remote config/price payload 已進入 strict island，並在套用前執行 schema 檢查與 fallback。`events` 與 `info` 的完整拆分尚未開始。
+
 交付項目：
 
 - 將設定、cache、remote config、SBC state 拆成具名 stores/services
