@@ -1,6 +1,7 @@
 import { safeParseJson } from "../infra/JsonParsing.js";
 import { RemoteConfigService } from "../domain/RemoteConfigService.js";
 import { createExternalLink } from "../ui/HtmlSafety.js";
+import { installPatchDescriptors } from "../core/PatchRegistry.js";
 
 function resolveHomeHubPrototype() {
   return typeof UTHomeHubView === "undefined" ? null : UTHomeHubView.prototype;
@@ -33,18 +34,7 @@ export function createAppInitEventPatchDescriptors(deps) {
 
 export function registerAppInitEvents(deps, patchRegistry = null) {
   const { events, info, fy } = deps;
-  const descriptors = createAppInitEventPatchDescriptors(deps);
-  const patchResults = patchRegistry
-    ? descriptors.map((descriptor) => patchRegistry.install(descriptor))
-    : descriptors.map((descriptor) => {
-      const target = descriptor.resolveTarget();
-      if (!target) return { id: descriptor.id, status: "skipped", reason: "target-unavailable" };
-      if (!descriptor.verify(target)) {
-        return { id: descriptor.id, status: "skipped", reason: "verification-failed" };
-      }
-      descriptor.apply(target);
-      return { id: descriptor.id, status: "installed" };
-    });
+  const patchResults = installPatchDescriptors(createAppInitEventPatchDescriptors(deps), patchRegistry);
 
 //26.02 添加loading文本事件
 events.addLoadingElment = () => {

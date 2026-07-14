@@ -1,5 +1,5 @@
 import assert from "assert";
-import { PatchRegistry } from "../src/fsu/core/PatchRegistry.js";
+import { installPatchDescriptors, PatchRegistry } from "../src/fsu/core/PatchRegistry.js";
 
 export function runPatchRegistryTests() {
   const registry = new PatchRegistry();
@@ -60,4 +60,28 @@ export function runPatchRegistryTests() {
     }),
     { id: "invalid-target", status: "skipped", reason: "verification-failed" }
   );
+
+  assert.deepStrictEqual(
+    installPatchDescriptors([
+      {
+        id: "direct-install",
+        resolveTarget: () => target,
+        apply: (resolved) => {
+          resolved.directlyInstalled = true;
+        }
+      },
+      {
+        id: "direct-failure",
+        resolveTarget: () => target,
+        apply: () => {
+          throw new Error("direct apply failed");
+        }
+      }
+    ]),
+    [
+      { id: "direct-install", status: "installed" },
+      { id: "direct-failure", status: "failed", error: "direct apply failed" }
+    ]
+  );
+  assert.strictEqual(target.directlyInstalled, true);
 }

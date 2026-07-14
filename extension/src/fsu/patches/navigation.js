@@ -1,3 +1,5 @@
+import { installPatchDescriptors } from "../core/PatchRegistry.js";
+
 function resolveNavigationPrototype() {
   return typeof UTGameFlowNavigationController === "undefined"
     ? null
@@ -72,16 +74,5 @@ export function createNavigationPatchDescriptors(deps) {
 }
 
 export function installNavigationPatches(deps, patchRegistry = null) {
-  const descriptors = createNavigationPatchDescriptors(deps);
-  if (patchRegistry) return descriptors.map((descriptor) => patchRegistry.install(descriptor));
-
-  return descriptors.map((descriptor) => {
-    const target = descriptor.resolveTarget();
-    if (!target) return { id: descriptor.id, status: "skipped", reason: "target-unavailable" };
-    if (!descriptor.verify(target)) {
-      return { id: descriptor.id, status: "skipped", reason: "verification-failed" };
-    }
-    descriptor.apply(target);
-    return { id: descriptor.id, status: "installed" };
-  });
+  return installPatchDescriptors(createNavigationPatchDescriptors(deps), patchRegistry);
 }

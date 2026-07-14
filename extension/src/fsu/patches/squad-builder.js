@@ -1,3 +1,5 @@
+import { installPatchDescriptors } from "../core/PatchRegistry.js";
+
 function resolveSquadBuilderPrototype() {
   return typeof UTSquadBuilderViewController === "undefined"
     ? null
@@ -44,16 +46,5 @@ export function createSquadBuilderPatchDescriptors(deps) {
 }
 
 export function installSquadBuilderPatches(deps, patchRegistry = null) {
-  const descriptors = createSquadBuilderPatchDescriptors(deps);
-  if (patchRegistry) return descriptors.map((descriptor) => patchRegistry.install(descriptor));
-
-  return descriptors.map((descriptor) => {
-    const target = descriptor.resolveTarget();
-    if (!target) return { id: descriptor.id, status: "skipped", reason: "target-unavailable" };
-    if (!descriptor.verify(target)) {
-      return { id: descriptor.id, status: "skipped", reason: "verification-failed" };
-    }
-    descriptor.apply(target);
-    return { id: descriptor.id, status: "installed" };
-  });
+  return installPatchDescriptors(createSquadBuilderPatchDescriptors(deps), patchRegistry);
 }

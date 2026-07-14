@@ -74,3 +74,31 @@ export class PatchRegistry {
     }
   }
 }
+
+/**
+ * Installs descriptor patches through a registry when available, while preserving
+ * the legacy direct-install behavior for callers outside the bootstrap lifecycle.
+ * @param {Array<{id: string, resolveTarget: () => unknown, verify?: (target: unknown) => boolean, apply: (target: unknown) => void | (() => void)}>} descriptors
+ * @param {PatchRegistry | null} patchRegistry
+ */
+export function installPatchDescriptors(descriptors, patchRegistry = null) {
+  if (patchRegistry) return descriptors.map((descriptor) => patchRegistry.install(descriptor));
+
+  return descriptors.map((descriptor) => {
+    try {
+      const target = descriptor.resolveTarget();
+      if (!target) return { id: descriptor.id, status: "skipped", reason: "target-unavailable" };
+      if (descriptor.verify && !descriptor.verify(target)) {
+        return { id: descriptor.id, status: "skipped", reason: "verification-failed" };
+      }
+      descriptor.apply(target);
+      return { id: descriptor.id, status: "installed" };
+    } catch (error) {
+      return {
+        id: descriptor.id,
+        status: "failed",
+        error: error instanceof Error ? error.message : String(error)
+      };
+    }
+  });
+}
