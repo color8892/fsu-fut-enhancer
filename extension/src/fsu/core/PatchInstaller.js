@@ -87,7 +87,7 @@ export class PatchInstaller {
     this.runFeaturePatch("login", () => installLoginPatches(c.pick("call", "events", "info", "services", "debug", "fy", "GM_getValue", "GM_xmlhttpRequest")));
     this.installNavigationPatchGroup();
     this.runFeaturePatch("tactics-role", () => this.installTacticsRolePatchInternal());
-    this.runFeaturePatch("squad-builder", () => installSquadBuilderPatches(c.pick("call", "events", "fy", "info", "build")));
+    this.installSquadBuilderPatchGroup();
     this.runFeaturePatch("player-cards", () => installPlayerCardPatches(c.pick("call", "events", "fy", "cntlr", "info", "lock")));
   }
 
@@ -125,6 +125,19 @@ export class PatchInstaller {
   installNavigationPatchGroup() {
     const results = installNavigationPatches(
       this.ctx.pick("call", "events", "info", "isPhone", "SBCCount"),
+      this.patchRegistry
+    );
+    for (const result of results) {
+      this.currentPhaseFeatures.push(result);
+      if (result.status === "failed") {
+        this.currentPhaseErrors.push({ id: result.id, error: new Error(result.error) });
+      }
+    }
+  }
+
+  installSquadBuilderPatchGroup() {
+    const results = installSquadBuilderPatches(
+      this.ctx.pick("call", "events", "fy", "info", "build"),
       this.patchRegistry
     );
     for (const result of results) {

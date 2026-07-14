@@ -2338,27 +2338,56 @@
   }
 
   // src/fsu/patches/squad-builder.js
-  function installSquadBuilderPatches(deps) {
+  function resolveSquadBuilderPrototype() {
+    return typeof UTSquadBuilderViewController === "undefined" ? null : UTSquadBuilderViewController.prototype;
+  }
+  function createSquadBuilderPatchDescriptors(deps) {
     const { call, events, fy: fy2, info, build } = deps;
-    UTSquadBuilderViewController.prototype.viewDidAppear = function() {
-      call.view.build.call(this);
-      if (this.squad && this.squad.isSBC()) {
-        this.getView().getSortDropDown().setIndexById(3);
-        this.getView()._fsuleague = events.createToggle(
-          `${fy2(`builder.league`)}(${info.set.shield_league.length})`,
-          async (e2) => {
-            build.set("league", e2.getToggleState());
-          }
-        );
-        this.getView()._fsuleague.toggle(info.build.league);
-        this.getView()._searchOptions.__root.appendChild(this.getView()._fsuleague.__root);
-        this.getView()._fsupos = events.createToggle(fy2(`builder.ignorepos`), async (e2) => {
-          build.set("ignorepos", e2.getToggleState());
-        });
-        this.getView()._fsupos.toggle(info.build.ignorepos);
-        this.getView()._searchOptions.__root.appendChild(this.getView()._fsupos.__root);
+    return [
+      {
+        id: "squad-builder.view-did-appear",
+        resolveTarget: resolveSquadBuilderPrototype,
+        verify: (target) => typeof target?.viewDidAppear === "function" && typeof call.view?.build === "function",
+        apply: (target) => {
+          const original = target.viewDidAppear;
+          target.viewDidAppear = function() {
+            call.view.build.call(this);
+            if (this.squad && this.squad.isSBC()) {
+              this.getView().getSortDropDown().setIndexById(3);
+              this.getView()._fsuleague = events.createToggle(
+                `${fy2("builder.league")}(${info.set.shield_league.length})`,
+                async (event) => {
+                  build.set("league", event.getToggleState());
+                }
+              );
+              this.getView()._fsuleague.toggle(info.build.league);
+              this.getView()._searchOptions.__root.appendChild(this.getView()._fsuleague.__root);
+              this.getView()._fsupos = events.createToggle(fy2("builder.ignorepos"), async (event) => {
+                build.set("ignorepos", event.getToggleState());
+              });
+              this.getView()._fsupos.toggle(info.build.ignorepos);
+              this.getView()._searchOptions.__root.appendChild(this.getView()._fsupos.__root);
+            }
+          };
+          return () => {
+            target.viewDidAppear = original;
+          };
+        }
       }
-    };
+    ];
+  }
+  function installSquadBuilderPatches(deps, patchRegistry = null) {
+    const descriptors = createSquadBuilderPatchDescriptors(deps);
+    if (patchRegistry) return descriptors.map((descriptor) => patchRegistry.install(descriptor));
+    return descriptors.map((descriptor) => {
+      const target = descriptor.resolveTarget();
+      if (!target) return { id: descriptor.id, status: "skipped", reason: "target-unavailable" };
+      if (!descriptor.verify(target)) {
+        return { id: descriptor.id, status: "skipped", reason: "verification-failed" };
+      }
+      descriptor.apply(target);
+      return { id: descriptor.id, status: "installed" };
+    });
   }
 
   // src/fsu/patches/misc-item.js
@@ -10517,7 +10546,7 @@
       this.runFeaturePatch("login", () => installLoginPatches(c.pick("call", "events", "info", "services", "debug", "fy", "GM_getValue", "GM_xmlhttpRequest")));
       this.installNavigationPatchGroup();
       this.runFeaturePatch("tactics-role", () => this.installTacticsRolePatchInternal());
-      this.runFeaturePatch("squad-builder", () => installSquadBuilderPatches(c.pick("call", "events", "fy", "info", "build")));
+      this.installSquadBuilderPatchGroup();
       this.runFeaturePatch("player-cards", () => installPlayerCardPatches(c.pick("call", "events", "fy", "cntlr", "info", "lock")));
     }
     installTacticsRolePatchInternal() {
@@ -10549,6 +10578,18 @@
     installNavigationPatchGroup() {
       const results = installNavigationPatches(
         this.ctx.pick("call", "events", "info", "isPhone", "SBCCount"),
+        this.patchRegistry
+      );
+      for (const result of results) {
+        this.currentPhaseFeatures.push(result);
+        if (result.status === "failed") {
+          this.currentPhaseErrors.push({ id: result.id, error: new Error(result.error) });
+        }
+      }
+    }
+    installSquadBuilderPatchGroup() {
+      const results = installSquadBuilderPatches(
+        this.ctx.pick("call", "events", "fy", "info", "build"),
         this.patchRegistry
       );
       for (const result of results) {
