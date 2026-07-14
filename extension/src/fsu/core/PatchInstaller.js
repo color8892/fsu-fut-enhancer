@@ -296,7 +296,7 @@ export class PatchInstaller {
     this.runFeaturePatch("club-select", () => installClubSelectPatches(c.pick("call", "events", "info", "fy", "cntlr", "isPhone", "repositories", "services", "debug")));
     this.runFeaturePatch("club-select-events", () => registerClubSelectEvents(c.pick("events", "info", "cntlr", "isPhone", "services", "repositories", "debug", "fy")));
     this.runFeaturePatch("club-select-search", () => installClubSelectSearchPatches(c.pick("call", "events", "info", "fy", "cntlr", "repositories", "services")));
-    this.runFeaturePatch("rewards", () => installRewardPatches(c.pick("call", "events", "info", "fy", "cntlr", "repositories", "debug")));
+    this.runFeaturePatch("rewards", () => installRewardPatches(c.pick("call", "events", "info", "fy", "cntlr", "isPhone", "repositories", "debug")));
     this.runFeaturePatch("club-hub", () => installClubHubPatches(c.pick("call", "events", "info", "fy", "cntlr", "isPhone", "repositories", "services")));
     this.runFeaturePatch("list-filter", () => registerListFilterEvents(c.pick("events", "repositories")));
     this.runFeaturePatch("ui-utils", () => registerUiUtilsEvents(c.pick("events", "info", "cntlr", "debug", "fy", "services")));

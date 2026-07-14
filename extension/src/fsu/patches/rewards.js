@@ -1,3 +1,5 @@
+import { addRewardFutbinButton } from "./panel-patches.js";
+
 export function registerRewardEvents(deps) {
   const { events, fy } = deps;
 
@@ -70,7 +72,7 @@ export function registerRewardEvents(deps) {
 }
 
 export function installRewardPatches(deps) {
-  const { call, events, info, fy, cntlr, repositories, debug } = deps;
+  const { call, events, info, fy, cntlr, isPhone, repositories, debug } = deps;
 
   registerRewardEvents({ events, fy });
 
@@ -143,6 +145,7 @@ export function installRewardPatches(deps) {
 
   UTRewardSelectionChoiceView.prototype.expandRewardSet = function (e, t) {
     call.other.rewards.choiceSet.call(this, e, t);
+    if (info.set.player_futbin) addRewardFutbinButton({ events, fy, isPhone }, this, t);
     let target = this.__expandedReward.querySelectorAll(".reward");
     let sum = 0;
     _.map(t.rewards, (r, i) => {

@@ -8822,6 +8822,52 @@
     };
   }
 
+  // src/fsu/patches/panel-patches.js
+  function addRewardFutbinButton({ events, fy: fy2, isPhone: isPhone2 }, view, rewardSet) {
+    const reward = rewardSet.rewards.find((item) => item.count);
+    const carousel = view._rewardsCarousel?._tnsCarousel?.__root;
+    if (reward?.isItem && reward.item.isPlayer() && carousel?.classList.length === 2 && carousel.classList.contains("slider") && carousel.classList.contains("rewards-slider-container")) {
+      const player = reward.item;
+      view._fsuPlayer = events.createButton(
+        new UTStandardButtonControl(),
+        fy2("quicklist.gotofutbin"),
+        (event) => {
+          events.openFutbinPlayerUrl(event, player);
+        },
+        "call-to-action mini fsu-reward-but"
+      );
+      if (!isPhone2()) view._fsuPlayer.__root.classList.add("pcr");
+      carousel.querySelector(".reward")?.appendChild(view._fsuPlayer.__root);
+    }
+  }
+  function installPanelPatches(deps) {
+    const { call, events, info, fy: fy2, cntlr: cntlr2, isPhone: isPhone2 } = deps;
+    UTQuickListPanelViewController.prototype.renderView = function() {
+      call.panel.quickRender.call(this);
+      events.detailsButtonSet(this);
+    };
+    UTRewardSelectionChoiceView.prototype.expandRewardSet = function(e2, t) {
+      call.panel.reward.call(this, e2, t);
+      if (info.set.player_futbin) addRewardFutbinButton({ events, fy: fy2, isPhone: isPhone2 }, this, t);
+    };
+    events.conceptBuyBack = (w) => {
+      let a = w.panelView || w.panel;
+      a._sendClubButton._tapDetected(this);
+      if (isPhone2()) {
+        let p = w._parentViewController, cv, cn;
+        for (let [n, v] of p._childViewControllers.entries()) {
+          if (v.className == "UTSBCSquadOverviewViewController") {
+            cv = v;
+            cn = n;
+          }
+        }
+        p.popToViewController(cv, cn);
+      } else {
+        cntlr2.current()._ePitchTapped();
+      }
+    };
+  }
+
   // src/fsu/patches/rewards.js
   function registerRewardEvents(deps) {
     const { events, fy: fy2 } = deps;
@@ -8889,7 +8935,7 @@
     };
   }
   function installRewardPatches(deps) {
-    const { call, events, info, fy: fy2, cntlr: cntlr2, repositories: repositories2, debug: debug2 } = deps;
+    const { call, events, info, fy: fy2, cntlr: cntlr2, isPhone: isPhone2, repositories: repositories2, debug: debug2 } = deps;
     registerRewardEvents({ events, fy: fy2 });
     FCObjectiveDetailsView.prototype.render = function(e2) {
       call.other.rewards.objectiveDetail.call(this, e2);
@@ -8957,6 +9003,7 @@
     };
     UTRewardSelectionChoiceView.prototype.expandRewardSet = function(e2, t) {
       call.other.rewards.choiceSet.call(this, e2, t);
+      if (info.set.player_futbin) addRewardFutbinButton({ events, fy: fy2, isPhone: isPhone2 }, this, t);
       let target = this.__expandedReward.querySelectorAll(".reward");
       let sum = 0;
       _.map(t.rewards, (r, i) => {
@@ -10538,50 +10585,6 @@
     };
   }
 
-  // src/fsu/patches/panel-patches.js
-  function installPanelPatches(deps) {
-    const { call, events, info, fy: fy2, cntlr: cntlr2, isPhone: isPhone2 } = deps;
-    UTQuickListPanelViewController.prototype.renderView = function() {
-      call.panel.quickRender.call(this);
-      events.detailsButtonSet(this);
-    };
-    UTRewardSelectionChoiceView.prototype.expandRewardSet = function(e2, t) {
-      call.panel.reward.call(this, e2, t);
-      let reward = t.rewards.find((i) => i.count), tn = this._rewardsCarousel._tnsCarousel.__root;
-      if (reward.isItem && reward.item.isPlayer() && info.set.player_futbin && tn.classList.length === 2 && tn.classList.contains("slider") && tn.classList.contains("rewards-slider-container")) {
-        let player = reward.item;
-        this._fsuPlayer = events.createButton(
-          new UTStandardButtonControl(),
-          fy2("quicklist.gotofutbin"),
-          (e3) => {
-            events.openFutbinPlayerUrl(e3, player);
-          },
-          "call-to-action mini fsu-reward-but"
-        );
-        if (!isPhone2()) {
-          this._fsuPlayer.__root.classList.add("pcr");
-        }
-        tn.querySelector(".reward").appendChild(this._fsuPlayer.__root);
-      }
-    };
-    events.conceptBuyBack = (w) => {
-      let a = w.panelView || w.panel;
-      a._sendClubButton._tapDetected(this);
-      if (isPhone2()) {
-        let p = w._parentViewController, cv, cn;
-        for (let [n, v] of p._childViewControllers.entries()) {
-          if (v.className == "UTSBCSquadOverviewViewController") {
-            cv = v;
-            cn = n;
-          }
-        }
-        p.popToViewController(cv, cn);
-      } else {
-        cntlr2.current()._ePitchTapped();
-      }
-    };
-  }
-
   // src/fsu/core/PatchInstaller.js
   var PatchInstaller = class {
     /**
@@ -10815,7 +10818,7 @@
       this.runFeaturePatch("club-select", () => installClubSelectPatches(c.pick("call", "events", "info", "fy", "cntlr", "isPhone", "repositories", "services", "debug")));
       this.runFeaturePatch("club-select-events", () => registerClubSelectEvents(c.pick("events", "info", "cntlr", "isPhone", "services", "repositories", "debug", "fy")));
       this.runFeaturePatch("club-select-search", () => installClubSelectSearchPatches(c.pick("call", "events", "info", "fy", "cntlr", "repositories", "services")));
-      this.runFeaturePatch("rewards", () => installRewardPatches(c.pick("call", "events", "info", "fy", "cntlr", "repositories", "debug")));
+      this.runFeaturePatch("rewards", () => installRewardPatches(c.pick("call", "events", "info", "fy", "cntlr", "isPhone", "repositories", "debug")));
       this.runFeaturePatch("club-hub", () => installClubHubPatches(c.pick("call", "events", "info", "fy", "cntlr", "isPhone", "repositories", "services")));
       this.runFeaturePatch("list-filter", () => registerListFilterEvents(c.pick("events", "repositories")));
       this.runFeaturePatch("ui-utils", () => registerUiUtilsEvents(c.pick("events", "info", "cntlr", "debug", "fy", "services")));
