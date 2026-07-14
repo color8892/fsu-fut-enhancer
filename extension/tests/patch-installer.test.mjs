@@ -104,7 +104,12 @@ export function runPatchInstallerTests() {
   assert.deepStrictEqual(isolatedResult.phases[0], {
     name: "early",
     status: "failed",
-    error: "sub-patch-2: sub-patch-2 error"
+    error: "sub-patch-2: sub-patch-2 error",
+    features: [
+      { id: "sub-patch-1", status: "installed" },
+      { id: "sub-patch-2", status: "failed", error: "sub-patch-2 error" },
+      { id: "sub-patch-3", status: "installed" }
+    ]
   });
 
   // Verify that running again does not execute subPatch1 or subPatch3 again
@@ -124,4 +129,12 @@ export function runPatchInstallerTests() {
   assert.strictEqual(repeatedRegistryResult.status, "installed");
   assert.strictEqual(subPatch1Count, 1); // Not incremented! (Duplicate protection)
   assert.strictEqual(subPatch3Count, 1); // Not incremented!
+  assert.deepStrictEqual(repeatedRegistryResult.phases[0], {
+    name: "early",
+    status: "installed",
+    features: [
+      { id: "sub-patch-1", status: "already-installed" },
+      { id: "sub-patch-3", status: "already-installed" }
+    ]
+  });
 }

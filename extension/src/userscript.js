@@ -10749,9 +10749,15 @@
       if (!this.patchRegistry) {
         try {
           installFn();
+          this.currentPhaseFeatures.push({ id, status: "installed" });
         } catch (error) {
           this.ctx.debug?.log(`Patch ${id} failed`, error);
           this.currentPhaseErrors.push({ id, error });
+          this.currentPhaseFeatures.push({
+            id,
+            status: "failed",
+            error: error instanceof Error ? error.message : String(error)
+          });
         }
         return;
       }
@@ -10762,6 +10768,7 @@
           installFn();
         }
       });
+      this.currentPhaseFeatures.push(result);
       if (result.status === "failed") {
         const err = new Error(result.error);
         this.ctx.debug?.log(`Patch ${id} failed`, err);
@@ -10774,17 +10781,22 @@
      */
     runPhase(name, install) {
       this.currentPhaseErrors = [];
+      this.currentPhaseFeatures = [];
       try {
         install.call(this);
         if (this.currentPhaseErrors.length > 0) {
           const errorMsg = this.currentPhaseErrors.map((e2) => `${e2.id}: ${e2.error instanceof Error ? e2.error.message : String(e2.error)}`).join("; ");
-          this.phaseResults.push({
+          const result = {
             name,
             status: "failed",
             error: errorMsg
-          });
+          };
+          if (this.currentPhaseFeatures.length > 0) result.features = this.currentPhaseFeatures;
+          this.phaseResults.push(result);
         } else {
-          this.phaseResults.push({ name, status: "installed" });
+          const result = { name, status: "installed" };
+          if (this.currentPhaseFeatures.length > 0) result.features = this.currentPhaseFeatures;
+          this.phaseResults.push(result);
         }
       } catch (error) {
         this.phaseResults.push({
