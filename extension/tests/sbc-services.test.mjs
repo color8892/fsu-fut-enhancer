@@ -252,4 +252,42 @@ export async function runSbcDataServiceAsyncTests() {
   assert.strictEqual(result, false);
   assert.deepStrictEqual(notices, [["notice.squaderror", 2]]);
   assert.strictEqual(hidden, true);
+
+  const fixturePath = new URL(
+    "./fixtures/ea/futbin-squad.json",
+    import.meta.url
+  );
+  const fixture = JSON.parse(
+    await import("node:fs").then(({ readFileSync }) =>
+      readFileSync(fixturePath, "utf8")
+    )
+  );
+  const commits = [];
+  const valid = await service.getFutbinSbcSquad(17, 2, {
+    getInfo: () => ({ base: { platform: "pc", year: "26" } }),
+    externalRequest: async () => JSON.stringify(fixture),
+    notice: (...args) => notices.push(args),
+    hideLoader: () => {},
+    fy: (key) => key,
+    futbinId: {
+      commitSquadPlayers: (players) => commits.push(players)
+    }
+  });
+  assert.equal(valid.Formation, "4-4-2");
+  assert.equal(commits.length, 1);
+  assert.equal(commits[0].length, 2);
+
+  fixture.squad_data.cardlid10.id = null;
+  const rejected = await service.getFutbinSbcSquad(17, 2, {
+    getInfo: () => ({ base: { platform: "pc", year: "26" } }),
+    externalRequest: async () => JSON.stringify(fixture),
+    notice: (...args) => notices.push(args),
+    hideLoader: () => {},
+    fy: (key) => key,
+    futbinId: {
+      commitSquadPlayers: (players) => commits.push(players)
+    }
+  });
+  assert.equal(rejected, false);
+  assert.equal(commits.length, 1);
 }

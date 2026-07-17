@@ -1,7 +1,22 @@
 import { cloneJson } from "../infra/JsonParsing.js";
+import { CancellableOperation } from "../core/CancellableOperation.js";
 
 export class SbcTemplateService {
+  constructor({ operation = new CancellableOperation() } = {}) {
+    this.operation = operation;
+  }
+
+  cancel() {
+    return this.operation.cancel();
+  }
+
+  isRunning() {
+    return this.operation.isRunning();
+  }
+
   async loadTemplate(controller, type, sId, helpers) {
+    const operation = this.operation.start();
+    try {
     const {
       showLoader,
       changeLoadingText,
@@ -12,8 +27,6 @@ export class SbcTemplateService {
       createVirtualChallenge,
       saveSquad,
       saveOldSquad,
-      isTemplateRunning,
-      setTemplateRunning,
       getGoldenRange,
       getFormationMap,
       debug,
@@ -28,7 +41,6 @@ export class SbcTemplateService {
 
     showLoader();
     changeLoadingText("loadingclose.template1");
-    setTemplateRunning(true);
     notice("notice.templateload", 1);
 
     const fsu =
@@ -67,7 +79,7 @@ export class SbcTemplateService {
         `${refePlan.length - planCount}`
       ]);
 
-      if (!isTemplateRunning()) return;
+      if (!operation.isActive()) return;
 
       const planSquad = await getFutbinSbcSquad(planId, type == 1 ? 2 : type);
       if (!planSquad) continue;
@@ -181,7 +193,7 @@ export class SbcTemplateService {
       resultId
     );
 
-    if (!isTemplateRunning()) return;
+    if (!operation.isActive()) return;
 
     const conceptIndexes = _.flatMap(resultSquad, (player, index) => (player?.concept ? [index] : []));
     const excludeDefIds = _.map(resultSquad, "databaseId");
@@ -190,6 +202,7 @@ export class SbcTemplateService {
       debug.log("开始尝试替换假想球员！");
       let tempSquad = _.map(resultSquad, (player) => (player ? player : new UTItemEntity()));
       const newChallenge = createVirtualChallenge(controller.challenge);
+      if (!newChallenge) return;
       newChallenge.squad.setPlayers(tempSquad);
 
       const sortedConceptIndexes = _.sortBy(
@@ -198,7 +211,7 @@ export class SbcTemplateService {
       );
 
       for (const index of sortedConceptIndexes) {
-        if (!isTemplateRunning()) break;
+        if (!operation.isActive()) break;
 
         await new Promise((resolve) => setTimeout(resolve, 0));
 
@@ -265,15 +278,23 @@ export class SbcTemplateService {
       resultSquad = tempSquad;
     }
 
-    if (!isTemplateRunning()) return;
+    if (!operation.isActive()) return;
 
-    await saveSquad(controller.challenge, controller.challenge.squad, resultSquad);
+    const saveResult = await saveSquad(
+      controller.challenge,
+      controller.challenge.squad,
+      resultSquad
+    );
+    if (!saveResult?.success) return;
     saveOldSquad(controller.challenge.squad, false);
     fsu.templatePlan ??= [];
     fsu.templatePlan.push(resultId);
 
     if (isPhone()) {
       navigateBack();
+    }
+    } finally {
+      this.operation.finish(operation);
     }
   }
 }

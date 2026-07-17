@@ -42,7 +42,8 @@ FSU 是針對 **EA Sports FC Ultimate Team Web App** 的非官方 Chrome 擴充�
 git clone https://github.com/color8892/fsu-fut-enhancer.git
 cd fsu-fut-enhancer/extension
 npm ci
-npm run test:all
+npx playwright install chromium
+npm run test:ci
 ```
 
 完成後，在 `chrome://extensions` 載入 `extension/`。
@@ -56,6 +57,8 @@ cd extension
 npm run lint          # ESLint
 npm run typecheck     # 漸進式 TypeScript checkJs
 npm run test:all      # build + typecheck + tests
+npm run test:browser  # MV3 handshake/lifecycle/security/reload smoke
+npm run test:ci       # 完整 CI gate
 npm run package       # 產生 dist release zip
 ```
 
@@ -71,6 +74,7 @@ npm run check:ea-bundle -- --bundles <EA bundle 目錄>
 
 - [extension/README.md](extension/README.md)：extension 檔案與本機開發流程
 - [ARCHITECTURE.md](ARCHITECTURE.md)：目前執行架構、依賴與 patch 順序
+- [MIGRATION_INVENTORY.md](MIGRATION_INVENTORY.md)：domain、patch 與 EA capability 現況盤點
 - [ROADMAP.md](ROADMAP.md)：分階段重構計畫與完成條件
 - [SECURITY.md](SECURITY.md)：安全邊界、資料處理與漏洞回報
 - [AGENTS.md](AGENTS.md)：AI 與維護者的修改規則

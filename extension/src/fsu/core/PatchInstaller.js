@@ -115,19 +115,54 @@ export class PatchInstaller {
     );
     installSectionedListPatches(c.pick("call", "events", "info", "fy", "cntlr", "services", "debug"));
     registerBuildIgnoreEvents(c.pick("events", "info", "fy", "set", "build", "debug"));
-    installPlayerListPatches(c.pick("call", "events", "info", "cntlr", "isPhone", "debug", "repositories", "services", "fy"));
+    installPlayerListPatches(
+      c.pick(
+        "call",
+        "events",
+        "info",
+        "cntlr",
+        "isPhone",
+        "debug",
+        "repositories",
+        "services",
+        "fy",
+        "futbinId",
+        "patchLifecycle"
+      )
+    );
     installSbcHubPatches(c.pick("info", "events", "services", "fy", "cntlr"));
     installAcademyHubPatches(c.pick("info", "events", "fy", "repositories", "debug"));
     registerSbcInfoFillEvent(c.pick("events", "info", "fy", "html", "repositories"));
     registerSbcNavEvents(
-      c.pick("events", "info", "fy", "cntlr", "isPhone", "repositories", "services", "futbinId", "GM_openInTab")
+      c.pick(
+        "events",
+        "info",
+        "fy",
+        "cntlr",
+        "isPhone",
+        "repositories",
+        "services",
+        "futbinId",
+        "GM_openInTab",
+        "patchLifecycle"
+      )
     );
   }
 
   installSbcCore() {
     const c = this.ctx;
     installPlayerBioPatches(c.pick("events", "info", "cntlr", "services", "debug", "fy", "repositories"));
-    installPanelPatches(c.pick("call", "events", "info", "fy", "cntlr", "isPhone"));
+    installPanelPatches(
+      c.pick(
+        "call",
+        "events",
+        "info",
+        "fy",
+        "cntlr",
+        "isPhone",
+        "patchLifecycle"
+      )
+    );
     this.wireSbcMatchEvents();
     registerSbcSubstitutionEvents({ events: c.events });
     installObjectivesHubPatches(c.pick("call", "events", "info", "fy", "isPhone", "services"));
@@ -150,7 +185,19 @@ export class PatchInstaller {
   installMarketAndSquad() {
     const c = this.ctx;
     installMarketPatches(
-      c.pick("call", "events", "info", "cntlr", "isPhone", "fy", "debug", "repositories", "services", "GM_setValue")
+      c.pick(
+        "call",
+        "events",
+        "info",
+        "cntlr",
+        "isPhone",
+        "fy",
+        "debug",
+        "repositories",
+        "services",
+        "GM_setValue",
+        "patchLifecycle"
+      )
     );
     installStorePatches(
       c.pick(
@@ -165,7 +212,9 @@ export class PatchInstaller {
         "services",
         "GM_setValue",
         "AssetLocationUtils",
-        "unsafeWindow"
+        "unsafeWindow",
+        "patchLifecycle",
+        "debug"
       )
     );
     installSearchPatches(c.pick("call", "events", "info", "isPhone", "cntlr", "fy"));
@@ -256,7 +305,9 @@ export class PatchInstaller {
     const c = this.ctx;
     installSbcSubmitPatch({
       sbcCountService: c.ctx.sbcCountService,
-      onCountChanged: () => c.SBCCount.changeCount()
+      onCountChanged: () => c.SBCCount.changeCount(),
+      patchLifecycle: c.patchLifecycle,
+      debug: c.debug
     });
     registerMiscEvents(c.pick("events", "info", "cntlr", "services", "repositories", "debug", "fy"));
     installMiscPatches(c.pick("events", "info", "fy", "debug"));

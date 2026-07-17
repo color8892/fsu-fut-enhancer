@@ -15,10 +15,30 @@ import { runFastSbcPlannerTests } from "./fast-sbc-planner.test.mjs";
 import { runEaBundleCheckTests } from "./ea-bundle-check.test.mjs";
 import { runHtmlSafetyTests } from "./html-safety.test.mjs";
 import { runSbcResponseAdapterTests } from "./sbc-response-adapter.test.mjs";
+import { runSbcReadAdapterTests } from "./sbc-read-adapter.test.mjs";
+import { runSbcChallengesLifecycleTests } from "./sbc-challenges-lifecycle.test.mjs";
+import { runSbcSnapshotResultTests } from "./sbc-snapshot-results.test.mjs";
+import { runSbcFillSafetyTests } from "./sbc-fill-safety.test.mjs";
+import { runSbcSaveTransactionTests } from "./sbc-save-transaction.test.mjs";
+import { runSbcSubmitTransactionTests } from "./sbc-submit-transaction.test.mjs";
 import { runJsonParsingTests } from "./json-parsing.test.mjs";
 import { runMarketActionServiceTests } from "./market-action-service.test.mjs";
+import { runMarketResultTests } from "./market-results.test.mjs";
+import { runMarketAuctionRendererTests } from "./market-auction-renderer.test.mjs";
+import { runPriceResultTests } from "./price-results.test.mjs";
+import { runPriceServiceTests } from "./price-service.test.mjs";
+import { runPricePatchLifecycleTests } from "./price-patch-lifecycle.test.mjs";
+import { runPlayerMetadataResultTests } from "./player-metadata-results.test.mjs";
+import { runPlayerDetailsLifecycleTests } from "./player-details-lifecycle.test.mjs";
 import { runRemoteConfigServiceTests } from "./remote-config-service.test.mjs";
 import { runEaRuntimeAdapterTests } from "./ea-runtime-adapter.test.mjs";
+import { runPatchLifecycleRegistryTests } from "./patch-lifecycle-registry.test.mjs";
+import { runAppInitLifecycleTests } from "./app-init-lifecycle.test.mjs";
+import { runMarketPatchLifecycleTests } from "./market-patch-lifecycle.test.mjs";
+import { runStorePackCatalogTests } from "./store-pack-catalog.test.mjs";
+import { runStorePackOpenTransactionTests } from "./store-pack-open-transaction.test.mjs";
+import { runInPacksSearchTests } from "./in-packs-search.test.mjs";
+import { runStoreUiLifecycleTests } from "./store-ui-lifecycle.test.mjs";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
 const root = path.resolve(__dirname, "..");
@@ -251,6 +271,14 @@ function assertUserscriptBundle() {
   assert.ok(userscript.includes("installSbcSubmitPatch"));
   assert.ok(userscript.includes("installPlayerCardPatches"));
   assert.ok(userscript.includes("installMarketPatches"));
+  assert.ok(userscript.includes("market.search-view-generate"));
+  assert.ok(userscript.includes("setMarketSearchGenerateEnabled"));
+  assert.ok(userscript.includes("price.squad-value"));
+  assert.ok(userscript.includes("setSquadPricePatchEnabled"));
+  assert.ok(userscript.includes("PRICE_RESULT_INVALID"));
+  assert.ok(userscript.includes("PLAYER_METADATA_INVALID"));
+  assert.ok(userscript.includes("details.quick-list-render"));
+  assert.ok(userscript.includes("setPlayerDetailsPatchEnabled"));
   assert.ok(userscript.includes("installStorePatches"));
   assert.ok(userscript.includes("installSbcHubPatches"));
   assert.ok(userscript.includes("installAcademyHubPatches"));
@@ -275,11 +303,34 @@ function assertUserscriptBundle() {
   assert.ok(userscript.includes("SbcSquadFillService"));
   assert.ok(userscript.includes("SbcTemplateService"));
   assert.ok(userscript.includes("installSbcChallengesPatch"));
+  assert.ok(userscript.includes("sbc.challenges-view"));
+  assert.ok(userscript.includes("setSbcChallengesPatchEnabled"));
+  assert.ok(userscript.includes("sbc.requirement-read"));
+  assert.ok(userscript.includes("SBC_SNAPSHOT_INVALID"));
+  assert.ok(userscript.includes("sbc.chemistry-context"));
+  assert.ok(userscript.includes("sbc.virtual-challenge"));
+  assert.ok(userscript.includes("cancelSbcTemplate"));
+  assert.ok(userscript.includes("SbcUndoHistoryService"));
+  assert.ok(userscript.includes("EA_OBSERVABLE_TIMEOUT"));
+  assert.ok(userscript.includes("SBC_SAVE_REJECTED"));
+  assert.ok(userscript.includes("sbc.submit-transaction"));
+  assert.ok(userscript.includes("SBC_SUBMIT_PRECONDITION_FAILED"));
+  assert.ok(userscript.includes("store.pack-list"));
+  assert.ok(userscript.includes("STORE_PACK_ARTICLE_INVALID"));
+  assert.ok(userscript.includes("store.pack-open-transaction"));
+  assert.ok(userscript.includes("STORE_PACK_OPEN_IN_FLIGHT"));
+  assert.ok(userscript.includes("IN_PACKS_SEARCH_MAX_PAGES"));
+  assert.ok(userscript.includes("store.reveal-list"));
+  assert.ok(userscript.includes("store.pack-animation"));
+  assert.ok(userscript.includes("store.category-navigation"));
+  assert.ok(userscript.includes("store.hub-tiles"));
   assert.ok(userscript.includes("registerSbcSubstitutionEvents"));
   assert.ok(userscript.includes("SbcSquadSaveService"));
   assert.ok(userscript.includes("PlayerSearchService"));
   assert.ok(userscript.includes("PlayerValueService"));
   assert.ok(userscript.includes("PatchInstaller"));
+  assert.ok(userscript.includes("PatchLifecycleRegistry"));
+  assert.ok(userscript.includes("home.academy-tile"));
   assert.ok(userscript.includes("FSU_BASE_STYLE"));
   assert.ok(userscript.includes("ModuleRegistry"));
   assert.ok(userscript.includes("MarketActionService"));
@@ -334,7 +385,7 @@ async function assertPriceService() {
     base: { platform: "pc", year: "26" },
     futbinId: {},
     posIdToName: { 25: "ST" },
-    roster: { data: { 1: { n: 500, y: 0 } } }
+    roster: { data: { 1: { n: 500, y: 0, _ts: Date.now() } } }
   };
 
   const service = new PriceService({
@@ -350,7 +401,12 @@ async function assertPriceService() {
   assert.ok(service.priceLastDiff(100, 100).includes("minus"));
 
   const emptyPrices = await service.getPriceForUrl([1, 2]);
-  assert.deepStrictEqual(emptyPrices, {});
+  assert.strictEqual(emptyPrices.success, false);
+  assert.strictEqual(emptyPrices.stale, true);
+  assert.strictEqual(emptyPrices.error.code, "PRICE_RESULT_INVALID");
+  assert.deepStrictEqual(emptyPrices.data.prices, {
+    1: info.roster.data[1]
+  });
   const missingFutbinId = await service.getFutbinPlayerId({
     nationId: 1,
     teamId: 1,
@@ -374,6 +430,13 @@ assertMessageRouterSecurity();
 assertUserscriptBundle();
 await assertPriceService();
 runJsonParsingTests();
+runPriceResultTests();
+await runPriceServiceTests();
+runPricePatchLifecycleTests();
+runPlayerMetadataResultTests();
+runPlayerDetailsLifecycleTests();
+runMarketResultTests();
+runMarketAuctionRendererTests();
 runPreferencesServiceTests();
 runSbcChemistryTests();
 runSbcServiceTests();
@@ -387,8 +450,21 @@ runFastSbcPlannerTests();
 runEaBundleCheckTests();
 runHtmlSafetyTests();
 runSbcResponseAdapterTests();
+runSbcReadAdapterTests();
+runSbcChallengesLifecycleTests();
+runSbcSnapshotResultTests();
+await runSbcFillSafetyTests();
+await runSbcSaveTransactionTests();
+await runSbcSubmitTransactionTests();
 runRemoteConfigServiceTests();
 await runEaRuntimeAdapterTests();
+runPatchLifecycleRegistryTests();
+runAppInitLifecycleTests();
+runMarketPatchLifecycleTests();
+runStorePackCatalogTests();
+runStorePackOpenTransactionTests();
+await runInPacksSearchTests();
+runStoreUiLifecycleTests();
 await runMarketActionServiceTests();
 await assertTabService();
 console.log("All extension tests passed.");

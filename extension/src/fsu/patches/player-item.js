@@ -459,15 +459,21 @@ export function installPlayerItemPatch(deps) {
                                  this._fsu.removeBtn = events.createButton(
                                       new UTImageButtonControl(),
                                       "",
-                                      (_e) => {
+                                      async (_e) => {
                                           events.showLoader();
                                           let newSquad = _.cloneDeep(_.last(cntlr.current()._squad._fsu.oldSquad));
                                           newSquad = _.map(newSquad, (item) => {
                                               return item.id === p.id ? new UTItemEntity() : item;
                                           });
                                           let challengeId = isPhone() ? cntlr.current()._challenge.id : cntlr.current()._challengeId;
-                                          events.saveSquad(cntlr.current()._set.challenges.get(challengeId),cntlr.current()._squad,newSquad);
-                                          events.saveOldSquad(cntlr.current()._squad,false);
+                                          const saveResult = await events.saveSquad(
+                                              cntlr.current()._set.challenges.get(challengeId),
+                                              cntlr.current()._squad,
+                                              newSquad
+                                          );
+                                          if(saveResult.success){
+                                              events.saveOldSquad(cntlr.current()._squad,false);
+                                          }
                                       },
                                       "fsu-cards exit-btn"
                                   )

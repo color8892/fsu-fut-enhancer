@@ -1,5 +1,11 @@
 import { responseText, safeParseJson } from "../infra/JsonParsing.js";
 import { applyLowpriceToInfo } from "../infra/RatingPrices.js";
+import {
+  parseEvolutionMetadata,
+  parseGgRatingConfig,
+  parsePlayerMetaConfig,
+  parsePlayerMetadataRows
+} from "./PlayerMetadataResults.js";
 
 const API_BASE_URL = "https://api.fut.to/26";
 const README_URL = "https://mfrasi851i.feishu.cn/wiki/wikcng1Ih7fFRidBfMdNS9SrucR";
@@ -85,12 +91,22 @@ export class RemoteConfigService {
     });
     this.loadEndpoint(api, "sbc", "sbc.json", { reward: [], new: [] }, (data) => this.applySbc(data));
     this.loadEndpoint(api, "ggrating", "ggrating.json", {}, (data) => {
-      this.info.GGRRAR = data;
-      this.debug.log(`GGRRAR加载完毕！`);
+      const result = parseGgRatingConfig(data);
+      if (result.success) {
+        this.info.GGRRAR = result.data;
+        this.debug.log(`GGRRAR加载完毕！`);
+      } else {
+        this.debug.log("ggrating response rejected", result.error);
+      }
     });
     this.loadEndpoint(api, "evolutions", "evolutions.json", { new: [] }, (data) => {
-      this.info.evolutions.new = data.new || [];
-      this.debug.log(`evolutions加载完毕！`);
+      const result = parseEvolutionMetadata(data);
+      if (result.success) {
+        this.info.evolutions.new = result.data.new;
+        this.debug.log(`evolutions加载完毕！`);
+      } else {
+        this.debug.log("evolutions response rejected", result.error);
+      }
     });
     this.loadEndpoint(api, "inpacks", "inpacks.json", {}, (data) => this.applyInpacks(data));
     this.loadEndpoint(api, "other", "other.json", {}, (data) => this.applyOther(data));
@@ -124,16 +140,14 @@ export class RemoteConfigService {
   }
 
   applyMeta(metaJson) {
-    if (_.has(metaJson, "bodyType")) {
-      this.info.meta.bodyType = _.fromPairs(
-        _.flatMap(metaJson.bodyType, (ids, bodyType) =>
-          ids.map((id) => [id, Number(bodyType)])
-        )
-      );
+    const result = parsePlayerMetaConfig(metaJson);
+    if (!result.success) {
+      this.debug.log("meta response rejected", result.error);
+      return false;
     }
-    _.has(metaJson, "baseBodyType") && (this.info.meta.baseBodyType = metaJson.baseBodyType);
-    _.has(metaJson, "realFace") && (this.info.meta.realFace = metaJson.realFace);
+    this.info.meta = { ...this.info.meta, ...result.data };
     this.debug.log(`meta加载完毕！`);
+    return true;
   }
 
   applyFastSbc(fastSbcJson) {
@@ -173,17 +187,14 @@ export class RemoteConfigService {
   }
 
   applyPlayerMeta(data) {
-    this.info.playermeta = {};
-    _.forEach(data, (value) => {
-      if (value.length == 4) {
-        this.info.playermeta[value[0]] = {
-          badytype: value[1],
-          weight: value[2],
-          realface: value[3]
-        };
-      }
-    });
+    const result = parsePlayerMetadataRows(data);
+    if (!result.success) {
+      this.debug.log("playermeta response rejected", result.error);
+      return false;
+    }
+    this.info.playermeta = result.data;
     this.debug.log(`playermeta加载完毕！`);
+    return true;
   }
 }
 

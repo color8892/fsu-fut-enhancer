@@ -54,6 +54,7 @@ export class SbcPlayerMatchService {
     result = _.uniqBy(result, "id");
 
     const newChallenge = createVirtualChallenge(controller.challenge);
+    if (!newChallenge) return [];
     const currentList = newChallenge.squad.getPlayers().map((slot) => slot.getItem());
     const resultList = [];
 

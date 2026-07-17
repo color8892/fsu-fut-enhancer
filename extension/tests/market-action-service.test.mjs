@@ -28,6 +28,18 @@ export async function runMarketActionServiceTests() {
   });
   assert.deepStrictEqual(emptyAuctions, []);
 
+  const malformedAuctionResult = await service._getAuctionPriceResult(1, 1000, {
+    ...helpers,
+    xmlHttpRequest: ({ onload }) => {
+      onload({
+        status: 200,
+        response: "{\"auctionInfo\":[{\"buyNowPrice\":\"1200\"}]}"
+      });
+    }
+  });
+  assert.equal(malformedAuctionResult.success, false);
+  assert.equal(malformedAuctionResult.error?.code, "MARKET_RESULT_INVALID");
+
   const info = { base: { sId: "expired" } };
   const notices = [];
   const unauthorizedAuctions = await service._getAuctionPrice(1, 1000, {
@@ -61,7 +73,15 @@ export async function runMarketActionServiceTests() {
       }
     }
   });
-  assert.strictEqual(delegated, delegatedResponse);
+  assert.deepStrictEqual(delegated, delegatedResponse);
+
+  const malformedSearch = await service.searchTransferMarket(criteria, 1, {
+    ea: {
+      searchTransferMarket: async () => ({ success: true, data: { items: null } })
+    }
+  });
+  assert.equal(malformedSearch.success, false);
+  assert.equal(malformedSearch.error?.code, "MARKET_RESULT_INVALID");
 
   let currentMaxBuy = 0;
   const queriedPrices = [];
@@ -139,19 +159,8 @@ export async function runMarketActionServiceTests() {
   });
   assert.deepStrictEqual(unavailableNotices, [["notice.loaderror", 2]]);
 
-  const originalRepositories = globalThis.repositories;
-  const originalItemPile = globalThis.ItemPile;
-  const originalMaxNewItems = globalThis.MAX_NEW_ITEMS;
   const originalReadAuctionPrices = service.readAuctionPrices;
   try {
-    globalThis.repositories = {
-      Item: {
-        numItemsInCache: () => 0
-      }
-    };
-    globalThis.ItemPile = { PURCHASED: "purchased" };
-    globalThis.MAX_NEW_ITEMS = 100;
-
     const player = {
       definitionId: 123,
       isPlayer: () => true,
@@ -181,7 +190,10 @@ export async function runMarketActionServiceTests() {
       isPhone: () => false,
       getCurrentController: () => null,
       ea: {
-        isPurchaseCapacityReached: () => ({ success: true, reached: false }),
+        isPurchaseCapacityReached: (maxItems) => {
+          assert.strictEqual(maxItems, 100);
+          return { success: true, reached: false };
+        },
         getStaticItemData: () => ({ success: true, data: { name: "Test Player" } }),
         async purchaseItemToClub(item, price, context, onBeforeBid) {
           assert.strictEqual(item, marketItem);
@@ -228,26 +240,17 @@ export async function runMarketActionServiceTests() {
     assert.deepStrictEqual(purchaseNotices, [
       [["buyplayer.error", "Test Player", "buyplayer.error.child1"], 2]
     ]);
+
+    purchaseNotices.length = 0;
+    purchaseResult = { purchased: true };
+    await service.buyPlayer(player, null, purchaseHelpers);
+    assert.deepStrictEqual(purchaseNotices, [["notice.loaderror", 2]]);
   } finally {
     service.readAuctionPrices = originalReadAuctionPrices;
-    globalThis.repositories = originalRepositories;
-    globalThis.ItemPile = originalItemPile;
-    globalThis.MAX_NEW_ITEMS = originalMaxNewItems;
   }
 
-  const originalBulkRepositories = globalThis.repositories;
-  const originalBulkItemPile = globalThis.ItemPile;
-  const originalBulkMaxNewItems = globalThis.MAX_NEW_ITEMS;
   const originalBulkReadAuctionPrices = service.readAuctionPrices;
   try {
-    globalThis.repositories = {
-      Item: {
-        numItemsInCache: () => 0
-      }
-    };
-    globalThis.ItemPile = { PURCHASED: "purchased" };
-    globalThis.MAX_NEW_ITEMS = 100;
-
     const firstPlayer = {
       definitionId: 101,
       isPlayer: () => true,
@@ -290,7 +293,10 @@ export async function runMarketActionServiceTests() {
       isPhone: () => false,
       getCurrentController: () => null,
       ea: {
-        isPurchaseCapacityReached: () => ({ success: true, reached: false }),
+        isPurchaseCapacityReached: (maxItems) => {
+          assert.strictEqual(maxItems, 100);
+          return { success: true, reached: false };
+        },
         getStaticItemData: () => ({ success: true, data: { name: "Unused" } }),
         async purchaseItemToClub(item, price, context, onBeforeBid) {
           assert.strictEqual(context, service);
@@ -313,88 +319,76 @@ export async function runMarketActionServiceTests() {
     ]);
   } finally {
     service.readAuctionPrices = originalBulkReadAuctionPrices;
-    globalThis.repositories = originalBulkRepositories;
-    globalThis.ItemPile = originalBulkItemPile;
-    globalThis.MAX_NEW_ITEMS = originalBulkMaxNewItems;
   }
 
-  const originalListingRepositories = globalThis.repositories;
-  const originalListingItemPile = globalThis.ItemPile;
-  const originalLodash = globalThis._;
-  try {
-    const listingItem = {
-      definitionId: 303,
-      _staticData: { name: "Listed Player" },
-      hasPriceLimits: () => false
-    };
-    globalThis.repositories = {
-      Item: {
-        transfer: {
-          get: (id) => (id === "listing-item" ? listingItem : null),
-          _collection: {}
-        },
-        unassigned: { get: () => null },
-        club: { items: { get: () => null } },
-        getPileSize: () => 100,
-        numItemsInCache: () => 0
-      }
-    };
-    globalThis.ItemPile = { TRANSFER: "transfer" };
-    globalThis._ = {
-      has: (object, key) => Object.prototype.hasOwnProperty.call(object, key)
-    };
+  const listingItem = {
+    definitionId: 303,
+    _staticData: { name: "Listed Player" },
+    hasPriceLimits: () => false
+  };
+  const listingNotices = [];
+  let resolveListing;
+  const listingStarted = new Promise((resolve) => {
+    resolveListing = resolve;
+  });
+  const listingEa = {
+    findListingItem: () => ({
+      success: true,
+      item: listingItem,
+      alreadyListed: false
+    }),
+    hasTransferListingCapacity: () => ({ success: true, hasCapacity: true }),
+    incrementMarketPrice(price, direction) {
+      assert.strictEqual(price, 1200);
+      assert.strictEqual(direction, "below");
+      return 1100;
+    },
+    listItemForSale(item, startingPrice, buyNowPrice, durationSeconds, controller) {
+      assert.strictEqual(item, listingItem);
+      assert.strictEqual(startingPrice, 1100);
+      assert.strictEqual(buyNowPrice, 1200);
+      assert.strictEqual(durationSeconds, 3600);
+      assert.deepStrictEqual(controller, { name: "listing-controller" });
+      resolveListing();
+      return new Promise((resolve) => {
+        resolveListing = () => resolve({ success: true });
+      });
+    }
+  };
+  const listingHelpers = {
+    futbinId: { getPrice: async () => {} },
+    getInfo: () => ({ futbinId: { 303: 1 } }),
+    getCachePrice: () => ({ num: 1200 }),
+    notice: (...args) => listingNotices.push(args),
+    playerGetLimits: async () => {},
+    getCurrentController: () => ({ name: "listing-controller" }),
+    debug: { log: () => {} },
+    ea: listingEa
+  };
+  const listingResult = service.playerToAuction(
+    "listing-item",
+    1200,
+    1,
+    listingHelpers
+  );
+  await listingStarted;
+  let listingSettled = false;
+  listingResult.then(() => (listingSettled = true));
+  await Promise.resolve();
+  assert.strictEqual(listingSettled, false);
+  resolveListing();
+  assert.strictEqual(await listingResult, true);
+  assert.deepStrictEqual(listingNotices, [
+    [["notice.auctionsuccess", "Listed Player", 1200], 0]
+  ]);
 
-    const listingNotices = [];
-    let resolveListing;
-    const listingStarted = new Promise((resolve) => {
-      resolveListing = resolve;
-    });
-    const listingResult = service.playerToAuction("listing-item", 1200, 1, {
-      futbinId: { getPrice: async () => {} },
-      getInfo: () => ({ futbinId: { 303: 1 } }),
-      getCachePrice: () => ({ num: 1200 }),
-      notice: (...args) => listingNotices.push(args),
-      playerGetLimits: async () => {},
-      getCurrentController: () => ({ name: "listing-controller" }),
-      debug: { log: () => {} },
-      ea: {
-        findListingItem: () => ({
-          success: true,
-          item: listingItem,
-          alreadyListed: false
-        }),
-        hasTransferListingCapacity: () => ({ success: true, hasCapacity: true }),
-        incrementMarketPrice(price, direction) {
-          assert.strictEqual(price, 1200);
-          assert.strictEqual(direction, "below");
-          return 1100;
-        },
-        listItemForSale(item, startingPrice, buyNowPrice, durationSeconds, controller) {
-          assert.strictEqual(item, listingItem);
-          assert.strictEqual(startingPrice, 1100);
-          assert.strictEqual(buyNowPrice, 1200);
-          assert.strictEqual(durationSeconds, 3600);
-          assert.deepStrictEqual(controller, { name: "listing-controller" });
-          resolveListing();
-          return new Promise((resolve) => {
-            resolveListing = () => resolve({ success: true });
-          });
-        }
-      }
-    });
-    await listingStarted;
-    let listingSettled = false;
-    listingResult.then(() => (listingSettled = true));
-    await Promise.resolve();
-    assert.strictEqual(listingSettled, false);
-    resolveListing();
-    assert.strictEqual(await listingResult, true);
-    assert.deepStrictEqual(listingNotices, [[["notice.auctionsuccess", "Listed Player", 1200], 0]]);
-  } finally {
-    globalThis.repositories = originalListingRepositories;
-    globalThis.ItemPile = originalListingItemPile;
-    globalThis._ = originalLodash;
-  }
+  listingNotices.length = 0;
+  listingEa.listItemForSale = async () => ({ success: false });
+  assert.strictEqual(
+    await service.playerToAuction("listing-item", 1200, 1, listingHelpers),
+    false
+  );
+  assert.deepStrictEqual(listingNotices, [["notice.loaderror", 2]]);
 
   const auctionParent = {
     _fsuAkbArray: {},

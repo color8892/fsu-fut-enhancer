@@ -1,4 +1,5 @@
 import { EaRuntimeAdapter } from "../ea/EaRuntimeAdapter.js";
+import { renderAuctionPriceBreakdown } from "../ui/MarketAuctionRenderer.js";
 
 /**
  * Shared helper factories for domain services wired in ModuleRegistry.
@@ -45,10 +46,22 @@ export function createDomainHelpers(ctx) {
         debug,
         futbinId,
         getCachePrice: eventProxy("getCachePrice"),
-        createButton: eventProxy("createButton"),
         pdb,
         notice: eventProxy("notice"),
         ea,
+        maxNewItems:
+          typeof MAX_NEW_ITEMS === "number" && Number.isFinite(MAX_NEW_ITEMS)
+            ? MAX_NEW_ITEMS
+            : 100,
+        renderAuctionPrices: (anchor, rows) =>
+          renderAuctionPriceBreakdown(anchor, rows, {
+            createControl: () =>
+              typeof UTGroupButtonControl === "undefined"
+                ? null
+                : new UTGroupButtonControl(),
+            createButton: eventProxy("createButton"),
+            localize: fy
+          }),
         xmlHttpRequest: ctx.GM_xmlhttpRequest,
         showLoader: () => events.showLoader(),
         hideLoader: () => events.hideLoader(),

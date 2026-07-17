@@ -8,6 +8,7 @@ export function runFsuContextTests() {
   const cntlr = { current: () => null, left: () => null };
   const repositories = { Item: { club: { items: { values: () => [] } }, getStorageItems: () => [] }, Squad: {} };
   const priceService = { getFutbinUrl: (url) => url };
+  const patchLifecycle = { install: () => ({ status: "installed" }) };
 
   const ctx = new FsuContext({
     events,
@@ -22,8 +23,16 @@ export function runFsuContextTests() {
     pdb: {},
     isPhone: () => false,
     priceService,
+    patchLifecycle,
+    SBCCount: {},
+    set: {},
+    build: {},
+    lock: {},
     SBCEligibilityKey: {},
-    GM_xmlhttpRequest: () => {}
+    GM_getValue: () => undefined,
+    GM_setValue: () => {},
+    GM_xmlhttpRequest: () => {},
+    GM_info: {}
   });
 
   const picked = ctx.pick("events", "info", "fy");
@@ -43,6 +52,9 @@ export function runFsuContextTests() {
   const early = ctx.toEarlyModuleDeps();
   assert.ok("SBCEligibilityKey" in early);
   assert.ok(!("eafy" in early));
+
+  const appInitEvents = ctx.toAppInitEventsDeps();
+  assert.strictEqual(appInitEvents.patchLifecycle, patchLifecycle);
 
   const helpers = createDomainHelpers(ctx);
   assert.strictEqual(helpers.market().getInfo(), info);

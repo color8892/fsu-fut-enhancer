@@ -16,12 +16,12 @@ FSU 是 Chrome Manifest V3 擴充功能，只在 EA FC Ultimate Team Web App 注
 | 修改內容 | 先讀 |
 |----------|------|
 | 啟動或 module 接線 | `legacy/futweb.js`、`core/FsuContext.js`、`core/ModuleRegistry.js` |
-| Patch 順序 | `core/PatchInstaller.js`、ARCHITECTURE 的 phase 表 |
+| Patch 順序或 lifecycle | `core/PatchInstaller.js`、`core/PatchLifecycleRegistry.js`、ARCHITECTURE 的 phase 表 |
 | 價格或遠端 API | `infra/HttpClient.js`、`src/background.js`、SECURITY |
 | SBC 領域邏輯 | 對應 `domain/Sbc*Service.js` 與測試 |
 | DOM 或 HTML | `ui/UiFactory.js`、`ui/HtmlSafety.js` |
 | EA 更新相容性 | `scripts/ea-bundle-check.mjs`、`data/ea-bundle-baseline.json` |
-| 大型重構 | ROADMAP 的 phase 與 exit criteria |
+| 大型重構 | `MIGRATION_INVENTORY.md` 現況盤點、ROADMAP 的 gate/slice 與 exit criteria |
 
 ## 啟動摘要
 

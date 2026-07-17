@@ -8,6 +8,7 @@ import { PriceService } from "../domain/PriceService.js";
 import { SbcChemistryService } from "../domain/SbcChemistryService.js";
 import { SbcCountService } from "../domain/SbcCountService.js";
 import { SettingsService } from "../domain/SettingsService.js";
+import { SbcSquadSnapshotAdapter } from "../ea/SbcSquadSnapshotAdapter.js";
 
 export class AppContext {
   constructor({ getValue, setValue, xmlHttpRequest, userAgent, getInfo }) {
@@ -45,9 +46,12 @@ export class AppContext {
   }
 
   createSbcChemistryService(teamConfig) {
+    const snapshotAdapter = new SbcSquadSnapshotAdapter();
     this.sbcChemistryService = new SbcChemistryService({
       getTeamLink: (teamId) => teamConfig.teamLinks.get(teamId),
-      getTeam: (teamId) => teamConfig.getTeam(teamId)
+      getTeam: (teamId) => teamConfig.getTeam(teamId),
+      readChemistryContext: (controller) =>
+        snapshotAdapter.readChemistryContext(controller)
     });
     return this.sbcChemistryService;
   }

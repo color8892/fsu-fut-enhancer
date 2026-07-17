@@ -8,7 +8,9 @@
     "build": "node scripts/build-userscript.cjs",
     "build:watch": "node scripts/build-userscript.cjs --watch",
     "test": "node tests/run-tests.mjs",
+    "test:browser": "node tests/browser-smoke.mjs",
     "test:all": "npm run build && npm run typecheck && npm test",
+    "test:ci": "npm run test:all && npm run test:browser",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "check:ea-bundle": "node scripts/ea-bundle-check.mjs",
@@ -19,6 +21,7 @@
     "@eslint/js": "^10.0.1",
     "esbuild": "^0.28.1",
     "eslint": "^10.6.0",
+    "playwright": "^1.61.1",
     "typescript": "^7.0.2"
   }
 }

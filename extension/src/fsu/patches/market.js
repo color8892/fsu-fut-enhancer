@@ -1,7 +1,67 @@
 import { cloneJson } from "../infra/JsonParsing.js";
 
+export const MARKET_PATCH_IDS = Object.freeze({
+  SEARCH_VIEW_GENERATE: "market.search-view-generate"
+});
+
+export function installMarketSearchGeneratePatch(deps) {
+  const { call, patchLifecycle } = deps;
+  return patchLifecycle.install({
+    id: MARKET_PATCH_IDS.SEARCH_VIEW_GENERATE,
+    phase: "market-and-squad",
+    targetLabel: "UTMarketSearchView.prototype._generate",
+    resolveTarget: () =>
+      typeof UTMarketSearchView === "undefined"
+        ? null
+        : { owner: UTMarketSearchView.prototype, key: "_generate" },
+    verify: ({ originalDescriptor, originalValue }) => ({
+      ok:
+        originalDescriptor !== undefined &&
+        "value" in originalDescriptor &&
+        originalDescriptor.writable === true &&
+        typeof originalValue === "function" &&
+        originalValue === call.view.market,
+      missing: ["UTMarketSearchView.prototype._generate.original-mismatch"]
+    }),
+    apply: ({ target, originalDescriptor, originalValue }) => {
+      Object.defineProperty(target.owner, target.key, {
+        ...originalDescriptor,
+        value: function fsuMarketSearchGenerate(...args) {
+          if (!this._generated) {
+            originalValue.call(this, ...args);
+          }
+        }
+      });
+    }
+  });
+}
+
+export function disableMarketSearchGeneratePatch(patchLifecycle) {
+  return patchLifecycle.restore(MARKET_PATCH_IDS.SEARCH_VIEW_GENERATE);
+}
+
+export function registerMarketLifecycleEvents(deps) {
+  const { call, events, patchLifecycle } = deps;
+  events.setMarketSearchGenerateEnabled = (enabled) =>
+    enabled
+      ? installMarketSearchGeneratePatch({ call, patchLifecycle })
+      : disableMarketSearchGeneratePatch(patchLifecycle);
+}
+
 export function installMarketPatches(deps) {
-  const { call, events, info, cntlr, isPhone, fy, debug, repositories, services, GM_setValue } = deps;
+  const {
+    call,
+    events,
+    info,
+    cntlr,
+    isPhone,
+    fy,
+    debug,
+    repositories,
+    services,
+    GM_setValue,
+    patchLifecycle
+  } = deps;
 
   UTTransferMarketPaginationViewModel.prototype.startAuctionUpdates = function (...args) {
     call.view.transferMarket.call(this, ...args);
@@ -87,11 +147,8 @@ export function installMarketPatches(deps) {
     }
   };
 
-  UTMarketSearchView.prototype._generate = function (...args) {
-    if (!this._generated) {
-      call.view.market.call(this, ...args);
-    }
-  };
+  registerMarketLifecycleEvents({ call, events, patchLifecycle });
+  events.setMarketSearchGenerateEnabled(true);
 
   UTClubSearchFiltersViewController.prototype.viewDidAppear = function () {
     call.search.club.viewDid.call(this);

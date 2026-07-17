@@ -1,4 +1,9 @@
 import { setTrustedHtml } from "../ui/HtmlSafety.js";
+import { EaObservableAdapter } from "../ea/EaObservableAdapter.js";
+import {
+  parseSbcCompletionResponse,
+  parseSbcSubmitResponse
+} from "../domain/SbcSubmitResults.js";
 
 export function registerSbcSubPriceEvent(deps) {
   const { events, info, fy, isPhone, repositories } = deps;
@@ -162,6 +167,43 @@ export function registerSbcHeaderEvents(deps) {
 
 export function installSbcSquadSubmitPatches(deps) {
   const { call, events, info, repositories, services, cntlr, debug, fy } = deps;
+  const observableAdapter = new EaObservableAdapter();
+  let refreshPromise = null;
+
+  const refreshSbcSets = (observerContext) => {
+    if (refreshPromise) return refreshPromise;
+    refreshPromise = (async () => {
+      let observable;
+      try {
+        observable = services.SBC.requestSets();
+      } catch {
+        debug.log("SBC completion refresh unavailable");
+        return false;
+      }
+      const observed = await observableAdapter.observeOnce(
+        observable,
+        observerContext,
+        "sbc.request-sets"
+      );
+      if (!observed.success) {
+        debug.log("SBC completion refresh failed", observed.error);
+        return false;
+      }
+      const response = parseSbcSubmitResponse(observed.data);
+      if (!response.success) {
+        debug.log("SBC completion refresh rejected", response.error);
+        return false;
+      }
+      if (cntlr.current().className == "UTSBCHubViewController") {
+        cntlr.current()._requestSBCData();
+      }
+      events.changeHeaderSBCEntrance();
+      return true;
+    })().finally(() => {
+      refreshPromise = null;
+    });
+    return refreshPromise;
+  };
 
   registerSbcHeaderEvents({ events, info, services, cntlr, debug });
 
@@ -219,8 +261,15 @@ export function installSbcSquadSubmitPatches(deps) {
           });
           events.showLoader();
           events.notice("notice.submitrepeat", 1);
-          await events.saveSquad(controller._challenge, controller._challenge.squad, newPlayers, []);
-          valuablePlayerTips(this, controller, e);
+          const saveResult = await events.saveSquad(
+            controller._challenge,
+            controller._challenge.squad,
+            newPlayers,
+            []
+          );
+          if (saveResult.success) {
+            valuablePlayerTips(this, controller, e);
+          }
         } else {
           services.Notification.queue([
             services.Localization.localize("notification.item.moveFailed"),
@@ -238,24 +287,21 @@ export function installSbcSquadSubmitPatches(deps) {
     t
   ) {
     call.squad.submitted.call(this, e, t);
-    if (t.success && t.data.setId) {
-      let s = services.SBC.repository.getSetById(t.data.setId);
+    const completion = parseSbcCompletionResponse(t);
+    if (completion.success) {
+      const setId = completion.data.setId;
+      let s = services.SBC.repository.getSetById(setId);
       if (s && Object.keys(s).length) {
-        info.douagain.sbc = t.data.setId;
+        info.douagain.sbc = setId;
       }
 
       if (services.SBC.repository.isCacheExpired()) {
-        services.SBC.requestSets().observe(cntlr.current(), (obs, res) => {
-          if ((obs.unobserve(cntlr.current()), res.success)) {
-            if (cntlr.current().className == "UTSBCHubViewController") {
-              cntlr.current()._requestSBCData();
-            }
-            events.changeHeaderSBCEntrance();
-          }
-        });
+        void refreshSbcSets(this);
       } else {
         events.changeHeaderSBCEntrance();
       }
+    } else {
+      debug.log("SBC completion response rejected", completion.error);
     }
   };
 }

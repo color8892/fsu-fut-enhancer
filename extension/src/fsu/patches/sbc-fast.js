@@ -13,10 +13,18 @@ function createFastSbcHelpers(deps) {
   };
 }
 
-function runFastSbcSubmit(deps, controller, challenge, SBCSetEntity, fillPlayers, onDone) {
+async function runFastSbcSubmit(deps, controller, challenge, SBCSetEntity, fillPlayers, onDone) {
   const { events, services } = deps;
 
-  events.playerListFillSquad(challenge, fillPlayers, 1);
+  const fillResult = await events.playerListFillSquad(
+    challenge,
+    fillPlayers,
+    1
+  );
+  if (!fillResult?.success) {
+    onDone?.({ success: false, errorCode: 1 });
+    return;
+  }
 
   if (!challenge.canSubmit()) {
     utils.PopupManager.showAlert(utils.PopupManager.Alerts.SBC_INELIGIBLE_SQUAD);

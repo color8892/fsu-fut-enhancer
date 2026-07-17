@@ -1,8 +1,11 @@
 import { registerSbcSubPriceEvent } from "./sbc-squad.js";
-import { installSbcChallengesPatch } from "./sbc-challenges.js";
+import {
+  registerSbcChallengesLifecycleEvents
+} from "./sbc-challenges.js";
+import { SbcReadAdapter } from "../ea/SbcReadAdapter.js";
 
 export function registerSbcNavEvents(deps) {
-  const { events, info, fy, cntlr, isPhone, repositories, services, futbinId, GM_openInTab } = deps;
+  const { events, info, fy, cntlr, isPhone, repositories, services, futbinId, GM_openInTab, patchLifecycle } = deps;
   events.squadCount = (reqRating) => {
     let pa = cntlr.current()._squad.getFieldPlayers().map(i => {if(!i.isBrick() && i.item.rating && !i.item.concept){return i.item.rating}}).filter(Boolean),pr = "";
     if(pa.length > 0){
@@ -35,13 +38,18 @@ events.getDedupPlayers = (s,p) => {
 };
 
 registerSbcSubPriceEvent({ events, info, fy, isPhone, repositories });
-installSbcChallengesPatch({
+const sbcReadAdapter = new SbcReadAdapter({
+    getSbcRepository: () => services.SBC?.repository
+});
+registerSbcChallengesLifecycleEvents({
     info,
     events,
-    services,
+    sbcReadAdapter,
+    patchLifecycle,
     eligibilityKeys: SBCEligibilityKey,
     localize: fy
 });
+events.setSbcChallengesPatchEnabled(true);
 
 //打开futbin球员链接，需要元素携带data-id（球员id）和data-name（球员全称）
 events.openFutbinPlayerUrl = async(e, player) => {

@@ -413,13 +413,20 @@ UTSquadOverviewViewController.prototype.viewDidAppear = function() {
                             events.popup(
                                 fy("squadback.popupt"),
                                 fy(["squadback.popupm",count]),
-                                (t) => {
+                                async (t) => {
                                     if(t === 2){
                                         events.showLoader();
                                         let squad = thisController._squad._fsu.oldSquad[count - 1]
-                                        events.saveSquad(thisController._challenge, thisController._squad, squad, []);
-                                        thisController._squad._fsu.oldSquadCount--;
-                                        thisController._squad._fsu.oldSquad.pop();
+                                        const saveResult = await events.saveSquad(
+                                            thisController._challenge,
+                                            thisController._squad,
+                                            squad,
+                                            []
+                                        );
+                                        if(saveResult.success){
+                                            thisController._squad._fsu.oldSquadCount--;
+                                            thisController._squad._fsu.oldSquad.pop();
+                                        }
                                     }
                                 }
                             )
