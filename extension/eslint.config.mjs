@@ -77,6 +77,7 @@ export default [
   {
     files: [
       "src/fsu/core/PriceRequestQueue.js",
+      "src/fsu/core/PatchLifecycleRegistry.js",
       "src/fsu/core/TtlCache.js",
       "src/fsu/ea/EaRuntimeAdapter.js",
       "src/fsu/infra/JsonParsing.js",

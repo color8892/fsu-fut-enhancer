@@ -85,7 +85,8 @@ export class FsuContext {
       "GM_getValue",
       "GM_setValue",
       "GM_xmlhttpRequest",
-      "GM_info"
+      "GM_info",
+      "patchLifecycle"
     );
   }
 

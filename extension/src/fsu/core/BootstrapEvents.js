@@ -54,8 +54,11 @@ export function attachBootstrapEvents(events, { info, cntlr, isPhone, fy }) {
   events.hideLoader = () => {
     document.querySelector(".ut-click-shield").classList.remove("showing", "fsu-loading");
     document.querySelector(".loaderIcon").style.display = "none";
-    if (info.run.template) {
-      info.run.template = false;
+    if (
+      typeof events.isSbcTemplateRunning === "function" &&
+      events.isSbcTemplateRunning()
+    ) {
+      events.cancelSbcTemplate();
       if (isPhone()) {
         if (cntlr.current() instanceof UTSBCSquadOverviewViewController) {
           cntlr.current()._fsu.fillSquadBtn.setInteractionState(1);

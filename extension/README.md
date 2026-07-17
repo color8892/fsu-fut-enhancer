@@ -20,15 +20,17 @@ The page runtime is injected only into EA FUT Web App pages. Cross-origin reques
 
 - Node.js 22
 - npm with lockfile support
+- Playwright Chromium (`npx playwright install chromium`) for browser smoke tests
 - Chrome or another Chromium browser for manual verification
 
 ```bash
 npm ci
+npx playwright install chromium
 npm run lint
-npm run test:all
+npm run test:ci
 ```
 
-`test:all` rebuilds `src/userscript.js`, runs incremental strict type checking, and executes the test suite.
+`test:all` rebuilds `src/userscript.js`, runs incremental strict type checking, and executes the unit/security suite. `test:ci` also loads the MV3 extension in a Playwright persistent context and exercises the page handshake, request rejection, and reload invalidation.
 
 ## Common commands
 
@@ -38,6 +40,8 @@ npm run build:watch       # Rebuild while editing
 npm run typecheck         # TypeScript checkJs strict island
 npm test                  # Unit, security, and manifest tests
 npm run test:all          # Required before commit
+npm run test:browser      # MV3 persistent-context smoke
+npm run test:ci           # test:all + MV3 lifecycle/security browser smoke
 npm run package           # Build dist/fsu-fut-enhancer-<version>.zip
 npm run check:ea-bundle   # Check EA prototype compatibility
 ```

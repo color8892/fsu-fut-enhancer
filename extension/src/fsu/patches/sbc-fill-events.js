@@ -160,16 +160,14 @@ events.getTemplate = async (controller, type, sId) =>
         createVirtualChallenge: (...args) => events.createVirtualChallenge(...args),
         saveSquad: (...args) => events.saveSquad(...args),
         saveOldSquad: (...args) => events.saveOldSquad(...args),
-        isTemplateRunning: () => info.run.template,
-        setTemplateRunning: (value) => {
-            info.run.template = value;
-        },
         getGoldenRange: () => info.set.goldenrange,
         getFormationMap: () => info.formation,
         debug,
         isPhone,
         navigateBack: () => cntlr.current().getNavigationController()._eBackButtonTapped()
     });
+events.cancelSbcTemplate = () => sbcTemplateService.cancel();
+events.isSbcTemplateRunning = () => sbcTemplateService.isRunning();
 //阵容方案保存
 
 events.saveSquad = async (challenge, squad, players) =>

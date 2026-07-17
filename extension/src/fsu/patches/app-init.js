@@ -3,16 +3,39 @@ import { RemoteConfigService } from "../domain/RemoteConfigService.js";
 import { createExternalLink } from "../ui/HtmlSafety.js";
 
 export function registerAppInitEvents(deps) {
-  const { events, info, fy } = deps;
+  const { events, info, fy, patchLifecycle } = deps;
   //26.02 添加进化新增显示
-UTHomeHubView.prototype.getAcademyTile = function() {
-    if(info.evolutions.newCount > 0 && !this._academyTile.__root.querySelector(".fsu-task")){
-        this._academyTile.__tileContent.before(
-            events.createDF(`<div class="fsu-task">${info.evolutions.html}</div>`)
-        )
+  patchLifecycle.install({
+    id: "home.academy-tile",
+    phase: "pre-installer-bootstrap",
+    targetLabel: "UTHomeHubView.prototype.getAcademyTile",
+    resolveTarget: () =>
+      typeof UTHomeHubView === "undefined"
+        ? null
+        : { owner: UTHomeHubView.prototype, key: "getAcademyTile" },
+    verify: ({ originalDescriptor, originalValue }) => ({
+      ok: originalDescriptor === undefined && originalValue === undefined,
+      missing: ["UTHomeHubView.prototype.getAcademyTile.unexpected-existing"]
+    }),
+    apply: ({ target }) => {
+      Object.defineProperty(target.owner, target.key, {
+        configurable: true,
+        enumerable: true,
+        writable: true,
+        value: function getAcademyTile() {
+          if (
+            info.evolutions.newCount > 0 &&
+            !this._academyTile.__root.querySelector(".fsu-task")
+          ) {
+            this._academyTile.__tileContent.before(
+              events.createDF(`<div class="fsu-task">${info.evolutions.html}</div>`)
+            );
+          }
+          return this._academyTile;
+        }
+      });
     }
-    return this._academyTile
-}
+  });
 
 //26.02 添加loading文本事件
 events.addLoadingElment = () => {

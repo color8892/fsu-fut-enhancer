@@ -132,7 +132,7 @@ UTSquadEntity.prototype.addItemToSlot = function(t, e) {
     if(this.isSBC()){
         let op = this._fsu.oldSquad[this._fsu.oldSquadCount][t];
         if(op.definitionId == e.definitionId && op.concept == true){
-            this._fsu.oldSquad[this._fsu.oldSquadCount][t] = e;
+            events.replaceOldSquadItem(this,t,e);
         }else{
             events.saveOldSquad(this,true)
         }

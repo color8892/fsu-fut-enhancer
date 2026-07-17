@@ -1,5 +1,5 @@
 export class SbcSquadFillService {
-  fillFromPlayerList(challenge, list, type, helpers) {
+  async fillFromPlayerList(challenge, list, type, helpers) {
     const { showLoader, getFormation, ignorePosition, loadPlayerInfo, saveSquad, saveOldSquad } = helpers;
 
     showLoader();
@@ -36,7 +36,15 @@ export class SbcSquadFillService {
     });
 
     loadPlayerInfo(playerlist);
-    saveSquad(challenge, challenge.squad, playerlist, []);
-    saveOldSquad(challenge.squad, false);
+    const result = await saveSquad(
+      challenge,
+      challenge.squad,
+      playerlist,
+      []
+    );
+    if (result?.success) {
+      saveOldSquad(challenge.squad, false);
+    }
+    return result;
   }
 }

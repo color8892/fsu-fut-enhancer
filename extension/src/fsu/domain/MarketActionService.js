@@ -1,8 +1,22 @@
 import { responseText, safeParseJson } from "../infra/JsonParsing.js";
 import { EA_CAPABILITIES } from "../ea/EaRuntimeAdapter.js";
+import {
+  MARKET_RESULT_INVALID,
+  normalizeAuctionLookupResult,
+  normalizeMarketListingResult,
+  normalizeMarketPurchaseResult,
+  normalizeMarketSearchResult,
+  summarizeAuctionPrices
+} from "./MarketResults.js";
+
+function hasOwn(object, key) {
+  return object !== null &&
+    typeof object === "object" &&
+    Object.prototype.hasOwnProperty.call(object, key);
+}
 
 export class MarketActionService {
-  _getAuctionPrice(i, p, helpers) {
+  _getAuctionPriceResult(i, p, helpers) {
     const { debug = { log: () => {} }, ea, getInfo, notice, xmlHttpRequest } = helpers;
     const info = getInfo();
     return new Promise((resolve) => {
@@ -22,21 +36,38 @@ export class MarketActionService {
               debug.log("EA capability unavailable", ea?.inspect?.(EA_CAPABILITIES.UTAS_SESSION));
             }
             notice("notice.loaderror", 2);
-            resolve([]);
+            resolve({
+              success: false,
+              data: { auctions: [] },
+              error: { code: "MARKET_REQUEST_REJECTED", status: response.status }
+            });
           } else {
-            const transferMarketResponse = safeParseJson(responseText(response), { auctionInfo: [] }, {
+            const parsedResponse = safeParseJson(responseText(response), null, {
               label: "transfer-market-auctions",
               onError: (error, context) => debug.log(`${context.label} parse failed`, error)
             });
-            resolve(transferMarketResponse.auctionInfo || []);
+            const result = normalizeAuctionLookupResult(parsedResponse);
+            if (!result.success) {
+              debug.log("Transfer market response rejected", result.error);
+            }
+            resolve(result);
           }
         },
         onerror: function () {
           notice("notice.loaderror", 2);
-          resolve([]);
+          resolve({
+            success: false,
+            data: { auctions: [] },
+            error: { code: "MARKET_NETWORK_ERROR" }
+          });
         }
       });
     });
+  }
+
+  async _getAuctionPrice(i, p, helpers) {
+    const result = await this._getAuctionPriceResult(i, p, helpers);
+    return result.data.auctions;
   }
 
   async getAuction(e, player, helpers) {
@@ -46,7 +77,7 @@ export class MarketActionService {
       futbinId,
       getInfo,
       getCachePrice,
-      createButton,
+      renderAuctionPrices,
       pdb
     } = helpers;
     const info = getInfo();
@@ -54,7 +85,7 @@ export class MarketActionService {
     e.setInteractionState(0);
     e.setSubtext(fy("quicklist.getpriceload"));
     const defId = player.definitionId;
-    if (_.has(info.futbinId, defId)) {
+    if (hasOwn(info.futbinId, defId)) {
       await futbinId.getPrice(defId, info.futbinId[defId]);
     } else {
       await futbinId.getId(player);
@@ -92,26 +123,11 @@ export class MarketActionService {
       }
     }
     if (priceList.length) {
-      const priceListJson = _.countBy(priceList);
-      const displayPrice = _.fromPairs(_.take(_.toPairs(priceListJson), 3));
-      pdb[defId] = Number(_.first(_.keys(displayPrice))).toLocaleString();
+      const displayPrices = summarizeAuctionPrices(priceList);
+      pdb[defId] = displayPrices[0].price.toLocaleString();
       e.setSubtext(pdb[defId]);
       e.displayCurrencyIcon(!0);
-      let displayPriceCount = 0;
-      _.forEach(displayPrice, (value, key) => {
-        displayPriceCount++;
-        let displayElement = createButton(
-          new UTGroupButtonControl(),
-          `${fy("quicklist.getpricelt")} ${displayPriceCount}`,
-          () => {},
-          "accordian"
-        );
-        displayElement.setInteractionState(0);
-        displayElement.getRootElement().style.fontSize = "87.5%";
-        displayElement.setSubtext(`${Number(key).toLocaleString()} ×${value}`);
-        displayElement.displayCurrencyIcon(!0);
-        e.getRootElement().parentNode.appendChild(displayElement.getRootElement());
-      });
+      renderAuctionPrices(e, displayPrices);
     } else {
       e.setSubtext(fy("buyplayer.error.child3").slice(0, -1));
     }
@@ -131,12 +147,13 @@ export class MarketActionService {
       debug,
       isPhone,
       getCurrentController,
-      ea
+      ea,
+      maxNewItems = 100
     } = helpers;
     const info = getInfo();
 
     info.run.bulkbuy = true;
-    const purchaseCapacity = ea.isPurchaseCapacityReached(MAX_NEW_ITEMS);
+    const purchaseCapacity = ea.isPurchaseCapacityReached(maxNewItems);
     if (!purchaseCapacity.success) {
       debug.log("EA purchase-capacity capability unavailable", purchaseCapacity.error);
       notice("notice.loaderror", 2);
@@ -186,11 +203,13 @@ export class MarketActionService {
       } else {
         let currentPlayer = priceList[priceList.length - 1];
         const purchasePrice = currentPlayer._auction.buyNowPrice;
-        const purchaseResult = await ea.purchaseItemToClub(
-          currentPlayer,
-          purchasePrice,
-          this,
-          () => sendPinEvents("Item - Detail View")
+        const purchaseResult = normalizeMarketPurchaseResult(
+          await ea.purchaseItemToClub(
+            currentPlayer,
+            purchasePrice,
+            this,
+            () => sendPinEvents("Item - Detail View")
+          )
         );
         if (purchaseResult.success || purchaseResult.purchased) {
           notice(["buyplayer.success", playerName, purchasePrice], 0);
@@ -256,7 +275,8 @@ export class MarketActionService {
       debug,
       isPhone,
       getCurrentController,
-      ea
+      ea,
+      maxNewItems = 100
     } = helpers;
 
     showLoader();
@@ -281,7 +301,7 @@ export class MarketActionService {
       hideLoader();
       return;
     }
-    const purchaseCapacity = ea.isPurchaseCapacityReached(MAX_NEW_ITEMS);
+    const purchaseCapacity = ea.isPurchaseCapacityReached(maxNewItems);
     if (!purchaseCapacity.success) {
       debug.log("EA purchase-capacity capability unavailable", purchaseCapacity.error);
       notice("notice.loaderror", 2);
@@ -302,11 +322,13 @@ export class MarketActionService {
       } else {
         let currentPlayer = priceList[priceList.length - 1];
         const purchasePrice = currentPlayer._auction.buyNowPrice;
-        const purchaseResult = await ea.purchaseItemToClub(
-          currentPlayer,
-          purchasePrice,
-          this,
-          () => sendPinEvents("Item - Detail View")
+        const purchaseResult = normalizeMarketPurchaseResult(
+          await ea.purchaseItemToClub(
+            currentPlayer,
+            purchasePrice,
+            this,
+            () => sendPinEvents("Item - Detail View")
+          )
         );
         if (purchaseResult.success || purchaseResult.purchased) {
           notice(["buyplayer.success", playerName, purchasePrice], 0);
@@ -387,7 +409,7 @@ export class MarketActionService {
       marketSearch.setMaxBuy(Number(price));
     } else {
       try {
-        if (_.has(info.futbinId, defId)) {
+        if (hasOwn(info.futbinId, defId)) {
           await futbinId.getPrice(defId, info.futbinId[defId]);
         } else {
           await futbinId.getId(player);
@@ -408,11 +430,13 @@ export class MarketActionService {
         break;
       }
       ea.clearTransferMarketCache();
-      let response = await this.searchTransferMarket(marketSearch.getCriteria(), 1, helpers);
-      const items = response?.success && Array.isArray(response?.data?.items)
-        ? response.data.items
-        : null;
-      if (items) {
+      const response = await this.searchTransferMarket(
+        marketSearch.getCriteria(),
+        1,
+        helpers
+      );
+      if (response.success) {
+        const items = response.data.items;
         sendPinEvents("Transfer Market Results - List View");
         result = result.concat(items);
         queried.push(currentMaxBuy);
@@ -438,8 +462,10 @@ export class MarketActionService {
     return result;
   }
 
-  searchTransferMarket(criteria, type, helpers) {
-    return helpers.ea.searchTransferMarket(criteria, type, this);
+  async searchTransferMarket(criteria, type, helpers) {
+    return normalizeMarketSearchResult(
+      await helpers.ea.searchTransferMarket(criteria, type, this)
+    );
   }
 
   async transferToClub(controller, list, helpers) {
@@ -482,7 +508,7 @@ export class MarketActionService {
     if (i) {
       //25.13 读取futbin最新的价格
       try {
-        if (_.has(info.futbinId, i.definitionId)) {
+        if (hasOwn(info.futbinId, i.definitionId)) {
           await futbinId.getPrice(i.definitionId, info.futbinId[i.definitionId]);
         } else {
           await futbinId.getId(i);
@@ -512,17 +538,23 @@ export class MarketActionService {
           notice("notice.loaderror", 2);
           return false;
         }
-        const result = await ea.listItemForSale(
-          i,
-          startingPrice,
-          price,
-          time * 3600,
-          getCurrentController()
+        const result = normalizeMarketListingResult(
+          await ea.listItemForSale(
+            i,
+            startingPrice,
+            price,
+            time * 3600,
+            getCurrentController()
+          )
         );
         if (result.success) {
           notice(["notice.auctionsuccess", i._staticData.name, price], 0);
         } else if (result.error?.code === "EA_CAPABILITY_UNAVAILABLE") {
           debug.log("EA listing capability unavailable", result.error);
+          notice("notice.loaderror", 2);
+          return false;
+        } else if (result.error?.code === MARKET_RESULT_INVALID) {
+          debug.log("EA listing result rejected", result.error);
           notice("notice.loaderror", 2);
           return false;
         }

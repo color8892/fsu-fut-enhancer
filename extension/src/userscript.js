@@ -80,7 +80,8 @@
         "GM_getValue",
         "GM_setValue",
         "GM_xmlhttpRequest",
-        "GM_info"
+        "GM_info",
+        "patchLifecycle"
       );
     }
     toSettingsScreenDeps() {
@@ -323,13 +324,142 @@
     return serialized === void 0 ? void 0 : JSON.parse(serialized);
   }
 
+  // src/fsu/domain/PriceResults.js
+  var PRICE_RESULT_INVALID = "PRICE_RESULT_INVALID";
+  var PRICE_PROVIDER_FAILED = "PRICE_PROVIDER_FAILED";
+  function isRecord(value) {
+    return value !== null && typeof value === "object" && !Array.isArray(value);
+  }
+  function invalid(provider, issues) {
+    return {
+      success: false,
+      data: { prices: {} },
+      stale: false,
+      error: { code: PRICE_RESULT_INVALID, provider, issues }
+    };
+  }
+  function parseFutGgPrices(value, now) {
+    if (!isRecord(value) || !Array.isArray(value.data)) {
+      return invalid("futgg", ["data must be an array"]);
+    }
+    const prices = {};
+    for (const [index, item] of value.data.entries()) {
+      if (!isRecord(item) || !Number.isInteger(item.eaId) || Number(item.eaId) <= 0) {
+        return invalid("futgg", [`data[${index}].eaId`]);
+      }
+      if (item.price !== null && (typeof item.price !== "number" || !Number.isFinite(item.price))) {
+        return invalid("futgg", [`data[${index}].price`]);
+      }
+      const booleanKeys = ["isExtinct", "isSbc", "isObjective"];
+      for (const key of booleanKeys) {
+        if (item[key] !== void 0 && typeof item[key] !== "boolean") {
+          return invalid("futgg", [`data[${index}].${key}`]);
+        }
+      }
+      const hasSeasonReward = item.premiumSeasonPassLevel !== null && item.premiumSeasonPassLevel !== void 0 || item.standardSeasonPassLevel !== null && item.standardSeasonPassLevel !== void 0;
+      if (item.price === null && item.isExtinct !== true && item.isSbc !== true && item.isObjective !== true && !hasSeasonReward) {
+        continue;
+      }
+      let type = 0;
+      if (item.isSbc === true) {
+        type = 1;
+      } else if (item.isObjective === true) {
+        type = hasSeasonReward ? 3 : 2;
+      }
+      const price = typeof item.price === "number" && item.price > 0 ? item.price : 0;
+      prices[String(item.eaId)] = { n: price, y: type, _ts: now };
+    }
+    return { success: true, data: { prices }, stale: false };
+  }
+  function parseFutNextPrices(value, now) {
+    if (!Array.isArray(value)) {
+      return invalid("futnext", ["response must be an array"]);
+    }
+    const prices = {};
+    for (const [index, item] of value.entries()) {
+      if (!isRecord(item) || !Number.isInteger(item.definitionId) || Number(item.definitionId) <= 0 || !Array.isArray(item.prices)) {
+        return invalid("futnext", [`response[${index}]`]);
+      }
+      if (item.prices.length === 0) continue;
+      const firstPrice = item.prices[0];
+      if (typeof firstPrice !== "number" || !Number.isFinite(firstPrice) || firstPrice < 0) {
+        return invalid("futnext", [`response[${index}].prices[0]`]);
+      }
+      prices[String(item.definitionId)] = { n: firstPrice, y: 0, _ts: now };
+    }
+    return { success: true, data: { prices }, stale: false };
+  }
+  function finiteNumber(value) {
+    if (value === null || value === void 0 || value === "") return null;
+    const numberValue = Number(value);
+    return Number.isFinite(numberValue) ? numberValue : null;
+  }
+  function parseFutbinPrices(value, options) {
+    if (!isRecord(value) || !Array.isArray(value.data)) {
+      return invalid("futbin", ["data must be an array"]);
+    }
+    const prices = {};
+    for (const [index, item] of value.data.entries()) {
+      if (!isRecord(item)) {
+        return invalid("futbin", [`data[${index}]`]);
+      }
+      const definitionId = Number(item[options.definitionIdKey]);
+      if (!Number.isInteger(definitionId) || definitionId <= 0) {
+        return invalid("futbin", [
+          `data[${index}].${options.definitionIdKey}`
+        ]);
+      }
+      const platformPrefix = `${options.platform}_`;
+      const rawPrice = item.LCPrice ?? item[`${platformPrefix}LCPrice`] ?? item.price ?? 0;
+      const rawMin = item.MinPrice ?? item[`${platformPrefix}MinPrice`] ?? 1;
+      const rawMax = item.MaxPrice ?? item[`${platformPrefix}MaxPrice`] ?? 1;
+      const price = finiteNumber(rawPrice);
+      const min = finiteNumber(rawMin);
+      const max = finiteNumber(rawMax);
+      if (price === null || min === null || max === null) {
+        return invalid("futbin", [`data[${index}].price-range`]);
+      }
+      const type = min === 0 && max === 0 ? price === 0 ? 2 : 1 : 0;
+      prices[String(definitionId)] = {
+        n: Math.max(0, price),
+        y: type,
+        _ts: options.now
+      };
+    }
+    return { success: true, data: { prices }, stale: false };
+  }
+  function priceProviderFailure(provider, prices, issues = []) {
+    return {
+      success: false,
+      data: { prices },
+      stale: Object.keys(prices).length > 0,
+      error: { code: PRICE_PROVIDER_FAILED, provider, issues }
+    };
+  }
+  function isPriceEntry(value) {
+    return isRecord(value) && typeof value.n === "number" && Number.isFinite(value.n) && typeof value.y === "number" && Number.isFinite(value.y) && typeof value._ts === "number" && Number.isFinite(value._ts);
+  }
+
   // src/fsu/domain/PriceService.js
+  var PRICE_FRESH_TTL_MS = 5 * 60 * 1e3;
+  var PRICE_STALE_MAX_AGE_MS = 24 * 60 * 60 * 1e3;
   var PriceService = class {
-    constructor({ httpClient, store, getInfo, debug: debug2 }) {
+    constructor({
+      httpClient,
+      store,
+      getInfo,
+      debug: debug2,
+      now = () => Date.now(),
+      freshTtlMs = PRICE_FRESH_TTL_MS,
+      staleMaxAgeMs = PRICE_STALE_MAX_AGE_MS
+    }) {
       this.httpClient = httpClient;
       this.store = store;
       this.getInfo = getInfo;
       this.debug = debug2;
+      this.now = now;
+      this.freshTtlMs = freshTtlMs;
+      this.staleMaxAgeMs = staleMaxAgeMs;
       this.errorHandler = null;
       this.requestQueue = new PriceRequestQueue();
     }
@@ -358,7 +488,7 @@
         return void 0;
       }
       if (type === 1) {
-        const item = _.get(info.roster[priceDataKey], definitionId, {});
+        const item = info.roster[priceDataKey]?.[definitionId] ?? {};
         const priceInfo = {
           num: item?.n ?? 0,
           text: item?.n?.toLocaleString() ?? "0",
@@ -370,7 +500,8 @@
         return priceInfo;
       }
       if (type === 3) {
-        return _.has(info.roster[priceDataKey], definitionId);
+        const item = info.roster[priceDataKey]?.[definitionId];
+        return isPriceEntry(item) && this.now() - item._ts >= 0 && this.now() - item._ts <= this.freshTtlMs;
       }
       return void 0;
     }
@@ -398,9 +529,9 @@
       return this.requestQueue.run(queueKey, () => this._fetchPriceForUrl(sortedIds));
     }
     async _fetchPriceForUrl(definitionIds) {
+      const info = this.getInfo();
+      const provider = [1, 2].includes(info.apiPlatform) ? "futgg" : info.apiPlatform === 3 ? "futnext" : "none";
       try {
-        const info = this.getInfo();
-        const priceJson = {};
         if ([1, 2].includes(info.apiPlatform)) {
           const params = definitionIds.join("%2C");
           const baseUrl = info.apiPlatform === 2 ? `${info.apiProxy}?futggapi=` : "https://www.fut.gg/api/fut/";
@@ -409,45 +540,67 @@
             "GET",
             `${baseUrl}player-prices/26/?ids=${params}${platform}`
           );
-          const originalJson = this.parseJsonResponse(response, { data: [] }, "futgg-player-prices");
-          _.map(originalJson.data || [], (item) => {
-            if (item.price !== null || item.isExtinct || item.isSbc || item.isObjective || item.premiumSeasonPassLevel !== null || item.standardSeasonPassLevel !== null) {
-              let price = 0;
-              let type = 0;
-              if (item.isSbc) {
-                type = 1;
-              } else if (item.isObjective) {
-                type = item.premiumSeasonPassLevel !== null || item.standardSeasonPassLevel !== null ? 3 : 2;
-              }
-              if (item.price && item.price !== -1) {
-                price = item.price;
-              }
-              priceJson[item.eaId] = { n: price, y: type, _ts: Date.now() };
-            } else {
-              this.debug.log("没有这个球员数据:", item.eaId);
-            }
-          });
+          const originalJson = this.parseJsonResponse(
+            response,
+            null,
+            "futgg-player-prices"
+          );
+          const result = parseFutGgPrices(originalJson, this.now());
+          return this.commitPriceBatch(definitionIds, result);
         } else if (info.apiPlatform === 3) {
           const params = definitionIds.join("_");
           const response = await this.request(
             "GET",
             `https://enhancer-api.futnext.com/players/prices?ids=${params}&platform=${info.base.platform}`
           );
-          const originalJson = this.parseJsonResponse(response, [], "futnext-player-prices");
-          _.map(originalJson || [], (item) => {
-            if (item.prices.length) {
-              priceJson[item.definitionId] = {
-                n: item.prices[0],
-                y: 0,
-                _ts: Date.now()
-              };
-            }
-          });
+          const originalJson = this.parseJsonResponse(
+            response,
+            null,
+            "futnext-player-prices"
+          );
+          const result = parseFutNextPrices(originalJson, this.now());
+          return this.commitPriceBatch(definitionIds, result);
         }
-        return priceJson;
+        return { success: true, data: { prices: {} }, stale: false };
       } catch (error) {
-        this.handleError(error);
+        this.reportError(error);
+        return priceProviderFailure(
+          provider,
+          this.getStalePrices(definitionIds),
+          ["request-failed"]
+        );
       }
+    }
+    reportError(error) {
+      if (this.errorHandler) {
+        this.errorHandler(error);
+      }
+    }
+    getStalePrices(definitionIds) {
+      const data = this.getInfo().roster.data;
+      const now = this.now();
+      const prices = {};
+      for (const definitionId of definitionIds) {
+        const entry = data?.[definitionId];
+        if (isPriceEntry(entry) && now - entry._ts >= 0 && now - entry._ts <= this.staleMaxAgeMs) {
+          prices[definitionId] = entry;
+        }
+      }
+      return prices;
+    }
+    commitPriceBatch(definitionIds, result) {
+      if (!result.success) {
+        this.debug.log("Price provider response rejected", result.error);
+        const stalePrices = this.getStalePrices(definitionIds);
+        return {
+          ...result,
+          data: { prices: stalePrices },
+          stale: Object.keys(stalePrices).length > 0
+        };
+      }
+      const info = this.getInfo();
+      info.roster.data = { ...info.roster.data, ...result.data.prices };
+      return result;
     }
     async getPriceForFutbin(playerResourceId) {
       try {
@@ -457,14 +610,22 @@
           "GET",
           `https://www.futbin.org/futbin/api/${info.base.year}/fetchPriceInformation?playerresource=${playerResourceId}&platform=${platform}`
         );
-        const originalJson = this.parseJsonResponse(response, {}, "futbin-price-information");
-        const price = originalJson.LCPrice ?? 0;
-        const priceJson = {
-          n: price,
-          y: originalJson.MinPrice || originalJson.MaxPrice ? 0 : 1
-        };
-        info.roster.data[playerResourceId] = { ...priceJson, _ts: Date.now() };
-        return priceJson;
+        const originalJson = this.parseJsonResponse(
+          response,
+          null,
+          "futbin-price-information"
+        );
+        const normalizedResponse = originalJson !== null && typeof originalJson === "object" && !Array.isArray(originalJson) ? { data: [{ ...originalJson, resourceId: playerResourceId }] } : null;
+        const result = parseFutbinPrices(
+          normalizedResponse,
+          {
+            definitionIdKey: "resourceId",
+            platform: info.base.platform === "pc" ? "pc" : "ps",
+            now: this.now()
+          }
+        );
+        const committed = this.commitPriceBatch([playerResourceId], result);
+        return committed.data.prices[playerResourceId];
       } catch (error) {
         this.handleError(error);
       }
@@ -473,22 +634,47 @@
       const info = this.getInfo();
       info.futbinId = this.store.getObject("futbinId", {});
     }
-    setFutbinMapping(definitionId, futbinId2) {
+    setFutbinMapping(definitionId, futbinId) {
       const info = this.getInfo();
-      info.futbinId[definitionId] = futbinId2;
+      info.futbinId[definitionId] = futbinId;
       this.store.setJson("futbinId", info.futbinId);
     }
     setPriceFromFutbinData(data, definitionId) {
       const info = this.getInfo();
-      const platform = info.base.platform == "pc" ? "pc_" : "ps_";
-      const price = data.LCPrice ?? data[`${platform}LCPrice`] ?? data.price ?? 0;
-      const min = data.MinPrice ?? data[`${platform}MinPrice`] ?? 1;
-      const max = data.MaxPrice ?? data[`${platform}MaxPrice`] ?? 1;
-      let type = 0;
-      if (min == 0 && max == 0) {
-        type = price == 0 ? 2 : 1;
+      const normalizedResponse = data !== null && typeof data === "object" && !Array.isArray(data) ? { data: [{ ...data, definitionId }] } : null;
+      const result = parseFutbinPrices(
+        normalizedResponse,
+        {
+          definitionIdKey: "definitionId",
+          platform: info.base.platform === "pc" ? "pc" : "ps",
+          now: this.now()
+        }
+      );
+      return this.commitPriceBatch([definitionId], result);
+    }
+    commitFutbinSquadPlayers(players) {
+      const info = this.getInfo();
+      const result = parseFutbinPrices(
+        { data: players },
+        {
+          definitionIdKey: "Player_Resource",
+          platform: info.base.platform === "pc" ? "pc" : "ps",
+          now: this.now()
+        }
+      );
+      if (!result.success || players.some(
+        (player) => !player || !Number.isInteger(Number(player.Player_Resource)) || Number(player.Player_Resource) <= 0 || !Number.isInteger(Number(player.id)) || Number(player.id) <= 0
+      )) {
+        return false;
       }
-      info.roster.data[definitionId] = { n: price, y: type, _ts: Date.now() };
+      const futbinId = { ...info.futbinId };
+      for (const player of players) {
+        futbinId[Number(player.Player_Resource)] = Number(player.id);
+      }
+      this.store.setJson("futbinId", futbinId);
+      info.futbinId = futbinId;
+      info.roster.data = { ...info.roster.data, ...result.data.prices };
+      return true;
     }
     async getFutbinPlayerId(player) {
       try {
@@ -503,28 +689,50 @@
           "GET",
           `https://www.futbin.org/futbin/api/${info.base.year}/getFilteredPlayers?platform=${platform}&nation=${nation}&league=${league}&rating=${rating}-${rating}&club=${team}&sort=rating&position=${position}&order=desc&page=1`
         );
-        const data = this.parseJsonResponse(response, { data: [] }, "futbin-filtered-players");
-        _.forEach(data.data || [], (itemData) => {
-          this.setPriceFromFutbinData(itemData, itemData.resource_id);
-          this.setFutbinMapping(itemData.resource_id, itemData.ID);
+        const data = this.parseJsonResponse(response, null, "futbin-filtered-players");
+        const result = parseFutbinPrices(data, {
+          definitionIdKey: "resource_id",
+          platform: info.base.platform === "pc" ? "pc" : "ps",
+          now: this.now()
         });
+        if (!result.success) {
+          this.debug.log("Futbin player response rejected", result.error);
+          return 0;
+        }
+        const items = Array.isArray(data?.data) ? data.data : [];
+        if (items.some(
+          (itemData) => !Number.isInteger(Number(itemData?.ID)) || Number(itemData.ID) <= 0
+        )) {
+          this.debug.log("Futbin player mapping rejected");
+          return 0;
+        }
+        this.commitPriceBatch(
+          Object.keys(result.data.prices).map(Number),
+          result
+        );
+        for (const itemData of items) {
+          this.setFutbinMapping(itemData.resource_id, itemData.ID);
+        }
         return info.futbinId[player.definitionId] || 0;
       } catch (error) {
         this.handleError(error);
       }
     }
-    async getFutbinPrice(definitionId, futbinId2) {
+    async getFutbinPrice(definitionId, futbinId) {
       try {
         const info = this.getInfo();
         const platform = info.base.platform == "pc" ? "PC" : "PS";
         const response = await this.request(
           "GET",
-          `https://www.futbin.org/futbin/api/${info.base.year}/fetchPlayerInformationMinimal?ID=${futbinId2}&platform=${platform}`
+          `https://www.futbin.org/futbin/api/${info.base.year}/fetchPlayerInformationMinimal?ID=${futbinId}&platform=${platform}`
         );
-        const data = this.parseJsonResponse(response, { data: [] }, "futbin-player-information");
-        _.forEach(data.data || [], (itemData) => {
-          this.setPriceFromFutbinData(itemData, itemData.Player_Resource);
+        const data = this.parseJsonResponse(response, null, "futbin-player-information");
+        const result = parseFutbinPrices(data, {
+          definitionIdKey: "Player_Resource",
+          platform: info.base.platform === "pc" ? "pc" : "ps",
+          now: this.now()
         });
+        this.commitPriceBatch([definitionId], result);
         return info.roster.data[definitionId];
       } catch (error) {
         this.handleError(error);
@@ -533,19 +741,21 @@
     createFutbinIdFacade() {
       return {
         init: () => this.initFutbinId(),
-        set: (definitionId, futbinId2) => this.setFutbinMapping(definitionId, futbinId2),
+        set: (definitionId, futbinId) => this.setFutbinMapping(definitionId, futbinId),
         getId: (player) => this.getFutbinPlayerId(player),
-        getPrice: (definitionId, futbinId2) => this.getFutbinPrice(definitionId, futbinId2),
-        setPrice: (data, definitionId) => this.setPriceFromFutbinData(data, definitionId)
+        getPrice: (definitionId, futbinId) => this.getFutbinPrice(definitionId, futbinId),
+        setPrice: (data, definitionId) => this.setPriceFromFutbinData(data, definitionId),
+        commitSquadPlayers: (players) => this.commitFutbinSquadPlayers(players)
       };
     }
   };
 
   // src/fsu/domain/SbcChemistryService.js
   var SbcChemistryService = class {
-    constructor({ getTeamLink, getTeam }) {
+    constructor({ getTeamLink, getTeam, readChemistryContext }) {
       this.getTeamLink = getTeamLink;
       this.getTeam = getTeam;
+      this.readChemistryContext = readChemistryContext;
     }
     getChemistryPointsByThreshold(count, thresholds) {
       if (count >= thresholds[2]) return 3;
@@ -721,11 +931,9 @@
       });
     }
     getChemistryPlayers(controller, targetChemistry) {
-      const players = _.map(
-        controller.squad.getFieldPlayers(),
-        (slot) => slot.inPossiblePosition ? slot.item : { teamId: -1, leagueId: -1, nationId: -1 }
-      );
-      const index = controller.viewmodel.current().index;
+      const snapshot = this.readChemistryContext(controller);
+      if (!snapshot.success) return [];
+      const { players, index } = snapshot.data;
       const chemistry = this.calculateChemistry(players, index, true);
       return this.generateCandidateOptions(players, index, targetChemistry, chemistry.meta);
     }
@@ -894,6 +1102,79 @@
     }
   };
 
+  // src/fsu/ea/SbcSquadSnapshotAdapter.js
+  var SBC_SQUAD_CAPABILITIES = Object.freeze({
+    CHEMISTRY_CONTEXT: "sbc.chemistry-context"
+  });
+  function isRecord2(value) {
+    return value !== null && typeof value === "object";
+  }
+  function unavailable(missing) {
+    return {
+      success: false,
+      error: {
+        code: "EA_CAPABILITY_UNAVAILABLE",
+        capability: SBC_SQUAD_CAPABILITIES.CHEMISTRY_CONTEXT,
+        missing
+      }
+    };
+  }
+  function chemistryId(value) {
+    const id = Number(value);
+    return Number.isInteger(id) && id >= -1 ? id : null;
+  }
+  var SbcSquadSnapshotAdapter = class {
+    /**
+     * @param {unknown} controller
+     */
+    readChemistryContext(controller) {
+      if (!isRecord2(controller) || !isRecord2(controller.squad)) {
+        return unavailable(["controller.squad"]);
+      }
+      const getFieldPlayers = controller.squad.getFieldPlayers;
+      if (typeof getFieldPlayers !== "function" || !isRecord2(controller.viewmodel) || typeof controller.viewmodel.current !== "function") {
+        return unavailable([
+          "controller.squad.getFieldPlayers",
+          "controller.viewmodel.current"
+        ]);
+      }
+      try {
+        const slots = getFieldPlayers.call(controller.squad);
+        const current = controller.viewmodel.current.call(controller.viewmodel);
+        if (!Array.isArray(slots) || !isRecord2(current)) {
+          return unavailable(["controller.squad.slots", "controller.viewmodel.current.result"]);
+        }
+        const index = Number(current.index);
+        if (!Number.isInteger(index) || index < 0 || index >= slots.length) {
+          return unavailable(["controller.viewmodel.current.index"]);
+        }
+        const players = [];
+        for (const [slotIndex, slot] of slots.entries()) {
+          if (!isRecord2(slot) || typeof slot.inPossiblePosition !== "boolean") {
+            return unavailable([`controller.squad.slots[${slotIndex}]`]);
+          }
+          if (!slot.inPossiblePosition) {
+            players.push({ nationId: -1, leagueId: -1, teamId: -1 });
+            continue;
+          }
+          if (!isRecord2(slot.item)) {
+            return unavailable([`controller.squad.slots[${slotIndex}].item`]);
+          }
+          const nationId = chemistryId(slot.item.nationId);
+          const leagueId = chemistryId(slot.item.leagueId);
+          const teamId = chemistryId(slot.item.teamId);
+          if (nationId === null || leagueId === null || teamId === null) {
+            return unavailable([`controller.squad.slots[${slotIndex}].chemistry`]);
+          }
+          players.push({ nationId, leagueId, teamId });
+        }
+        return { success: true, data: { players, index } };
+      } catch {
+        return unavailable(["controller.chemistry-context.read"]);
+      }
+    }
+  };
+
   // src/fsu/core/AppContext.js
   var AppContext = class {
     constructor({ getValue, setValue, xmlHttpRequest, userAgent, getInfo }) {
@@ -930,9 +1211,11 @@
       this.sbcChemistryService = null;
     }
     createSbcChemistryService(teamConfig) {
+      const snapshotAdapter = new SbcSquadSnapshotAdapter();
       this.sbcChemistryService = new SbcChemistryService({
         getTeamLink: (teamId) => teamConfig.teamLinks.get(teamId),
-        getTeam: (teamId) => teamConfig.getTeam(teamId)
+        getTeam: (teamId) => teamConfig.getTeam(teamId),
+        readChemistryContext: (controller) => snapshotAdapter.readChemistryContext(controller)
       });
       return this.sbcChemistryService;
     }
@@ -2683,15 +2966,21 @@
                     this._fsu.removeBtn = events.createButton(
                       new UTImageButtonControl(),
                       "",
-                      (_e) => {
+                      async (_e) => {
                         events.showLoader();
                         let newSquad = _.cloneDeep(_.last(cntlr2.current()._squad._fsu.oldSquad));
                         newSquad = _.map(newSquad, (item) => {
                           return item.id === p.id ? new UTItemEntity() : item;
                         });
                         let challengeId = isPhone() ? cntlr2.current()._challenge.id : cntlr2.current()._challengeId;
-                        events.saveSquad(cntlr2.current()._set.challenges.get(challengeId), cntlr2.current()._squad, newSquad);
-                        events.saveOldSquad(cntlr2.current()._squad, false);
+                        const saveResult = await events.saveSquad(
+                          cntlr2.current()._set.challenges.get(challengeId),
+                          cntlr2.current()._squad,
+                          newSquad
+                        );
+                        if (saveResult.success) {
+                          events.saveOldSquad(cntlr2.current()._squad, false);
+                        }
                       },
                       "fsu-cards exit-btn"
                     );
@@ -3312,13 +3601,20 @@
                   events.popup(
                     fy2("squadback.popupt"),
                     fy2(["squadback.popupm", count]),
-                    (t) => {
+                    async (t) => {
                       if (t === 2) {
                         events.showLoader();
                         let squad = thisController._squad._fsu.oldSquad[count - 1];
-                        events.saveSquad(thisController._challenge, thisController._squad, squad, []);
-                        thisController._squad._fsu.oldSquadCount--;
-                        thisController._squad._fsu.oldSquad.pop();
+                        const saveResult = await events.saveSquad(
+                          thisController._challenge,
+                          thisController._squad,
+                          squad,
+                          []
+                        );
+                        if (saveResult.success) {
+                          thisController._squad._fsu.oldSquadCount--;
+                          thisController._squad._fsu.oldSquad.pop();
+                        }
                       }
                     }
                   );
@@ -3680,9 +3976,72 @@
     };
   }
 
+  // src/fsu/ui/PriceRenderer.js
+  function renderSquadPrice(element, total) {
+    if (!element || !Number.isFinite(total)) return false;
+    element.innerText = Math.max(0, total).toLocaleString();
+    return true;
+  }
+
   // src/fsu/patches/player-list.js
+  var PRICE_PATCH_IDS = Object.freeze({
+    SQUAD_VALUE: "price.squad-value"
+  });
+  function installSquadPricePatch(deps) {
+    const {
+      call,
+      events,
+      patchLifecycle,
+      getSquadValueElement = () => document.getElementById("squadValue")
+    } = deps;
+    return patchLifecycle.install({
+      id: PRICE_PATCH_IDS.SQUAD_VALUE,
+      phase: "hub-and-lists",
+      targetLabel: "UTSquadEntity.prototype.getRating",
+      resolveTarget: () => typeof UTSquadEntity === "undefined" ? null : { owner: UTSquadEntity.prototype, key: "getRating" },
+      verify: ({ originalDescriptor, originalValue }) => ({
+        ok: originalDescriptor !== void 0 && "value" in originalDescriptor && originalDescriptor.writable === true && typeof originalValue === "function" && originalValue === call.plist.squadGR,
+        missing: ["UTSquadEntity.prototype.getRating.original-mismatch"]
+      }),
+      apply: ({ target, originalDescriptor, originalValue }) => {
+        Object.defineProperty(target.owner, target.key, {
+          ...originalDescriptor,
+          value: function fsuSquadPriceRating(...args) {
+            const result = originalValue.call(this, ...args);
+            const total = this.getFieldPlayers().reduce(
+              (sum, player) => sum + events.getCachePrice(player.item.definitionId, 1).num,
+              0
+            );
+            renderSquadPrice(getSquadValueElement(), total);
+            return result;
+          }
+        });
+      }
+    });
+  }
+  function registerPriceLifecycleEvents(deps) {
+    const { call, events, patchLifecycle, getSquadValueElement } = deps;
+    events.setSquadPricePatchEnabled = (enabled) => enabled ? installSquadPricePatch({
+      call,
+      events,
+      patchLifecycle,
+      getSquadValueElement
+    }) : patchLifecycle.restore(PRICE_PATCH_IDS.SQUAD_VALUE);
+  }
   function installPlayerListPatches(deps) {
-    const { call, events, info, cntlr: cntlr2, isPhone: isPhone2, debug: debug2, repositories: repositories2, services: services2, fy: fy2 } = deps;
+    const {
+      call,
+      events,
+      info,
+      cntlr: cntlr2,
+      isPhone: isPhone2,
+      debug: debug2,
+      repositories: repositories2,
+      services: services2,
+      fy: fy2,
+      futbinId,
+      patchLifecycle
+    } = deps;
     UTPaginatedItemListView.prototype.renderItems = function(t) {
       call.plist.paginated.call(this, t);
       this._fsu ??= {};
@@ -3791,14 +4150,8 @@
         delete info.roster.thousand[t.definitionId];
       }
     };
-    UTSquadEntity.prototype.getRating = function() {
-      let r = call.plist.squadGR.call(this);
-      let totalElement = document.getElementById("squadValue");
-      if (totalElement) {
-        totalElement.innerText = _.sumBy(this.getFieldPlayers(), (i) => events.getCachePrice(i.item.definitionId, 1).num).toLocaleString();
-      }
-      return r;
-    };
+    registerPriceLifecycleEvents({ call, events, patchLifecycle });
+    events.setSquadPricePatchEnabled(true);
     events.loadPlayerInfo = async (items, el, type) => {
       const list = _.map(
         _.filter(items, function(i) {
@@ -3830,12 +4183,12 @@
               );
               debug2.log(playerPrice);
             } else {
-              playerPrice = await events.getPriceForUrl(pu[k]);
+              const priceResult = await events.getPriceForUrl(pu[k]);
+              playerPrice = priceResult.data.prices;
             }
           } catch {
             continue;
           }
-          info.roster.data = Object.assign(info.roster.data, playerPrice);
           _.map(playerPrice, (v, k2) => {
             if (info.roster.element[k2]) {
               const priceJson = events.getCachePrice(k2, 1);
@@ -4398,6 +4751,147 @@
     };
   }
 
+  // src/fsu/ea/EaObservableAdapter.js
+  var EA_OBSERVABLE_ERROR_CODES = Object.freeze({
+    UNAVAILABLE: "EA_CAPABILITY_UNAVAILABLE",
+    TIMEOUT: "EA_OBSERVABLE_TIMEOUT",
+    FAILED: "EA_OBSERVABLE_FAILED"
+  });
+  function isRecord3(value) {
+    return value !== null && typeof value === "object";
+  }
+  function failure(code, capability, missing) {
+    return {
+      success: false,
+      error: { code, capability, missing }
+    };
+  }
+  var EaObservableAdapter = class {
+    /**
+     * @param {{
+     *   timeoutMs?: number,
+     *   setTimer?: (callback: () => void, timeoutMs: number) => unknown,
+     *   clearTimer?: (timer: unknown) => void
+     * }} [options]
+     */
+    constructor({
+      timeoutMs = 15e3,
+      setTimer = (callback, delay) => setTimeout(callback, delay),
+      clearTimer = (timer) => clearTimeout(
+        /** @type {ReturnType<typeof setTimeout>} */
+        timer
+      )
+    } = {}) {
+      this.timeoutMs = timeoutMs;
+      this.setTimer = setTimer;
+      this.clearTimer = clearTimer;
+    }
+    /**
+     * @param {unknown} observable
+     * @param {object} observerContext
+     * @param {string} capability
+     */
+    observeOnce(observable, observerContext, capability) {
+      if (!isRecord3(observable) || typeof observable.observe !== "function") {
+        return Promise.resolve(
+          failure(EA_OBSERVABLE_ERROR_CODES.UNAVAILABLE, capability, [
+            `${capability}.observe`
+          ])
+        );
+      }
+      const observe = observable.observe;
+      return new Promise((resolve) => {
+        let settled = false;
+        let timer;
+        const finish = (result, sender) => {
+          if (settled) return;
+          settled = true;
+          if (timer !== void 0) {
+            this.clearTimer(timer);
+          }
+          try {
+            if (isRecord3(sender) && typeof sender.unobserve === "function") {
+              sender.unobserve(observerContext);
+            } else if (typeof observable.unobserve === "function") {
+              observable.unobserve(observerContext);
+            }
+          } catch {
+          }
+          resolve(result);
+        };
+        timer = this.setTimer(() => {
+          finish(
+            failure(EA_OBSERVABLE_ERROR_CODES.TIMEOUT, capability, [
+              `${capability}.timeout`
+            ]),
+            observable
+          );
+        }, this.timeoutMs);
+        try {
+          const onObserved = (sender, response) => {
+            finish({ success: true, data: response }, sender);
+          };
+          observe.call(observable, observerContext, onObserved);
+        } catch {
+          finish(
+            failure(EA_OBSERVABLE_ERROR_CODES.FAILED, capability, [
+              `${capability}.observe-threw`
+            ]),
+            observable
+          );
+        }
+      });
+    }
+  };
+
+  // src/fsu/domain/SbcSubmitResults.js
+  var SBC_SUBMIT_ERROR_CODES = Object.freeze({
+    PRECONDITION: "SBC_SUBMIT_PRECONDITION_FAILED",
+    IN_FLIGHT: "SBC_SUBMIT_IN_FLIGHT",
+    REJECTED: "SBC_SUBMIT_REJECTED",
+    INVALID_RESPONSE: "SBC_SUBMIT_INVALID_RESPONSE"
+  });
+  function isRecord4(value) {
+    return value !== null && typeof value === "object";
+  }
+  function sbcSubmitFailure(code, issues) {
+    return {
+      success: false,
+      error: { code, issues }
+    };
+  }
+  function parseSbcSubmitResponse(response) {
+    if (!isRecord4(response) || typeof response.success !== "boolean") {
+      return sbcSubmitFailure(SBC_SUBMIT_ERROR_CODES.INVALID_RESPONSE, [
+        "response.success"
+      ]);
+    }
+    if (!response.success) {
+      return sbcSubmitFailure(SBC_SUBMIT_ERROR_CODES.REJECTED, [
+        "response.success"
+      ]);
+    }
+    return { success: true, data: response };
+  }
+  function parseSbcCompletionResponse(response) {
+    const submit = parseSbcSubmitResponse(response);
+    if (!submit.success) return submit;
+    const data = submit.data.data;
+    if (!isRecord4(data) || !Number.isInteger(Number(data.setId)) || Number(data.setId) <= 0) {
+      return sbcSubmitFailure(SBC_SUBMIT_ERROR_CODES.INVALID_RESPONSE, [
+        "response.data.setId"
+      ]);
+    }
+    return {
+      success: true,
+      data: {
+        response: submit.data,
+        setId: Number(data.setId),
+        setCompleted: data.setCompleted === true
+      }
+    };
+  }
+
   // src/fsu/patches/sbc-squad.js
   function registerSbcSubPriceEvent(deps) {
     const { events, info, fy: fy2, isPhone: isPhone2, repositories: repositories2 } = deps;
@@ -4550,6 +5044,42 @@
   }
   function installSbcSquadSubmitPatches(deps) {
     const { call, events, info, repositories: repositories2, services: services2, cntlr: cntlr2, debug: debug2, fy: fy2 } = deps;
+    const observableAdapter = new EaObservableAdapter();
+    let refreshPromise = null;
+    const refreshSbcSets = (observerContext) => {
+      if (refreshPromise) return refreshPromise;
+      refreshPromise = (async () => {
+        let observable;
+        try {
+          observable = services2.SBC.requestSets();
+        } catch {
+          debug2.log("SBC completion refresh unavailable");
+          return false;
+        }
+        const observed = await observableAdapter.observeOnce(
+          observable,
+          observerContext,
+          "sbc.request-sets"
+        );
+        if (!observed.success) {
+          debug2.log("SBC completion refresh failed", observed.error);
+          return false;
+        }
+        const response = parseSbcSubmitResponse(observed.data);
+        if (!response.success) {
+          debug2.log("SBC completion refresh rejected", response.error);
+          return false;
+        }
+        if (cntlr2.current().className == "UTSBCHubViewController") {
+          cntlr2.current()._requestSBCData();
+        }
+        events.changeHeaderSBCEntrance();
+        return true;
+      })().finally(() => {
+        refreshPromise = null;
+      });
+      return refreshPromise;
+    };
     registerSbcHeaderEvents({ events, info, services: services2, cntlr: cntlr2, debug: debug2 });
     UTSBCSquadOverviewViewController.prototype._submitChallenge = function _submitChallenge(e2) {
       function valuablePlayerTips(left, controller2, ev) {
@@ -4597,8 +5127,15 @@
             });
             events.showLoader();
             events.notice("notice.submitrepeat", 1);
-            await events.saveSquad(controller._challenge, controller._challenge.squad, newPlayers, []);
-            valuablePlayerTips(this, controller, e2);
+            const saveResult = await events.saveSquad(
+              controller._challenge,
+              controller._challenge.squad,
+              newPlayers,
+              []
+            );
+            if (saveResult.success) {
+              valuablePlayerTips(this, controller, e2);
+            }
           } else {
             services2.Notification.queue([
               services2.Localization.localize("notification.item.moveFailed"),
@@ -4612,23 +5149,20 @@
     };
     UTSBCSquadOverviewViewController.prototype._onChallengeSubmitted = function _onChallengeSubmitted(e2, t) {
       call.squad.submitted.call(this, e2, t);
-      if (t.success && t.data.setId) {
-        let s2 = services2.SBC.repository.getSetById(t.data.setId);
+      const completion = parseSbcCompletionResponse(t);
+      if (completion.success) {
+        const setId = completion.data.setId;
+        let s2 = services2.SBC.repository.getSetById(setId);
         if (s2 && Object.keys(s2).length) {
-          info.douagain.sbc = t.data.setId;
+          info.douagain.sbc = setId;
         }
         if (services2.SBC.repository.isCacheExpired()) {
-          services2.SBC.requestSets().observe(cntlr2.current(), (obs, res) => {
-            if (obs.unobserve(cntlr2.current()), res.success) {
-              if (cntlr2.current().className == "UTSBCHubViewController") {
-                cntlr2.current()._requestSBCData();
-              }
-              events.changeHeaderSBCEntrance();
-            }
-          });
+          void refreshSbcSets(this);
         } else {
           events.changeHeaderSBCEntrance();
         }
+      } else {
+        debug2.log("SBC completion response rejected", completion.error);
       }
     };
   }
@@ -4689,80 +5223,280 @@
   }
 
   // src/fsu/patches/sbc-challenges.js
-  function installSbcChallengesPatch(deps) {
-    const { info, events, services: services2, eligibilityKeys, localize } = deps;
-    const originalViewDidAppear = UTSBCChallengesViewController.prototype.viewDidAppear;
-    UTSBCChallengesViewController.prototype.viewDidAppear = function() {
-      originalViewDidAppear.call(this);
-      if (!info.set.info_sbcs) return;
-      this._fsu ??= {};
-      events.sbcSubPrice(this.sbset.id, this.getView());
-      if (_.isArray(this.sbset.awards)) {
-        _.map(this.sbset.awards, (item, index) => {
-          if (!item.isItem && !item.isPack) return;
-          const li = this.getView()._setInfo._rewards.__rewardList.querySelector(
-            `li:nth-child(${index + 1})`
-          );
-          if (!li) return;
-          const createBtn = (labelKey, onClick, size = "mini") => {
-            const btn2 = events.createButton(
-              new UTStandardButtonControl(),
-              localize(labelKey),
-              onClick,
-              size
-            );
-            btn2.getRootElement().style.marginRight = "2rem";
-            return btn2;
-          };
-          let btn;
-          if (item.isItem && item.item.isPlayer()) {
-            btn = createBtn("sbc.watchplayer", (e2) => events.openFutbinPlayerUrl(e2, item.item));
-          }
-          if (btn) {
-            li.appendChild(btn.getRootElement());
-            this._fsu.watchBtn = btn;
-          }
-        });
-      }
-      let needRatings = _.map(this.sbset.challenges.values(), (challenge) => {
-        let rating = 0;
-        if (!challenge.isCompleted()) {
-          _.forEach(challenge.eligibilityRequirements, (requirement) => {
-            if (requirement.getFirstKey() == eligibilityKeys.TEAM_RATING) {
-              rating = requirement.getFirstValue(requirement.getFirstKey());
+  var SBC_CHALLENGES_PATCH_IDS = Object.freeze({
+    VIEW_DID_APPEAR: "sbc.challenges-view"
+  });
+  function createChallengesViewDescriptor(deps) {
+    const {
+      info,
+      events,
+      sbcReadAdapter,
+      eligibilityKeys,
+      localize
+    } = deps;
+    return {
+      id: SBC_CHALLENGES_PATCH_IDS.VIEW_DID_APPEAR,
+      phase: "hub-and-lists",
+      targetLabel: "UTSBCChallengesViewController.prototype.viewDidAppear",
+      resolveTarget: () => typeof UTSBCChallengesViewController === "undefined" ? null : {
+        owner: UTSBCChallengesViewController.prototype,
+        key: "viewDidAppear"
+      },
+      verify: ({ originalDescriptor, originalValue }) => ({
+        ok: originalDescriptor !== void 0 && "value" in originalDescriptor && originalDescriptor.writable === true && typeof originalValue === "function",
+        missing: [
+          "UTSBCChallengesViewController.prototype.viewDidAppear"
+        ]
+      }),
+      apply: ({ target, originalDescriptor, originalValue }) => {
+        Object.defineProperty(target.owner, target.key, {
+          ...originalDescriptor,
+          value: function fsuSbcChallengesViewDidAppear(...args) {
+            const result = originalValue.call(this, ...args);
+            if (!info.set.info_sbcs) return result;
+            this._fsu ??= {};
+            events.sbcSubPrice(this.sbset.id, this.getView());
+            if (Array.isArray(this.sbset.awards)) {
+              this.sbset.awards.forEach((item, index) => {
+                if (!item.isItem && !item.isPack) return;
+                const li = this.getView()._setInfo._rewards.__rewardList.querySelector(
+                  `li:nth-child(${index + 1})`
+                );
+                if (!li) return;
+                let btn;
+                if (item.isItem && item.item.isPlayer()) {
+                  btn = events.createButton(
+                    new UTStandardButtonControl(),
+                    localize("sbc.watchplayer"),
+                    (event) => events.openFutbinPlayerUrl(event, item.item),
+                    "mini"
+                  );
+                }
+                if (btn) {
+                  btn.getRootElement().style.marginRight = "2rem";
+                  li.appendChild(btn.getRootElement());
+                  this._fsu.watchBtn = btn;
+                }
+              });
             }
-          });
-        }
-        return rating;
-      });
-      needRatings = _(needRatings).filter((value) => value !== 0).reverse().value();
-      if (needRatings.length > 2 && !this._fsu.needBtn) {
-        const needBtn = events.createButton(
-          new UTStandardButtonControl(),
-          localize("sbcneedslist.btn"),
-          () => {
-            events.showLoader();
-            events.sbcListNeedCount(
-              needRatings,
-              services2.SBC.repository.sets.get(this.sbset.id).name
-            );
-          },
-          "mini"
-        );
-        Object.assign(this.getView()._header.__root.style, {
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between"
+            const challengeValues = this.sbset.challenges && typeof this.sbset.challenges.values === "function" ? Array.from(this.sbset.challenges.values()) : [];
+            const needRatings = challengeValues.map((challenge) => {
+              if (!challenge || typeof challenge.isCompleted !== "function" || challenge.isCompleted() || !Array.isArray(challenge.eligibilityRequirements)) {
+                return 0;
+              }
+              for (const requirement of challenge.eligibilityRequirements) {
+                const read = sbcReadAdapter.readRequirement(requirement);
+                if (read.success && read.data.key === eligibilityKeys.TEAM_RATING) {
+                  const rating = Number(read.data.values[0]);
+                  return Number.isFinite(rating) ? rating : 0;
+                }
+              }
+              return 0;
+            }).filter((value) => value !== 0).reverse();
+            const setName = sbcReadAdapter.getSetName(this.sbset.id);
+            if (needRatings.length > 2 && !this._fsu.needBtn && setName.success) {
+              const needBtn = events.createButton(
+                new UTStandardButtonControl(),
+                localize("sbcneedslist.btn"),
+                () => {
+                  events.showLoader();
+                  events.sbcListNeedCount(needRatings, setName.data);
+                },
+                "mini"
+              );
+              Object.assign(this.getView()._header.__root.style, {
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between"
+              });
+              this.getView()._header.getRootElement().appendChild(
+                needBtn.getRootElement()
+              );
+              this._fsu.needBtn = needBtn;
+            }
+            return result;
+          }
         });
-        this.getView()._header.getRootElement().appendChild(needBtn.getRootElement());
-        this._fsu.needBtn = needBtn;
       }
     };
   }
+  function installSbcChallengesPatch(deps) {
+    return deps.patchLifecycle.install(createChallengesViewDescriptor(deps));
+  }
+  function registerSbcChallengesLifecycleEvents(deps) {
+    const { events, patchLifecycle } = deps;
+    events.setSbcChallengesPatchEnabled = (enabled) => enabled ? installSbcChallengesPatch(deps) : patchLifecycle.restore(SBC_CHALLENGES_PATCH_IDS.VIEW_DID_APPEAR);
+  }
+
+  // src/fsu/ea/SbcReadAdapter.js
+  var SBC_READ_CAPABILITIES = Object.freeze({
+    REQUIREMENT: "sbc.requirement-read",
+    SET_REPOSITORY: "sbc.set-repository",
+    LOCALIZATION: "sbc.localization"
+  });
+  function isRecord5(value) {
+    return value !== null && typeof value === "object";
+  }
+  function asPropertyBag(value) {
+    if (isRecord5(value)) return value;
+    return typeof value === "function" ? (
+      /** @type {Record<string, unknown>} */
+      /** @type {unknown} */
+      value
+    ) : null;
+  }
+  function unavailable2(capability, missing) {
+    return {
+      success: false,
+      error: {
+        code: "EA_CAPABILITY_UNAVAILABLE",
+        capability,
+        missing
+      }
+    };
+  }
+  var SbcReadAdapter = class {
+    /**
+     * @param {{
+     *   getSbcRepository?: () => unknown,
+     *   getLocalization?: () => unknown,
+     *   getLocalizationUtil?: () => unknown
+     * }} [options]
+     */
+    constructor({
+      getSbcRepository = () => void 0,
+      getLocalization = () => void 0,
+      getLocalizationUtil = () => void 0
+    } = {}) {
+      this.getSbcRepository = getSbcRepository;
+      this.getLocalization = getLocalization;
+      this.getLocalizationUtil = getLocalizationUtil;
+    }
+    /**
+     * @param {unknown} requirement
+     */
+    readRequirement(requirement) {
+      if (!isRecord5(requirement)) {
+        return unavailable2(SBC_READ_CAPABILITIES.REQUIREMENT, [
+          "requirement"
+        ]);
+      }
+      const getFirstKey = requirement.getFirstKey;
+      const getValue = requirement.getValue;
+      if (typeof getFirstKey !== "function" || typeof getValue !== "function") {
+        return unavailable2(SBC_READ_CAPABILITIES.REQUIREMENT, [
+          "requirement.getFirstKey",
+          "requirement.getValue"
+        ]);
+      }
+      try {
+        const key = getFirstKey.call(requirement);
+        const values = getValue.call(requirement, key);
+        if (typeof key !== "number" && typeof key !== "string" || !Array.isArray(values)) {
+          return unavailable2(SBC_READ_CAPABILITIES.REQUIREMENT, [
+            "requirement.key",
+            "requirement.values"
+          ]);
+        }
+        return {
+          success: true,
+          data: {
+            key,
+            values: [...values]
+          }
+        };
+      } catch {
+        return unavailable2(SBC_READ_CAPABILITIES.REQUIREMENT, [
+          "requirement.read"
+        ]);
+      }
+    }
+    /**
+     * @param {unknown} setId
+     */
+    getSetName(setId) {
+      let repository;
+      try {
+        repository = this.getSbcRepository();
+      } catch {
+        return unavailable2(SBC_READ_CAPABILITIES.SET_REPOSITORY, [
+          "services.SBC.repository"
+        ]);
+      }
+      if (!isRecord5(repository) || !isRecord5(repository.sets)) {
+        return unavailable2(SBC_READ_CAPABILITIES.SET_REPOSITORY, [
+          "services.SBC.repository.sets"
+        ]);
+      }
+      const get = repository.sets.get;
+      if (typeof get !== "function") {
+        return unavailable2(SBC_READ_CAPABILITIES.SET_REPOSITORY, [
+          "services.SBC.repository.sets.get"
+        ]);
+      }
+      try {
+        const set = get.call(repository.sets, setId);
+        if (!isRecord5(set) || typeof set.name !== "string") {
+          return unavailable2(SBC_READ_CAPABILITIES.SET_REPOSITORY, [
+            "services.SBC.repository.sets.name"
+          ]);
+        }
+        return { success: true, data: set.name };
+      } catch {
+        return unavailable2(SBC_READ_CAPABILITIES.SET_REPOSITORY, [
+          "services.SBC.repository.sets.read"
+        ]);
+      }
+    }
+    /**
+     * @param {"club" | "league" | "nation"} kind
+     * @param {unknown} id
+     */
+    getEntityName(kind, id) {
+      let util;
+      let localization;
+      try {
+        util = this.getLocalizationUtil();
+        localization = this.getLocalization();
+      } catch {
+        return unavailable2(SBC_READ_CAPABILITIES.LOCALIZATION, [
+          "localization.runtime"
+        ]);
+      }
+      const utility = asPropertyBag(util);
+      if (!utility || !localization) {
+        return unavailable2(SBC_READ_CAPABILITIES.LOCALIZATION, [
+          "UTLocalizationUtil",
+          "services.Localization"
+        ]);
+      }
+      const methodName = {
+        club: "teamIdToAbbr15",
+        league: "leagueIdToName",
+        nation: "nationIdToName"
+      }[kind];
+      const method = utility[methodName];
+      if (typeof method !== "function") {
+        return unavailable2(SBC_READ_CAPABILITIES.LOCALIZATION, [
+          `UTLocalizationUtil.${methodName}`
+        ]);
+      }
+      try {
+        const name = method.call(utility, id, localization);
+        return typeof name === "string" ? { success: true, data: name } : unavailable2(SBC_READ_CAPABILITIES.LOCALIZATION, [
+          `UTLocalizationUtil.${methodName}.result`
+        ]);
+      } catch {
+        return unavailable2(SBC_READ_CAPABILITIES.LOCALIZATION, [
+          `UTLocalizationUtil.${methodName}.read`
+        ]);
+      }
+    }
+  };
 
   // src/fsu/patches/sbc-nav-events.js
   function registerSbcNavEvents(deps) {
-    const { events, info, fy: fy2, cntlr: cntlr2, isPhone: isPhone2, repositories: repositories2, services: services2, futbinId: futbinId2, GM_openInTab: GM_openInTab2 } = deps;
+    const { events, info, fy: fy2, cntlr: cntlr2, isPhone: isPhone2, repositories: repositories2, services: services2, futbinId, GM_openInTab: GM_openInTab2, patchLifecycle } = deps;
     events.squadCount = (reqRating) => {
       let pa = cntlr2.current()._squad.getFieldPlayers().map((i) => {
         if (!i.isBrick() && i.item.rating && !i.item.concept) {
@@ -4795,16 +5529,21 @@
       return r;
     };
     registerSbcSubPriceEvent({ events, info, fy: fy2, isPhone: isPhone2, repositories: repositories2 });
-    installSbcChallengesPatch({
+    const sbcReadAdapter = new SbcReadAdapter({
+      getSbcRepository: () => services2.SBC?.repository
+    });
+    registerSbcChallengesLifecycleEvents({
       info,
       events,
-      services: services2,
+      sbcReadAdapter,
+      patchLifecycle,
       eligibilityKeys: SBCEligibilityKey,
       localize: fy2
     });
+    events.setSbcChallengesPatchEnabled(true);
     events.openFutbinPlayerUrl = async (e2, player) => {
       events.showLoader();
-      const fbId = info.futbinId[player.definitionId] ?? await futbinId2.getId(player);
+      const fbId = info.futbinId[player.definitionId] ?? await futbinId.getId(player);
       events.hideLoader();
       GM_openInTab2(`https://www.futbin.com/${info.base.year}/player/${fbId}/1`, { active: true, insert: true, setParent: true });
     };
@@ -5404,8 +6143,53 @@
   }
 
   // src/fsu/patches/market.js
+  var MARKET_PATCH_IDS = Object.freeze({
+    SEARCH_VIEW_GENERATE: "market.search-view-generate"
+  });
+  function installMarketSearchGeneratePatch(deps) {
+    const { call, patchLifecycle } = deps;
+    return patchLifecycle.install({
+      id: MARKET_PATCH_IDS.SEARCH_VIEW_GENERATE,
+      phase: "market-and-squad",
+      targetLabel: "UTMarketSearchView.prototype._generate",
+      resolveTarget: () => typeof UTMarketSearchView === "undefined" ? null : { owner: UTMarketSearchView.prototype, key: "_generate" },
+      verify: ({ originalDescriptor, originalValue }) => ({
+        ok: originalDescriptor !== void 0 && "value" in originalDescriptor && originalDescriptor.writable === true && typeof originalValue === "function" && originalValue === call.view.market,
+        missing: ["UTMarketSearchView.prototype._generate.original-mismatch"]
+      }),
+      apply: ({ target, originalDescriptor, originalValue }) => {
+        Object.defineProperty(target.owner, target.key, {
+          ...originalDescriptor,
+          value: function fsuMarketSearchGenerate(...args) {
+            if (!this._generated) {
+              originalValue.call(this, ...args);
+            }
+          }
+        });
+      }
+    });
+  }
+  function disableMarketSearchGeneratePatch(patchLifecycle) {
+    return patchLifecycle.restore(MARKET_PATCH_IDS.SEARCH_VIEW_GENERATE);
+  }
+  function registerMarketLifecycleEvents(deps) {
+    const { call, events, patchLifecycle } = deps;
+    events.setMarketSearchGenerateEnabled = (enabled) => enabled ? installMarketSearchGeneratePatch({ call, patchLifecycle }) : disableMarketSearchGeneratePatch(patchLifecycle);
+  }
   function installMarketPatches(deps) {
-    const { call, events, info, cntlr: cntlr2, isPhone: isPhone2, fy: fy2, debug: debug2, repositories: repositories2, services: services2, GM_setValue: GM_setValue2 } = deps;
+    const {
+      call,
+      events,
+      info,
+      cntlr: cntlr2,
+      isPhone: isPhone2,
+      fy: fy2,
+      debug: debug2,
+      repositories: repositories2,
+      services: services2,
+      GM_setValue: GM_setValue2,
+      patchLifecycle
+    } = deps;
     UTTransferMarketPaginationViewModel.prototype.startAuctionUpdates = function(...args) {
       call.view.transferMarket.call(this, ...args);
       if (services2.Item.marketRepository.pages.length) {
@@ -5485,11 +6269,8 @@
         }
       }
     };
-    UTMarketSearchView.prototype._generate = function(...args) {
-      if (!this._generated) {
-        call.view.market.call(this, ...args);
-      }
-    };
+    registerMarketLifecycleEvents({ call, events, patchLifecycle });
+    events.setMarketSearchGenerateEnabled(true);
     UTClubSearchFiltersViewController.prototype.viewDidAppear = function() {
       call.search.club.viewDid.call(this);
       if (this.squad.isActive() || this.squad.isDream()) {
@@ -5652,11 +6433,1124 @@
     };
   }
 
+  // src/fsu/core/CancellableOperation.js
+  var CancellableOperation = class {
+    constructor() {
+      this.sequence = 0;
+      this.activeId = 0;
+    }
+    /** @returns {OperationToken} */
+    start() {
+      const id = ++this.sequence;
+      this.activeId = id;
+      return Object.freeze({
+        id,
+        isActive: () => this.activeId === id
+      });
+    }
+    cancel() {
+      const wasActive = this.activeId !== 0;
+      this.activeId = 0;
+      return wasActive;
+    }
+    /** @param {OperationToken | null | undefined} operation */
+    finish(operation) {
+      if (operation?.id === this.activeId) {
+        this.activeId = 0;
+        return true;
+      }
+      return false;
+    }
+    isRunning() {
+      return this.activeId !== 0;
+    }
+  };
+
+  // src/fsu/domain/InPacksSearchResults.js
+  var IN_PACKS_SEARCH_ERROR_CODES = Object.freeze({
+    INVALID_INPUT: "IN_PACKS_SEARCH_INVALID_INPUT",
+    INVALID_RESPONSE: "IN_PACKS_SEARCH_INVALID_RESPONSE",
+    REJECTED: "IN_PACKS_SEARCH_REJECTED",
+    CANCELLED: "IN_PACKS_SEARCH_CANCELLED",
+    MAX_PAGES: "IN_PACKS_SEARCH_MAX_PAGES"
+  });
+  function isRecord6(value) {
+    return value !== null && typeof value === "object";
+  }
+  function inPacksSearchFailure(code, issues, partial = {}) {
+    return {
+      success: false,
+      error: { code, issues },
+      partial: {
+        items: partial.items ? [...partial.items] : [],
+        pagesCompleted: partial.pagesCompleted ?? 0
+      }
+    };
+  }
+  function parseInPacksConceptPage(response) {
+    if (!isRecord6(response) || typeof response.success !== "boolean") {
+      return inPacksSearchFailure(
+        IN_PACKS_SEARCH_ERROR_CODES.INVALID_RESPONSE,
+        ["response.success"]
+      );
+    }
+    if (!response.success) {
+      return inPacksSearchFailure(IN_PACKS_SEARCH_ERROR_CODES.REJECTED, [
+        "response.success"
+      ]);
+    }
+    if (!isRecord6(response.response) || !Array.isArray(response.response.items)) {
+      return inPacksSearchFailure(
+        IN_PACKS_SEARCH_ERROR_CODES.INVALID_RESPONSE,
+        ["response.response.items"]
+      );
+    }
+    const items = [];
+    for (const item of response.response.items) {
+      if (!isRecord6(item) || !Number.isInteger(item.definitionId) || Number(item.definitionId) <= 0) {
+        return inPacksSearchFailure(
+          IN_PACKS_SEARCH_ERROR_CODES.INVALID_RESPONSE,
+          ["response.response.items.definitionId"]
+        );
+      }
+      items.push(item);
+    }
+    return { success: true, data: { items } };
+  }
+
+  // src/fsu/domain/InPacksSearchService.js
+  function isPositiveIntegerArray(values) {
+    return Array.isArray(values) && values.every((value) => Number.isInteger(value) && value > 0);
+  }
+  function isRecord7(value) {
+    return value !== null && typeof value === "object";
+  }
+  var InPacksSearchService = class {
+    /**
+     * @param {{
+     *   adapter: {
+     *     requestPage: (options: {
+     *       offset: number,
+     *       limit: number,
+     *       definitionIds: number[],
+     *       rarityIds: number[],
+     *       observerContext: object
+     *     }) => Promise<unknown>
+     *   },
+     *   operation?: CancellableOperation,
+     *   pageSize?: number,
+     *   maxPages?: number,
+     *   pageDelayMs?: number,
+     *   delay?: (delayMs: number) => Promise<void>
+     * }} options
+     */
+    constructor({
+      adapter,
+      operation = new CancellableOperation(),
+      pageSize = 200,
+      maxPages = 10,
+      pageDelayMs = 100,
+      delay = (delayMs) => new Promise((resolve) => setTimeout(resolve, delayMs))
+    }) {
+      this.adapter = adapter;
+      this.operation = operation;
+      this.pageSize = pageSize;
+      this.maxPages = maxPages;
+      this.pageDelayMs = pageDelayMs;
+      this.delay = delay;
+    }
+    cancel() {
+      return this.operation.cancel();
+    }
+    isRunning() {
+      return this.operation.isRunning();
+    }
+    /**
+     * @param {{
+     *   definitionIds: unknown,
+     *   rarityIds: unknown,
+     *   observerContext: object,
+     *   isActive?: () => boolean
+     * }} options
+     */
+    async search({
+      definitionIds,
+      rarityIds,
+      observerContext,
+      isActive = () => true
+    }) {
+      if (!isPositiveIntegerArray(definitionIds) || definitionIds.length === 0 || !isPositiveIntegerArray(rarityIds)) {
+        return inPacksSearchFailure(
+          IN_PACKS_SEARCH_ERROR_CODES.INVALID_INPUT,
+          ["definitionIds", "rarityIds"]
+        );
+      }
+      const token = this.operation.start();
+      const items = [];
+      let pagesCompleted = 0;
+      const remainsActive = () => {
+        try {
+          return token.isActive() && isActive();
+        } catch {
+          return false;
+        }
+      };
+      try {
+        for (let page = 0; page < this.maxPages; page++) {
+          if (!remainsActive()) {
+            return inPacksSearchFailure(
+              IN_PACKS_SEARCH_ERROR_CODES.CANCELLED,
+              ["operation.cancelled"],
+              { items, pagesCompleted }
+            );
+          }
+          let result;
+          try {
+            result = await this.adapter.requestPage({
+              offset: page * this.pageSize,
+              limit: this.pageSize,
+              definitionIds: [...definitionIds],
+              rarityIds: [...rarityIds],
+              observerContext
+            });
+          } catch {
+            return inPacksSearchFailure(
+              IN_PACKS_SEARCH_ERROR_CODES.INVALID_RESPONSE,
+              ["page.request-threw"],
+              { items, pagesCompleted }
+            );
+          }
+          if (!remainsActive()) {
+            return inPacksSearchFailure(
+              IN_PACKS_SEARCH_ERROR_CODES.CANCELLED,
+              ["operation.cancelled"],
+              { items, pagesCompleted }
+            );
+          }
+          if (!isRecord7(result) || result.success !== true || !isRecord7(result.data) || !Array.isArray(result.data.items)) {
+            return {
+              ...isRecord7(result) ? result : inPacksSearchFailure(
+                IN_PACKS_SEARCH_ERROR_CODES.INVALID_RESPONSE,
+                ["page.result"]
+              ),
+              partial: { items: [...items], pagesCompleted }
+            };
+          }
+          const pageItems = (
+            /** @type {Record<string, unknown>[]} */
+            result.data.items
+          );
+          items.push(...pageItems);
+          pagesCompleted++;
+          if (pageItems.length < this.pageSize) {
+            return {
+              success: true,
+              data: {
+                items,
+                pagesCompleted
+              }
+            };
+          }
+          if (page + 1 < this.maxPages) {
+            try {
+              await this.delay(this.pageDelayMs);
+            } catch {
+              return inPacksSearchFailure(
+                IN_PACKS_SEARCH_ERROR_CODES.INVALID_RESPONSE,
+                ["pagination.delay"],
+                { items, pagesCompleted }
+              );
+            }
+          }
+        }
+        return inPacksSearchFailure(
+          IN_PACKS_SEARCH_ERROR_CODES.MAX_PAGES,
+          ["pagination.max-pages"],
+          { items, pagesCompleted }
+        );
+      } finally {
+        this.operation.finish(token);
+      }
+    }
+    /**
+     * @param {Record<string, unknown>[]} items
+     * @param {number[]} definitionIds
+     */
+    selectConfiguredPlayers(items, definitionIds) {
+      const byDefinitionId = /* @__PURE__ */ new Map();
+      for (const item of items) {
+        if (!byDefinitionId.has(item.definitionId)) {
+          byDefinitionId.set(item.definitionId, item);
+        }
+      }
+      return definitionIds.map((definitionId) => byDefinitionId.get(definitionId)).filter(
+        /** @returns {value is Record<string, unknown>} */
+        (value) => value !== void 0
+      );
+    }
+  };
+
+  // src/fsu/domain/StorePackCatalogService.js
+  var STORE_PACK_CATALOG_ERROR_CODES = Object.freeze({
+    INVALID_INPUT: "STORE_PACK_CATALOG_INVALID_INPUT"
+  });
+  function compareBooleanDesc(left, right) {
+    return Number(right) - Number(left);
+  }
+  function compareStoreArticles(left, right) {
+    const coinOnlyOrder = compareBooleanDesc(
+      left.pointsPrice === 0 && left.coinsPrice > 0 && left.id !== 101,
+      right.pointsPrice === 0 && right.coinsPrice > 0 && right.id !== 101
+    );
+    if (coinOnlyOrder !== 0) return coinOnlyOrder;
+    const newOrder = compareBooleanDesc(left.isNew, right.isNew);
+    if (newOrder !== 0) return newOrder;
+    const previewOrder = compareBooleanDesc(
+      left.hasPreview,
+      right.hasPreview
+    );
+    if (previewOrder !== 0) return previewOrder;
+    const leftRatio = left.value / (left.coinsPrice || 1);
+    const rightRatio = right.value / (right.coinsPrice || 1);
+    return rightRatio - leftRatio;
+  }
+  var StorePackCatalogService = class {
+    /**
+     * @param {{
+     *   snapshot: (
+     *     article: unknown,
+     *     options: {
+     *       categoryId: unknown,
+     *       nowSeconds: number,
+     *       isMyPacks: boolean
+     *     }
+     *   ) => (
+     *     { success: true, data: StorePackSnapshot } |
+     *     { success: false, error: { code: string, issues: string[] } }
+     *   )
+     * }} adapter
+     */
+    constructor(adapter) {
+      this.adapter = adapter;
+    }
+    /**
+     * @param {unknown} articles
+     * @param {{
+     *   categoryId: unknown,
+     *   isMyPacks: boolean,
+     *   nowSeconds: number,
+     *   sortDirection: unknown
+     * }} options
+     */
+    createCatalog(articles, { categoryId, isMyPacks, nowSeconds, sortDirection }) {
+      if (!Array.isArray(articles)) {
+        return {
+          success: false,
+          error: {
+            code: STORE_PACK_CATALOG_ERROR_CODES.INVALID_INPUT,
+            issues: ["articles"]
+          }
+        };
+      }
+      const valid = [];
+      const invalid4 = [];
+      articles.forEach((article, index) => {
+        let result;
+        try {
+          result = this.adapter.snapshot(article, {
+            categoryId,
+            nowSeconds,
+            isMyPacks
+          });
+        } catch {
+          invalid4.push({
+            article,
+            index,
+            code: "STORE_PACK_ARTICLE_ADAPTER_FAILED"
+          });
+          return;
+        }
+        if (result.success) {
+          valid.push({ snapshot: result.data, index });
+        } else {
+          invalid4.push({ article, index, code: result.error.code });
+        }
+      });
+      const summaries = {};
+      let enhanced;
+      if (isMyPacks) {
+        const unique = /* @__PURE__ */ new Map();
+        for (const entry of valid) {
+          const snapshot = entry.snapshot;
+          const key = `${snapshot.id}-${snapshot.tradable}`;
+          const summary = summaries[key];
+          if (summary) {
+            summary.count++;
+          } else {
+            summaries[key] = {
+              packId: snapshot.id,
+              tradable: snapshot.tradable,
+              count: 1,
+              isPlayers: snapshot.isPlayers,
+              name: snapshot.name,
+              fullName: snapshot.fullName,
+              value: snapshot.value
+            };
+            unique.set(key, entry);
+          }
+        }
+        const direction = sortDirection === "asc" ? 1 : -1;
+        enhanced = [...unique.values()].sort(
+          (left, right) => (left.snapshot.value - right.snapshot.value) * direction || left.index - right.index
+        );
+      } else {
+        enhanced = [...valid].sort(
+          (left, right) => compareStoreArticles(left.snapshot, right.snapshot) || left.index - right.index
+        );
+      }
+      return {
+        success: true,
+        data: {
+          articles: [
+            ...enhanced.map((entry) => entry.snapshot.article),
+            ...invalid4.sort((left, right) => left.index - right.index).map((entry) => entry.article)
+          ],
+          summaries,
+          articleStates: valid.map((entry) => ({
+            article: entry.snapshot.article,
+            isNew: entry.snapshot.isNew
+          })),
+          warnings: invalid4.map(({ index, code }) => ({ index, code }))
+        }
+      };
+    }
+  };
+
+  // src/fsu/domain/StorePackOpenResults.js
+  var STORE_PACK_OPEN_ERROR_CODES = Object.freeze({
+    PRECONDITION: "STORE_PACK_OPEN_PRECONDITION_FAILED",
+    DUPLICATE: "STORE_PACK_OPEN_IN_FLIGHT",
+    REJECTED: "STORE_PACK_OPEN_REJECTED",
+    TIMEOUT: "STORE_PACK_OPEN_TIMEOUT",
+    INVENTORY: "STORE_PACK_OPEN_INVENTORY_INVALID"
+  });
+  function storePackOpenFailure(code, issues) {
+    return { success: false, error: { code, issues } };
+  }
+
+  // src/fsu/domain/StorePackOpenTransactionService.js
+  function isRecord8(value) {
+    return value !== null && typeof value === "object";
+  }
+  var StorePackOpenTransactionService = class {
+    /**
+     * @param {{
+     *   adapter: {
+     *     prepare: (controller: unknown, args: unknown[]) => unknown,
+     *     readCompletion: (packId: number) => unknown
+     *   },
+     *   timeoutMs?: number,
+     *   settleMs?: number,
+     *   pollMs?: number,
+     *   now?: () => number,
+     *   setTimer?: (callback: () => void, delay: number) => unknown
+     * }} options
+     */
+    constructor({
+      adapter,
+      timeoutMs = 15e3,
+      settleMs = 250,
+      pollMs = 50,
+      now = () => Date.now(),
+      setTimer = (callback, delay) => setTimeout(callback, delay)
+    }) {
+      this.adapter = adapter;
+      this.timeoutMs = timeoutMs;
+      this.settleMs = settleMs;
+      this.pollMs = pollMs;
+      this.now = now;
+      this.setTimer = setTimer;
+      this.inFlight = /* @__PURE__ */ new Map();
+    }
+    /**
+     * @param {{
+     *   controller: Record<string, unknown>,
+     *   args: unknown[],
+     *   invoke: () => unknown,
+     *   onSuccess: (result: {
+     *     packId: number,
+     *     remainingCount: number,
+     *     availablePackIds: number[]
+     *   }) => void,
+     *   onDiagnostic?: (result: unknown) => void
+     * }} options
+     */
+    intercept({
+      controller,
+      args,
+      invoke,
+      onSuccess,
+      onDiagnostic = () => {
+      }
+    }) {
+      let prepared;
+      try {
+        prepared = this.adapter.prepare(controller, args);
+      } catch {
+        prepared = storePackOpenFailure(
+          STORE_PACK_OPEN_ERROR_CODES.PRECONDITION,
+          ["pack.adapter.prepare"]
+        );
+      }
+      if (!isRecord8(prepared) || prepared.success !== true || !isRecord8(prepared.data)) {
+        onDiagnostic(prepared);
+        return invoke();
+      }
+      const selection = prepared.data;
+      if (selection.tracked !== true) return invoke();
+      if (typeof selection.key !== "string" || !Number.isInteger(selection.packId) || !Number.isInteger(selection.initialCount)) {
+        onDiagnostic(
+          storePackOpenFailure(STORE_PACK_OPEN_ERROR_CODES.PRECONDITION, [
+            "pack.selection"
+          ])
+        );
+        return invoke();
+      }
+      const key = selection.key;
+      const packId = Number(selection.packId);
+      const initialCount = Number(selection.initialCount);
+      if (this.inFlight.size > 0 || controller.isOpeningPack === true) {
+        onDiagnostic(
+          storePackOpenFailure(STORE_PACK_OPEN_ERROR_CODES.DUPLICATE, [
+            "pack.open-in-flight"
+          ])
+        );
+        return void 0;
+      }
+      const transaction = {
+        startedAt: this.now(),
+        sawOpening: false,
+        completedAt: void 0
+      };
+      this.inFlight.set(key, transaction);
+      let returnValue;
+      try {
+        returnValue = invoke();
+      } catch (error) {
+        this.inFlight.delete(key);
+        throw error;
+      }
+      transaction.sawOpening = controller.isOpeningPack === true;
+      const poll = () => {
+        if (this.inFlight.get(key) !== transaction) return;
+        let completion;
+        try {
+          completion = this.adapter.readCompletion(packId);
+        } catch {
+          completion = storePackOpenFailure(
+            STORE_PACK_OPEN_ERROR_CODES.INVENTORY,
+            ["pack.adapter.readCompletion"]
+          );
+        }
+        if (!isRecord8(completion) || completion.success !== true || !isRecord8(completion.data) || !Number.isInteger(completion.data.remainingCount) || !Array.isArray(completion.data.availablePackIds) || !completion.data.availablePackIds.every(Number.isInteger)) {
+          onDiagnostic(completion);
+          return;
+        }
+        const remainingCount = Number(completion.data.remainingCount);
+        const availablePackIds = completion.data.availablePackIds.map(Number);
+        if (remainingCount < initialCount) {
+          this.inFlight.delete(key);
+          onSuccess({
+            packId,
+            remainingCount,
+            availablePackIds
+          });
+          return;
+        }
+        const currentTime = this.now();
+        if (controller.isOpeningPack === true) {
+          transaction.sawOpening = true;
+          transaction.completedAt = void 0;
+        } else if (transaction.sawOpening) {
+          transaction.completedAt ??= currentTime;
+          if (currentTime - transaction.completedAt >= this.settleMs) {
+            this.inFlight.delete(key);
+            onDiagnostic(
+              storePackOpenFailure(STORE_PACK_OPEN_ERROR_CODES.REJECTED, [
+                "pack.inventory-unchanged"
+              ])
+            );
+            return;
+          }
+        }
+        if (currentTime - transaction.startedAt >= this.timeoutMs) {
+          onDiagnostic(
+            storePackOpenFailure(STORE_PACK_OPEN_ERROR_CODES.TIMEOUT, [
+              "pack.open-timeout"
+            ])
+          );
+          return;
+        }
+        this.setTimer(poll, this.pollMs);
+      };
+      this.setTimer(poll, this.pollMs);
+      return returnValue;
+    }
+  };
+
+  // src/fsu/ea/InPacksSearchAdapter.js
+  function isRecord9(value) {
+    return value !== null && typeof value === "object";
+  }
+  var InPacksSearchAdapter = class {
+    /**
+     * @param {{
+     *   CriteriaConstructor: unknown,
+     *   searchConceptItems: (criteria: Record<string, unknown>) => unknown,
+     *   observableAdapter: {
+     *     observeOnce: (
+     *       observable: unknown,
+     *       context: object,
+     *       capability: string
+     *     ) => Promise<unknown>
+     *   }
+     * }} options
+     */
+    constructor({
+      CriteriaConstructor,
+      searchConceptItems,
+      observableAdapter
+    }) {
+      this.CriteriaConstructor = CriteriaConstructor;
+      this.searchConceptItems = searchConceptItems;
+      this.observableAdapter = observableAdapter;
+    }
+    /**
+     * @param {{
+     *   offset: number,
+     *   limit: number,
+     *   definitionIds: number[],
+     *   rarityIds: number[],
+     *   observerContext: object
+     * }} options
+     */
+    async requestPage({
+      offset,
+      limit,
+      definitionIds,
+      rarityIds,
+      observerContext
+    }) {
+      if (typeof this.CriteriaConstructor !== "function" || typeof this.searchConceptItems !== "function") {
+        return inPacksSearchFailure(
+          IN_PACKS_SEARCH_ERROR_CODES.INVALID_INPUT,
+          ["UTSearchCriteriaDTO", "services.Item.searchConceptItems"]
+        );
+      }
+      let criteria;
+      let observable;
+      try {
+        const CriteriaConstructor = (
+          /** @type {new () => Record<string, unknown>} */
+          this.CriteriaConstructor
+        );
+        criteria = new CriteriaConstructor();
+        criteria.count = limit;
+        criteria.offset = offset;
+        criteria.defId = [...definitionIds];
+        criteria.rarities = [...rarityIds];
+        observable = this.searchConceptItems(criteria);
+      } catch {
+        return inPacksSearchFailure(
+          IN_PACKS_SEARCH_ERROR_CODES.INVALID_INPUT,
+          ["concept-search.invoke"]
+        );
+      }
+      const observed = await this.observableAdapter.observeOnce(
+        observable,
+        observerContext,
+        "store.in-packs-search"
+      );
+      if (!isRecord9(observed) || observed.success !== true || !Object.prototype.hasOwnProperty.call(observed, "data")) {
+        return observed;
+      }
+      return parseInPacksConceptPage(observed.data);
+    }
+  };
+
+  // src/fsu/ea/StorePackCatalogAdapter.js
+  var STORE_PACK_ARTICLE_ERROR_CODES = Object.freeze({
+    INVALID: "STORE_PACK_ARTICLE_INVALID",
+    CAPABILITY: "STORE_PACK_ARTICLE_CAPABILITY_UNAVAILABLE"
+  });
+  function isRecord10(value) {
+    return value !== null && typeof value === "object";
+  }
+  function failure2(code, issues) {
+    return { success: false, error: { code, issues } };
+  }
+  var StorePackCatalogAdapter = class {
+    /**
+     * @param {{
+     *   coinsCurrency: unknown,
+     *   pointsCurrency: unknown,
+     *   localize: (key: string) => unknown,
+     *   getPackValue: (id: number) => unknown,
+     *   truncate: (text: string) => string
+     * }} options
+     */
+    constructor({
+      coinsCurrency,
+      pointsCurrency,
+      localize,
+      getPackValue,
+      truncate
+    }) {
+      this.coinsCurrency = coinsCurrency;
+      this.pointsCurrency = pointsCurrency;
+      this.localize = localize;
+      this.getPackValue = getPackValue;
+      this.truncate = truncate;
+    }
+    /**
+     * @param {unknown} article
+     * @param {{ categoryId: unknown, nowSeconds: number, isMyPacks: boolean }} options
+     */
+    snapshot(article, { categoryId, nowSeconds, isMyPacks }) {
+      if (!isRecord10(article)) {
+        return failure2(STORE_PACK_ARTICLE_ERROR_CODES.INVALID, ["article"]);
+      }
+      const id = article.id;
+      const tradable = article.tradable;
+      const packName = article.packName;
+      const contentType = article.contentType;
+      if (!Number.isInteger(id) || Number(id) <= 0 || typeof tradable !== "boolean" || typeof packName !== "string" || typeof contentType !== "string") {
+        return failure2(STORE_PACK_ARTICLE_ERROR_CODES.INVALID, [
+          "article.id",
+          "article.tradable",
+          "article.packName",
+          "article.contentType"
+        ]);
+      }
+      let value;
+      let localizedName;
+      try {
+        value = Number(this.getPackValue(Number(id)));
+        localizedName = this.localize(packName);
+      } catch {
+        return failure2(STORE_PACK_ARTICLE_ERROR_CODES.CAPABILITY, [
+          "store.pack-value",
+          "store.localization"
+        ]);
+      }
+      if (!Number.isFinite(value) || value < 0 || typeof localizedName !== "string") {
+        return failure2(STORE_PACK_ARTICLE_ERROR_CODES.INVALID, [
+          "article.value",
+          "article.localizedName"
+        ]);
+      }
+      let coinsPrice = 0;
+      let pointsPrice = 0;
+      if (!isMyPacks) {
+        if (this.coinsCurrency === void 0 || this.pointsCurrency === void 0 || typeof article.getPrice !== "function") {
+          return failure2(STORE_PACK_ARTICLE_ERROR_CODES.CAPABILITY, [
+            "GameCurrency.COINS",
+            "GameCurrency.POINTS",
+            "article.getPrice"
+          ]);
+        }
+        try {
+          coinsPrice = Number(article.getPrice(this.coinsCurrency)) || 0;
+          pointsPrice = Number(article.getPrice(this.pointsCurrency)) || 0;
+        } catch {
+          return failure2(STORE_PACK_ARTICLE_ERROR_CODES.CAPABILITY, [
+            "article.getPrice"
+          ]);
+        }
+        if (!Number.isFinite(coinsPrice) || coinsPrice < 0 || !Number.isFinite(pointsPrice) || pointsPrice < 0) {
+          return failure2(STORE_PACK_ARTICLE_ERROR_CODES.INVALID, [
+            "article.price"
+          ]);
+        }
+      }
+      const start = Number(article.start);
+      const isNew = Number.isFinite(start) && start > 0 && nowSeconds - start <= 86400 && Number(categoryId) !== 3;
+      const fullName = tradable ? `*${localizedName}` : localizedName;
+      let name;
+      try {
+        name = this.truncate(fullName);
+      } catch {
+        return failure2(STORE_PACK_ARTICLE_ERROR_CODES.CAPABILITY, [
+          "store.pack-name-truncate"
+        ]);
+      }
+      if (typeof name !== "string") {
+        return failure2(STORE_PACK_ARTICLE_ERROR_CODES.INVALID, [
+          "article.displayName"
+        ]);
+      }
+      return {
+        success: true,
+        data: {
+          article,
+          id: Number(id),
+          tradable,
+          isPlayers: contentType === "players",
+          name,
+          fullName,
+          value,
+          coinsPrice,
+          pointsPrice,
+          isNew,
+          hasPreview: Object.prototype.hasOwnProperty.call(
+            article,
+            "previewCreateTime"
+          )
+        }
+      };
+    }
+  };
+
+  // src/fsu/ea/StorePackOpenAdapter.js
+  function isRecord11(value) {
+    return value !== null && typeof value === "object";
+  }
+  var StorePackOpenAdapter = class {
+    /**
+     * @param {{
+     *   openEvent: unknown,
+     *   getMyPacks: () => unknown
+     * }} options
+     */
+    constructor({ openEvent, getMyPacks }) {
+      this.openEvent = openEvent;
+      this.getMyPacks = getMyPacks;
+    }
+    /**
+     * @param {unknown} controller
+     * @param {unknown[]} args
+     * @returns {{
+     *   success: true,
+     *   data: (
+     *     { tracked: false } |
+     *     {
+     *       tracked: true,
+     *       key: string,
+     *       packId: number,
+     *       initialCount: number
+     *     }
+     *   )
+     * } | {
+     *   success: false,
+     *   error: { code: string, issues: string[] }
+     * }}
+     */
+    prepare(controller, args) {
+      const event = args[1];
+      const options = args[2];
+      if (!isRecord11(controller) || !isRecord11(controller.viewmodel) || typeof controller.viewmodel.getPackById !== "function" || !isRecord11(options) || !Number.isInteger(options.articleId) || Number(options.articleId) <= 0 || this.openEvent === void 0) {
+        return storePackOpenFailure(
+          STORE_PACK_OPEN_ERROR_CODES.PRECONDITION,
+          [
+            "controller.viewmodel.getPackById",
+            "options.articleId",
+            "UTStorePackDetailsView.Event.OPEN"
+          ]
+        );
+      }
+      const tradable = typeof options.tradable === "boolean" ? options.tradable : void 0;
+      let pack;
+      try {
+        pack = controller.viewmodel.getPackById(
+          Number(options.articleId),
+          event === this.openEvent,
+          tradable
+        );
+      } catch {
+        return storePackOpenFailure(
+          STORE_PACK_OPEN_ERROR_CODES.PRECONDITION,
+          ["controller.viewmodel.getPackById"]
+        );
+      }
+      if (!isRecord11(pack) || pack.isMyPack !== true) {
+        return {
+          success: true,
+          data: { tracked: false }
+        };
+      }
+      if (!Number.isInteger(pack.id) || Number(pack.id) <= 0 || Number(pack.id) !== Number(options.articleId)) {
+        return storePackOpenFailure(
+          STORE_PACK_OPEN_ERROR_CODES.PRECONDITION,
+          ["pack.id", "pack.selection"]
+        );
+      }
+      const inventory = this.readInventory();
+      if (!inventory.success) return inventory;
+      const packId = Number(pack.id);
+      const initialCount = inventory.data.packIds.filter(
+        (id) => id === packId
+      ).length;
+      if (initialCount <= 0) {
+        return storePackOpenFailure(
+          STORE_PACK_OPEN_ERROR_CODES.PRECONDITION,
+          ["repositories.Store.myPacks.selection"]
+        );
+      }
+      return {
+        success: true,
+        data: {
+          tracked: true,
+          key: `${packId}-${tradable === true ? "t" : tradable === false ? "u" : "a"}`,
+          packId,
+          initialCount
+        }
+      };
+    }
+    /**
+     * @returns {{
+     *   success: true,
+     *   data: { packIds: number[] }
+     * } | {
+     *   success: false,
+     *   error: { code: string, issues: string[] }
+     * }}
+     */
+    readInventory() {
+      let packs;
+      try {
+        packs = this.getMyPacks();
+      } catch {
+        return storePackOpenFailure(
+          STORE_PACK_OPEN_ERROR_CODES.INVENTORY,
+          ["repositories.Store.myPacks.values"]
+        );
+      }
+      if (!Array.isArray(packs)) {
+        return storePackOpenFailure(
+          STORE_PACK_OPEN_ERROR_CODES.INVENTORY,
+          ["repositories.Store.myPacks"]
+        );
+      }
+      const packIds = [];
+      for (const pack of packs) {
+        if (!isRecord11(pack) || !Number.isInteger(pack.id) || Number(pack.id) <= 0) {
+          return storePackOpenFailure(
+            STORE_PACK_OPEN_ERROR_CODES.INVENTORY,
+            ["repositories.Store.myPacks.item.id"]
+          );
+        }
+        packIds.push(Number(pack.id));
+      }
+      return { success: true, data: { packIds } };
+    }
+    /**
+     * @param {number} packId
+     * @returns {{
+     *   success: true,
+     *   data: { remainingCount: number, availablePackIds: number[] }
+     * } | {
+     *   success: false,
+     *   error: { code: string, issues: string[] }
+     * }}
+     */
+    readCompletion(packId) {
+      const inventory = this.readInventory();
+      if (!inventory.success) return inventory;
+      return {
+        success: true,
+        data: {
+          remainingCount: inventory.data.packIds.filter(
+            (id) => id === packId
+          ).length,
+          availablePackIds: [...new Set(inventory.data.packIds)]
+        }
+      };
+    }
+  };
+
   // src/fsu/patches/store.js
   var inPacksController;
   var specialPlayersController;
+  var STORE_PATCH_IDS = Object.freeze({
+    PACK_LIST: "store.pack-list",
+    PACK_OPEN_TRANSACTION: "store.pack-open-transaction",
+    REVEAL_LIST: "store.reveal-list",
+    PACK_ANIMATION: "store.pack-animation",
+    CATEGORY_NAVIGATION: "store.category-navigation",
+    HUB_TILES: "store.hub-tiles"
+  });
+  function installStoreUiMethodPatch(options) {
+    const {
+      id,
+      targetLabel,
+      resolveTarget,
+      expectedOriginal,
+      verifyOriginal = true,
+      patchedMethod,
+      patchLifecycle
+    } = options;
+    return patchLifecycle.install({
+      id,
+      phase: "market-and-squad",
+      targetLabel,
+      resolveTarget,
+      verify: ({ originalDescriptor, originalValue }) => ({
+        ok: typeof patchedMethod === "function" && (originalDescriptor === void 0 || "value" in originalDescriptor && originalDescriptor.writable === true) && (originalValue === void 0 || typeof originalValue === "function") && (!verifyOriginal || originalValue === expectedOriginal),
+        missing: [`${targetLabel}.original-mismatch`]
+      }),
+      apply: ({ target, originalDescriptor }) => {
+        Object.defineProperty(target.owner, target.key, {
+          configurable: originalDescriptor?.configurable ?? true,
+          enumerable: originalDescriptor?.enumerable ?? false,
+          writable: originalDescriptor?.writable ?? true,
+          value: patchedMethod
+        });
+      }
+    });
+  }
+  function installStoreRevealPatch(deps) {
+    return installStoreUiMethodPatch({
+      id: STORE_PATCH_IDS.REVEAL_LIST,
+      targetLabel: "UTStoreRevealModalListView.prototype.addItems",
+      resolveTarget: () => typeof UTStoreRevealModalListView === "undefined" ? null : {
+        owner: UTStoreRevealModalListView.prototype,
+        key: "addItems"
+      },
+      expectedOriginal: deps.call.plist.storeReveal,
+      patchedMethod: deps.patchedMethod,
+      patchLifecycle: deps.patchLifecycle
+    });
+  }
+  function installStorePackAnimationPatch(deps) {
+    return installStoreUiMethodPatch({
+      id: STORE_PATCH_IDS.PACK_ANIMATION,
+      targetLabel: "UTPackAnimationViewController.prototype.runAnimation",
+      resolveTarget: () => typeof UTPackAnimationViewController === "undefined" ? null : {
+        owner: UTPackAnimationViewController.prototype,
+        key: "runAnimation"
+      },
+      verifyOriginal: false,
+      patchedMethod: deps.patchedMethod,
+      patchLifecycle: deps.patchLifecycle
+    });
+  }
+  function installStoreCategoryPatch(deps) {
+    return installStoreUiMethodPatch({
+      id: STORE_PATCH_IDS.CATEGORY_NAVIGATION,
+      targetLabel: "UTStoreViewController.prototype.setCategory",
+      resolveTarget: () => typeof UTStoreViewController === "undefined" ? null : {
+        owner: UTStoreViewController.prototype,
+        key: "setCategory"
+      },
+      expectedOriginal: deps.call.other.store.setCategory,
+      patchedMethod: deps.patchedMethod,
+      patchLifecycle: deps.patchLifecycle
+    });
+  }
+  function installStoreHubPatch(deps) {
+    return installStoreUiMethodPatch({
+      id: STORE_PATCH_IDS.HUB_TILES,
+      targetLabel: "UTStoreHubViewController.prototype.onPackLoadComplete",
+      resolveTarget: () => typeof UTStoreHubViewController === "undefined" ? null : {
+        owner: UTStoreHubViewController.prototype,
+        key: "onPackLoadComplete"
+      },
+      expectedOriginal: deps.call.other.store.onPackLoadComplete,
+      patchedMethod: deps.patchedMethod,
+      patchLifecycle: deps.patchLifecycle
+    });
+  }
+  function installStorePackListPatch(deps) {
+    const { call, patchLifecycle, patchedMethod } = deps;
+    return patchLifecycle.install({
+      id: STORE_PATCH_IDS.PACK_LIST,
+      phase: "market-and-squad",
+      targetLabel: "UTStoreView.prototype.setPacks",
+      resolveTarget: () => typeof UTStoreView === "undefined" ? null : { owner: UTStoreView.prototype, key: "setPacks" },
+      verify: ({ originalDescriptor, originalValue }) => ({
+        ok: originalDescriptor !== void 0 && "value" in originalDescriptor && originalDescriptor.writable === true && typeof originalValue === "function" && typeof patchedMethod === "function" && originalValue === call.other.store.setPacks,
+        missing: ["UTStoreView.prototype.setPacks.original-mismatch"]
+      }),
+      apply: ({ target, originalDescriptor }) => {
+        Object.defineProperty(target.owner, target.key, {
+          ...originalDescriptor,
+          value: patchedMethod
+        });
+      }
+    });
+  }
+  function registerStorePackListLifecycleEvents(deps) {
+    const { call, events, patchLifecycle, patchedMethod } = deps;
+    events.setStorePackListPatchEnabled = (enabled) => enabled ? installStorePackListPatch({
+      call,
+      patchLifecycle,
+      patchedMethod
+    }) : patchLifecycle.restore(STORE_PATCH_IDS.PACK_LIST);
+  }
+  function installStorePackOpenPatch(deps) {
+    const {
+      call,
+      patchLifecycle,
+      transactionService,
+      onSuccess,
+      onDiagnostic
+    } = deps;
+    return patchLifecycle.install({
+      id: STORE_PATCH_IDS.PACK_OPEN_TRANSACTION,
+      phase: "market-and-squad",
+      targetLabel: "UTStoreViewController.prototype.eOpenPack",
+      resolveTarget: () => typeof UTStoreViewController === "undefined" ? null : {
+        owner: UTStoreViewController.prototype,
+        key: "eOpenPack"
+      },
+      verify: ({ originalDescriptor, originalValue }) => ({
+        ok: originalDescriptor !== void 0 && "value" in originalDescriptor && originalDescriptor.writable === true && typeof originalValue === "function" && originalValue === call.other.store.eOpenPack,
+        missing: [
+          "UTStoreViewController.prototype.eOpenPack.original-mismatch"
+        ]
+      }),
+      apply: ({ target, originalDescriptor, originalValue }) => {
+        Object.defineProperty(target.owner, target.key, {
+          ...originalDescriptor,
+          value: function fsuStorePackOpenTransaction(...args) {
+            return transactionService.intercept({
+              controller: this,
+              args,
+              invoke: () => originalValue.apply(this, args),
+              onSuccess,
+              onDiagnostic
+            });
+          }
+        });
+      }
+    });
+  }
+  function registerStorePackOpenLifecycleEvents(deps) {
+    const { events, patchLifecycle } = deps;
+    events.setStorePackOpenPatchEnabled = (enabled) => enabled ? installStorePackOpenPatch(deps) : patchLifecycle.restore(STORE_PATCH_IDS.PACK_OPEN_TRANSACTION);
+  }
+  function commitStorePackOpenState(info, result) {
+    const { packId, remainingCount, availablePackIds } = result;
+    if (remainingCount > 0) {
+      info.douagain.pack = packId;
+    } else if (!availablePackIds.includes(info.douagain.pack)) {
+      info.douagain.pack = 0;
+    }
+  }
+  function commitInPacksPlayers(info, players) {
+    try {
+      players.forEach((player) => {
+        player.concept = false;
+        player.isInPacks = true;
+      });
+    } catch {
+      return false;
+    }
+    info.inpacks.players = [...players];
+    return true;
+  }
   function installStorePatches(deps) {
-    const { call, events, info, cntlr: cntlr2, isPhone: isPhone2, fy: fy2, repositories: repositories2, services: services2, GM_setValue: GM_setValue2, AssetLocationUtils: AssetLocationUtils2, unsafeWindow: unsafeWindow2 } = deps;
+    const { call, events, info, cntlr: cntlr2, isPhone: isPhone2, fy: fy2, repositories: repositories2, services: services2, GM_setValue: GM_setValue2, AssetLocationUtils: AssetLocationUtils2, unsafeWindow: unsafeWindow2, patchLifecycle, debug: debug2 } = deps;
     const GM_openInTab2 = unsafeWindow2.GM_openInTab;
     events.showPlayerListPopup = (title, text, players, desc) => {
       const popupController = new EADialogViewController({
@@ -5740,11 +7634,40 @@
       popupView.getRootElement().querySelector(".ea-dialog-view--body").prepend(popupBox);
       gPopupClickShield.setActivePopup(popupController);
     };
-    UTStoreRevealModalListView.prototype.addItems = function(e2, t, i, o) {
-      const showPlayers = _.orderBy(e2, [(i2) => i2.isPlayer(), "rareflag", "rating"], ["desc", "desc", "desc"]);
-      call.plist.storeReveal.call(this, showPlayers, t, i, o);
-      events.loadPlayerInfo(e2);
+    function fsuStoreRevealItems(e2, t, i, o) {
+      let showPlayers = e2;
+      try {
+        showPlayers = _.orderBy(e2, [(i2) => i2.isPlayer(), "rareflag", "rating"], ["desc", "desc", "desc"]);
+      } catch {
+        debug2.log("Store reveal list", {
+          success: false,
+          error: {
+            code: "STORE_REVEAL_ENHANCEMENT_FAILED",
+            issues: ["store.reveal-sort"]
+          }
+        });
+      }
+      const result = call.plist.storeReveal.call(this, showPlayers, t, i, o);
+      try {
+        events.loadPlayerInfo(e2);
+      } catch {
+        debug2.log("Store reveal list", {
+          success: false,
+          error: {
+            code: "STORE_REVEAL_ENHANCEMENT_FAILED",
+            issues: ["store.reveal-player-info"]
+          }
+        });
+      }
+      return result;
+    }
+    const storeRevealLifecycleDeps = {
+      call,
+      patchLifecycle,
+      patchedMethod: fsuStoreRevealItems
     };
+    events.setStoreRevealPatchEnabled = (enabled) => enabled ? installStoreRevealPatch(storeRevealLifecycleDeps) : patchLifecycle.restore(STORE_PATCH_IDS.REVEAL_LIST);
+    events.setStoreRevealPatchEnabled(true);
     events.truncateStrict = (text, maxLength = 26, tail = "...") => {
       let width = 0;
       let result = "";
@@ -5757,51 +7680,59 @@
       }
       return result;
     };
-    UTStoreView.prototype.setPacks = function(e2, t, i, o) {
+    const gameCurrency = typeof GameCurrency === "undefined" ? {} : GameCurrency;
+    const storePackCatalogService = new StorePackCatalogService(
+      new StorePackCatalogAdapter({
+        coinsCurrency: gameCurrency.COINS,
+        pointsCurrency: gameCurrency.POINTS,
+        localize: (key) => services2.Localization.localize(key),
+        getPackValue: (id) => events.getOddo(id),
+        truncate: (text) => events.truncateStrict(text)
+      })
+    );
+    const inPacksSearchService = new InPacksSearchService({
+      adapter: new InPacksSearchAdapter({
+        CriteriaConstructor: typeof UTSearchCriteriaDTO === "undefined" ? void 0 : UTSearchCriteriaDTO,
+        searchConceptItems: (criteria) => services2.Item.searchConceptItems(criteria),
+        observableAdapter: new EaObservableAdapter()
+      })
+    });
+    function fsuStorePackList(e2, t, i, o) {
       const HideAndShow = this.getStoreCategory() == "mypacks";
-      let showList;
-      if (HideAndShow) {
-        const packList = [];
-        this._fsuPacks = {};
-        for (const ep of e2) {
-          const key = `${ep.id}-${ep.tradable}`;
-          if (!packList.some((plp) => `${plp.id}-${plp.tradable}` === key)) {
-            packList.push(ep);
-          }
-          this._fsuPacks[key] ??= (() => {
-            let rawName = services2.Localization.localize(ep.packName);
-            const name = ep.tradable ? `*${rawName}` : rawName;
-            return {
-              packId: ep.id,
-              tradable: ep.tradable,
-              count: 0,
-              isPlayers: ep.contentType === "players",
-              name: events.truncateStrict(name),
-              fullName: name,
-              value: events.getOddo(ep.id)
-            };
-          })();
-          this._fsuPacks[key].count++;
-        }
-        showList = _.orderBy(packList, (item) => events.getOddo(item.id), info.myPacksSort);
-      } else {
-        const ONE_DAY = 86400;
-        const now = Math.floor(Date.now() / 1e3);
-        const categoryId = this.getStoreCategory();
-        e2.forEach((item) => {
-          item.isNew = item.start && now - item.start <= ONE_DAY && categoryId !== 3;
+      const categoryId = this.getStoreCategory();
+      let catalog;
+      try {
+        catalog = storePackCatalogService.createCatalog(e2, {
+          categoryId,
+          isMyPacks: HideAndShow,
+          nowSeconds: Math.floor(Date.now() / 1e3),
+          sortDirection: info.myPacksSort
         });
-        const sorted = _.orderBy(e2, [
-          (item) => !item.getPrice(GameCurrency.POINTS) && item.getPrice(GameCurrency.COINS) && item.id !== 101,
-          (item) => item.isNew,
-          // 直接用 isNew 属性
-          (item) => "previewCreateTime" in item,
-          (item) => {
-            const price = item.getPrice(GameCurrency.COINS) || 1;
-            return events.getOddo(item.id) / price;
+      } catch {
+        catalog = {
+          success: false,
+          error: {
+            code: "STORE_PACK_CATALOG_FAILED",
+            issues: ["store.pack-catalog"]
           }
-        ], ["desc", "desc", "desc", "desc"]);
-        showList = sorted;
+        };
+      }
+      let showList = e2;
+      this._fsuPacks = {};
+      if (catalog.success) {
+        showList = catalog.data.articles;
+        this._fsuPacks = catalog.data.summaries;
+        catalog.data.articleStates.forEach(({ article, isNew }) => {
+          try {
+            article.isNew = isNew;
+          } catch {
+          }
+        });
+        if (catalog.data.warnings.length) {
+          debug2.log("Store pack catalog", catalog.data.warnings);
+        }
+      } else {
+        debug2.log("Store pack catalog", catalog);
       }
       call.other.store.setPacks.call(this, showList, t, i, o);
       setTimeout(() => {
@@ -6087,176 +8018,243 @@
           }
         }
       }, 50);
-    };
-    UTPackAnimationViewController.prototype.runAnimation = function() {
-      if (!this.running) {
-        this.running = true;
-        var e2 = this.getView(), t = services2.Configuration.getItemRarity(this.presentedItem);
-        e2.setPackTier(this.packTier), e2.generateItem(this.presentedItem);
+    }
+    registerStorePackListLifecycleEvents({
+      call,
+      events,
+      patchLifecycle,
+      patchedMethod: fsuStorePackList
+    });
+    events.setStorePackListPatchEnabled(true);
+    function fsuStorePackAnimation() {
+      if (this.running) {
+        return;
+      }
+      this.running = true;
+      let timeout = 0;
+      try {
+        const view = this.getView();
+        const rarity = services2.Configuration.getItemRarity(this.presentedItem);
+        view.setPackTier(this.packTier);
+        view.generateItem(this.presentedItem);
         if (!info.set.info_skipanimation) {
-          e2.runAnimation(this.presentedItem, t);
+          view.runAnimation(this.presentedItem, rarity);
         }
-        this.animationTimeout = window.setTimeout(this.runCallback.bind(this), info.set.info_skipanimation ? 0 : 4500);
-      }
-    };
-    const UTSVCEOP_CALL = UTStoreViewController.prototype.eOpenPack;
-    UTStoreViewController.prototype.eOpenPack = function(p, e2, t) {
-      UTSVCEOP_CALL.call(this, p, e2, t);
-      let i, d = null === (i = this.viewmodel) || void 0 === i ? void 0 : i.getPackById(t.articleId, e2 === UTStorePackDetailsView.Event.OPEN, JSUtils.isBoolean(t.tradable) ? t.tradable : void 0);
-      if (d.isMyPack) {
-        if (repositories2.Store.myPacks.values().filter((i2) => i2.id == d.id).length > 1) {
-          info.douagain.pack = d.id;
-        } else {
-          if (!repositories2.Store.myPacks.values().filter((i2) => i2.id == info.douagain.pack).length) {
-            info.douagain.pack = 0;
-          }
-        }
-      }
-    };
-    UTStoreViewController.prototype.setCategory = function(e2) {
-      call.other.store.setCategory.call(this, e2);
-      if (this.viewmodel !== void 0) {
-        let conditions = ["UT_STORE_CAT_S_PFU", "FUT_STORE_CAT_SPECIAL_NAME", "FUT_STORE_CAT_PROVISIONS"];
-        let searchCategoryIds = _.map(
-          _.filter(
-            this.viewmodel.categories,
-            (obj) => conditions.includes(obj.localizedName)
-          ),
-          "categoryId"
-        );
-        let classic = _.find(this.viewmodel.categories, (c) => c.localizedName == "FUT_STORE_CAT_CLASSIC_NAME");
-        _.forEach(this.getView()._navigation.items, (item) => {
-          if (searchCategoryIds.includes(item.id)) {
-            let coinsPack = _.filter(this.viewmodel.getCategoryArticles(item.id), (pack) => _.isEqual(pack.state, "active") && !pack.getPrice(GameCurrency.POINTS) && pack.getPrice(GameCurrency.COINS));
-            if (coinsPack.length) {
-              item.addNotificationBubble(coinsPack.length);
-            }
-          }
-          if (item.id == classic.categoryId) {
-            let xrayPack = _.filter(this.viewmodel.getCategoryArticles(classic.categoryId), (pack) => _.has(pack, "previewCreateTime") && pack.previewCreateTime == 0);
-            if (xrayPack.length) {
-              item.addNotificationBubble(xrayPack.length);
-            }
+        timeout = info.set.info_skipanimation ? 0 : 4500;
+      } catch {
+        debug2.log("Store pack animation", {
+          success: false,
+          error: {
+            code: "STORE_ANIMATION_ENHANCEMENT_FAILED",
+            issues: ["store.pack-animation"]
           }
         });
       }
-    };
-    const UTStoreHubViewController_onPackLoadComplete = UTStoreHubViewController.prototype.onPackLoadComplete;
-    UTStoreHubViewController.prototype.onPackLoadComplete = function(e2, t) {
-      UTStoreHubViewController_onPackLoadComplete.call(this, e2, t);
-      let view = this.getView();
-      if (info.inpacks.defIds.length && !("_fsuInPacksTile" in view)) {
-        let inPacksTile = new UTTileView();
-        inPacksTile.getRootElement().classList.add("col-1-2", "fsu-showPlayerstile");
-        inPacksTile.title = fy2("inpacktile.title");
-        inPacksTile.__tileTitle.after(
-          events.createElementWithConfig("p", {
-            textContent: fy2("inpacktile.desc")
-          })
+      if (typeof this.runCallback === "function") {
+        this.animationTimeout = window.setTimeout(
+          this.runCallback.bind(this),
+          timeout
         );
-        inPacksTile.fsuImgBox = events.createElementWithConfig("div", {
-          classList: "img-box"
-        });
-        let imgSrc = _.find(services2.Messages.messagesRepository.hubMessages, { goToLink: "gotostore" })?.bodyImagePath || "https://www.ea.com/ea-sports-fc/ultimate-team/web-app/images/squad/activeSquadTile_squad.png";
-        inPacksTile.fsuImgBox.appendChild(
-          events.createElementWithConfig("img", {
-            src: imgSrc
-          })
-        );
-        inPacksTile.__tileContent.appendChild(inPacksTile.fsuImgBox);
-        inPacksTile.fsuCount = new UTLabelView();
-        inPacksTile.fsuCount.setRoundedCorner(UTLabelView.Rounded.TOP_RIGHT);
-        inPacksTile.fsuCount.setLabel(services2.Localization.localize("tile.label.itemCount", [info.inpacks.defIds.length.toString()]));
-        inPacksTile.__tileContent.appendChild(inPacksTile.fsuCount.getRootElement());
-        view._fsuInPacksTile = inPacksTile;
-        view._fsuInPacksTile.addTarget(view, (_e) => {
-          events.goToInPacks(this.getNavigationController());
-        }, EventType.TAP);
-        view._fsuInPacksTile.setInteractionState(true);
-        view.__hubGrid.appendChild(view._fsuInPacksTile.getRootElement());
       }
-      if (_.has(info, "specialPlayers") && _.size(_.get(info, "specialPlayers.dynamic")) + _.size(_.get(info, "specialPlayers.extraChem")) > 0 && !("_fsuSpecialTile" in view)) {
-        let specialTile = new UTTileView();
-        specialTile.getRootElement().classList.add("col-1-2", "fsu-showPlayerstile", "fsu-specialTile");
-        specialTile.title = fy2("specialtile.title");
-        specialTile.__tileTitle.after(
-          events.createElementWithConfig("p", {
-            textContent: fy2("specialtile.desc")
-          })
-        );
-        specialTile.fsuImgBox = events.createElementWithConfig("div", {
-          classList: "img-box"
-        });
-        const keys = _.keys(info.specialPlayers.dynamic);
-        const randomKeys = _.sampleSize(keys, 3);
-        randomKeys.forEach((key) => {
-          const img = events.createElementWithConfig("img", {
-            src: AssetLocationUtils2.getFilterImage(AssetLocationUtils2.FILTER.RARITY, key)
-          });
-          specialTile.fsuImgBox.appendChild(img);
-        });
-        specialTile.__tileContent.appendChild(specialTile.fsuImgBox);
-        specialTile.fsuCount = new UTLabelView();
-        specialTile.fsuCount.setRoundedCorner(UTLabelView.Rounded.TOP_RIGHT);
-        specialTile.fsuCount.setLabel(services2.Localization.localize("tile.label.itemCount", [_.size(info.specialPlayers.dynamic) + _.size(info.specialPlayers.extraChem)]));
-        specialTile.__tileContent.appendChild(specialTile.fsuCount.getRootElement());
-        view._fsuSpecialTile = specialTile;
-        view._fsuSpecialTile.addTarget(view, (_e) => {
-          this.getNavigationController().pushViewController(new specialPlayersController());
-        }, EventType.TAP);
-        view._fsuSpecialTile.setInteractionState(true);
-        view.__hubGrid.appendChild(view._fsuSpecialTile.getRootElement());
-      }
+    }
+    const storeAnimationLifecycleDeps = {
+      patchLifecycle,
+      patchedMethod: fsuStorePackAnimation
     };
-    events.goToInPacks = async (nav) => {
-      if (nav) {
-        if (info.inpacks.players.length === 0) {
-          events.showLoader();
-          let allItems = [];
-          let offset = 0;
-          const limit = 200;
-          while (true) {
-            let done = await new Promise((resolve) => {
-              let searchCriteria = new UTSearchCriteriaDTO();
-              searchCriteria.count = limit;
-              searchCriteria.offset = offset;
-              searchCriteria.defId = info.inpacks.defIds;
-              searchCriteria.rarities = info.inpacks.rarityIds;
-              services2.Item.searchConceptItems(searchCriteria).observe(cntlr2.current(), function(e2, t) {
-                e2.unobserve(cntlr2.current());
-                if (!t.success) {
-                  events.notice("读取球员数据失败！", 2);
-                  return resolve(true);
-                }
-                const items = t.response.items || [];
-                allItems.push(...items);
-                if (items.length < limit) {
-                  resolve(true);
-                } else {
-                  offset += limit;
-                  resolve(false);
-                }
-              });
-            });
-            if (done) break;
-          }
-          if (allItems.length) {
-            _.forEach(info.inpacks.defIds, (defId) => {
-              let player = _.find(allItems, (item) => {
-                return item.definitionId === defId;
-              });
-              if (player) {
-                player.concept = false;
-                player.isInPacks = true;
-                info.inpacks.players.push(player);
+    events.setStorePackAnimationPatchEnabled = (enabled) => enabled ? installStorePackAnimationPatch(storeAnimationLifecycleDeps) : patchLifecycle.restore(STORE_PATCH_IDS.PACK_ANIMATION);
+    events.setStorePackAnimationPatchEnabled(true);
+    const storePackOpenAdapter = new StorePackOpenAdapter({
+      openEvent: typeof UTStorePackDetailsView === "undefined" ? void 0 : UTStorePackDetailsView.Event?.OPEN,
+      getMyPacks: () => repositories2.Store.myPacks.values()
+    });
+    const storePackOpenTransactionService = new StorePackOpenTransactionService({
+      adapter: storePackOpenAdapter
+    });
+    const storePackOpenLifecycleDeps = {
+      call,
+      events,
+      patchLifecycle,
+      transactionService: storePackOpenTransactionService,
+      onSuccess: (result) => commitStorePackOpenState(info, result),
+      onDiagnostic: (result) => debug2.log("Store pack open transaction", result)
+    };
+    registerStorePackOpenLifecycleEvents(storePackOpenLifecycleDeps);
+    events.setStorePackOpenPatchEnabled(true);
+    function fsuStoreCategoryNavigation(e2) {
+      const result = call.other.store.setCategory.call(this, e2);
+      try {
+        if (this.viewmodel !== void 0) {
+          let conditions = ["UT_STORE_CAT_S_PFU", "FUT_STORE_CAT_SPECIAL_NAME", "FUT_STORE_CAT_PROVISIONS"];
+          let searchCategoryIds = _.map(
+            _.filter(
+              this.viewmodel.categories,
+              (obj) => conditions.includes(obj.localizedName)
+            ),
+            "categoryId"
+          );
+          let classic = _.find(this.viewmodel.categories, (c) => c.localizedName == "FUT_STORE_CAT_CLASSIC_NAME");
+          _.forEach(this.getView()._navigation.items, (item) => {
+            if (searchCategoryIds.includes(item.id)) {
+              let coinsPack = _.filter(this.viewmodel.getCategoryArticles(item.id), (pack) => _.isEqual(pack.state, "active") && !pack.getPrice(GameCurrency.POINTS) && pack.getPrice(GameCurrency.COINS));
+              if (coinsPack.length) {
+                item.addNotificationBubble(coinsPack.length);
               }
-            });
-          }
-          events.hideLoader();
+            }
+            if (classic && item.id == classic.categoryId) {
+              let xrayPack = _.filter(this.viewmodel.getCategoryArticles(classic.categoryId), (pack) => _.has(pack, "previewCreateTime") && pack.previewCreateTime == 0);
+              if (xrayPack.length) {
+                item.addNotificationBubble(xrayPack.length);
+              }
+            }
+          });
         }
-        var controller = new inPacksController();
-        nav.pushViewController(controller);
+      } catch {
+        debug2.log("Store category navigation", {
+          success: false,
+          error: {
+            code: "STORE_CATEGORY_ENHANCEMENT_FAILED",
+            issues: ["store.category-navigation"]
+          }
+        });
       }
+      return result;
+    }
+    const storeCategoryLifecycleDeps = {
+      call,
+      patchLifecycle,
+      patchedMethod: fsuStoreCategoryNavigation
+    };
+    events.setStoreCategoryPatchEnabled = (enabled) => enabled ? installStoreCategoryPatch(storeCategoryLifecycleDeps) : patchLifecycle.restore(STORE_PATCH_IDS.CATEGORY_NAVIGATION);
+    events.setStoreCategoryPatchEnabled(true);
+    function fsuStoreHubTiles(e2, t) {
+      const result = call.other.store.onPackLoadComplete.call(this, e2, t);
+      try {
+        let view = this.getView();
+        if (info.inpacks.defIds.length && !("_fsuInPacksTile" in view)) {
+          let inPacksTile = new UTTileView();
+          inPacksTile.getRootElement().classList.add("col-1-2", "fsu-showPlayerstile");
+          inPacksTile.title = fy2("inpacktile.title");
+          inPacksTile.__tileTitle.after(
+            events.createElementWithConfig("p", {
+              textContent: fy2("inpacktile.desc")
+            })
+          );
+          inPacksTile.fsuImgBox = events.createElementWithConfig("div", {
+            classList: "img-box"
+          });
+          let imgSrc = _.find(services2.Messages.messagesRepository.hubMessages, { goToLink: "gotostore" })?.bodyImagePath || "https://www.ea.com/ea-sports-fc/ultimate-team/web-app/images/squad/activeSquadTile_squad.png";
+          inPacksTile.fsuImgBox.appendChild(
+            events.createElementWithConfig("img", {
+              src: imgSrc
+            })
+          );
+          inPacksTile.__tileContent.appendChild(inPacksTile.fsuImgBox);
+          inPacksTile.fsuCount = new UTLabelView();
+          inPacksTile.fsuCount.setRoundedCorner(UTLabelView.Rounded.TOP_RIGHT);
+          inPacksTile.fsuCount.setLabel(services2.Localization.localize("tile.label.itemCount", [info.inpacks.defIds.length.toString()]));
+          inPacksTile.__tileContent.appendChild(inPacksTile.fsuCount.getRootElement());
+          view._fsuInPacksTile = inPacksTile;
+          view._fsuInPacksTile.addTarget(view, (_e) => {
+            events.goToInPacks(this.getNavigationController());
+          }, EventType.TAP);
+          view._fsuInPacksTile.setInteractionState(true);
+          view.__hubGrid.appendChild(view._fsuInPacksTile.getRootElement());
+        }
+        if (_.has(info, "specialPlayers") && _.size(_.get(info, "specialPlayers.dynamic")) + _.size(_.get(info, "specialPlayers.extraChem")) > 0 && !("_fsuSpecialTile" in view)) {
+          let specialTile = new UTTileView();
+          specialTile.getRootElement().classList.add("col-1-2", "fsu-showPlayerstile", "fsu-specialTile");
+          specialTile.title = fy2("specialtile.title");
+          specialTile.__tileTitle.after(
+            events.createElementWithConfig("p", {
+              textContent: fy2("specialtile.desc")
+            })
+          );
+          specialTile.fsuImgBox = events.createElementWithConfig("div", {
+            classList: "img-box"
+          });
+          const keys = _.keys(info.specialPlayers.dynamic);
+          const randomKeys = _.sampleSize(keys, 3);
+          randomKeys.forEach((key) => {
+            const img = events.createElementWithConfig("img", {
+              src: AssetLocationUtils2.getFilterImage(AssetLocationUtils2.FILTER.RARITY, key)
+            });
+            specialTile.fsuImgBox.appendChild(img);
+          });
+          specialTile.__tileContent.appendChild(specialTile.fsuImgBox);
+          specialTile.fsuCount = new UTLabelView();
+          specialTile.fsuCount.setRoundedCorner(UTLabelView.Rounded.TOP_RIGHT);
+          specialTile.fsuCount.setLabel(services2.Localization.localize("tile.label.itemCount", [_.size(info.specialPlayers.dynamic) + _.size(info.specialPlayers.extraChem)]));
+          specialTile.__tileContent.appendChild(specialTile.fsuCount.getRootElement());
+          view._fsuSpecialTile = specialTile;
+          view._fsuSpecialTile.addTarget(view, (_e) => {
+            this.getNavigationController().pushViewController(new specialPlayersController());
+          }, EventType.TAP);
+          view._fsuSpecialTile.setInteractionState(true);
+          view.__hubGrid.appendChild(view._fsuSpecialTile.getRootElement());
+        }
+      } catch {
+        debug2.log("Store hub tiles", {
+          success: false,
+          error: {
+            code: "STORE_HUB_ENHANCEMENT_FAILED",
+            issues: ["store.hub-tiles"]
+          }
+        });
+      }
+      return result;
+    }
+    const storeHubLifecycleDeps = {
+      call,
+      patchLifecycle,
+      patchedMethod: fsuStoreHubTiles
+    };
+    events.setStoreHubPatchEnabled = (enabled) => enabled ? installStoreHubPatch(storeHubLifecycleDeps) : patchLifecycle.restore(STORE_PATCH_IDS.HUB_TILES);
+    events.setStoreHubPatchEnabled(true);
+    events.cancelInPacksSearch = () => inPacksSearchService.cancel();
+    events.goToInPacks = async (nav) => {
+      if (!nav) return false;
+      if (info.inpacks.players.length === 0) {
+        const startingController = cntlr2.current();
+        events.showLoader();
+        let result;
+        try {
+          result = await inPacksSearchService.search({
+            definitionIds: info.inpacks.defIds,
+            rarityIds: info.inpacks.rarityIds,
+            observerContext: startingController || nav,
+            isActive: () => cntlr2.current() === startingController
+          });
+        } finally {
+          if (!inPacksSearchService.isRunning()) {
+            events.hideLoader();
+          }
+        }
+        if (!result.success) {
+          debug2.log("In-packs search", result);
+          if (result.error?.code !== IN_PACKS_SEARCH_ERROR_CODES.CANCELLED) {
+            events.notice("读取球员数据失败！", 2);
+          }
+          return false;
+        }
+        const players = inPacksSearchService.selectConfiguredPlayers(
+          result.data.items,
+          info.inpacks.defIds
+        );
+        if (!commitInPacksPlayers(info, players)) {
+          debug2.log("In-packs search", {
+            success: false,
+            error: {
+              code: "IN_PACKS_SEARCH_COMMIT_FAILED",
+              issues: ["info.inpacks.players"]
+            }
+          });
+          events.notice("读取球员数据失败！", 2);
+          return false;
+        }
+      }
+      const controller = new inPacksController();
+      nav.pushViewController(controller);
+      return true;
     };
     const inPacksControllerView = function(_t) {
       EAView.call(this);
@@ -7100,16 +9098,14 @@
       createVirtualChallenge: (...args) => events.createVirtualChallenge(...args),
       saveSquad: (...args) => events.saveSquad(...args),
       saveOldSquad: (...args) => events.saveOldSquad(...args),
-      isTemplateRunning: () => info.run.template,
-      setTemplateRunning: (value) => {
-        info.run.template = value;
-      },
       getGoldenRange: () => info.set.goldenrange,
       getFormationMap: () => info.formation,
       debug: debug2,
       isPhone: isPhone2,
       navigateBack: () => cntlr2.current().getNavigationController()._eBackButtonTapped()
     });
+    events.cancelSbcTemplate = () => sbcTemplateService.cancel();
+    events.isSbcTemplateRunning = () => sbcTemplateService.isRunning();
     events.saveSquad = async (challenge, squad, players) => sbcSquadSaveService.save(challenge, squad, players, {
       setSaving: (value) => {
         info.base.savesquad = value;
@@ -7243,7 +9239,7 @@
       if (this.isSBC()) {
         let op = this._fsu.oldSquad[this._fsu.oldSquadCount][t];
         if (op.definitionId == e2.definitionId && op.concept == true) {
-          this._fsu.oldSquad[this._fsu.oldSquadCount][t] = e2;
+          events.replaceOldSquadItem(this, t, e2);
         } else {
           events.saveOldSquad(this, true);
         }
@@ -7723,9 +9719,17 @@
       build: info.build
     };
   }
-  function runFastSbcSubmit(deps, controller, challenge, SBCSetEntity, fillPlayers, onDone) {
+  async function runFastSbcSubmit(deps, controller, challenge, SBCSetEntity, fillPlayers, onDone) {
     const { events, services: services2 } = deps;
-    events.playerListFillSquad(challenge, fillPlayers, 1);
+    const fillResult = await events.playerListFillSquad(
+      challenge,
+      fillPlayers,
+      1
+    );
+    if (!fillResult?.success) {
+      onDone?.({ success: false, errorCode: 1 });
+      return;
+    }
     if (!challenge.canSubmit()) {
       utils.PopupManager.showAlert(utils.PopupManager.Alerts.SBC_INELIGIBLE_SQUAD);
       onDone?.({ success: false, errorCode: 3 });
@@ -9211,21 +11215,186 @@
     };
   }
 
-  // src/fsu/patches/sbc-submit.js
-  function installSbcSubmitPatch({ sbcCountService, onCountChanged }) {
-    const originalSubmitChallenge = UTSBCService.prototype.submitChallenge;
-    UTSBCService.prototype.submitChallenge = function(...args) {
-      const result = originalSubmitChallenge.apply(this, args);
-      const service = this;
-      result.observe(this, function(observer, response) {
-        observer.unobserve(service);
-        if (response.success) {
-          sbcCountService.recordCompletion();
-          onCountChanged();
+  // src/fsu/domain/SbcSubmitTransactionService.js
+  var RejectedSubmitObservable = class {
+    /** @param {Record<string, unknown>} response */
+    constructor(response) {
+      this.response = response;
+    }
+    /**
+     * @param {object} context
+     * @param {(sender: unknown, response: unknown) => void} callback
+     */
+    observe(context, callback) {
+      queueMicrotask(() => callback(this, this.response));
+      return this;
+    }
+    unobserve() {
+    }
+  };
+  function isRecord12(value) {
+    return value !== null && typeof value === "object";
+  }
+  var SbcSubmitTransactionService = class {
+    /**
+     * @param {{ observableAdapter?: EaObservableAdapter }} [options]
+     */
+    constructor({ observableAdapter = new EaObservableAdapter() } = {}) {
+      this.observableAdapter = observableAdapter;
+      this.inFlight = /* @__PURE__ */ new Map();
+    }
+    /**
+     * @param {{
+     *   args: unknown[],
+     *   observerContext: object,
+     *   invoke: () => unknown,
+     *   onSuccess: (response: Record<string, unknown>) => void,
+     *   onDiagnostic?: (result: unknown) => void
+     * }} options
+     */
+    intercept({
+      args,
+      observerContext,
+      invoke,
+      onSuccess,
+      onDiagnostic = () => {
+      }
+    }) {
+      const challenge = args[0];
+      const setEntity = args[1];
+      const challengeId = Number(
+        isRecord12(challenge) ? challenge.id : void 0
+      );
+      let canSubmit;
+      try {
+        canSubmit = isRecord12(challenge) && typeof challenge.canSubmit === "function" && challenge.canSubmit() === true;
+      } catch {
+        canSubmit = false;
+      }
+      if (!Number.isInteger(challengeId) || challengeId <= 0 || !isRecord12(setEntity) || !canSubmit) {
+        const result = sbcSubmitFailure(
+          SBC_SUBMIT_ERROR_CODES.PRECONDITION,
+          ["challenge.id", "challenge.canSubmit", "set"]
+        );
+        onDiagnostic(result);
+        return new RejectedSubmitObservable({
+          success: false,
+          status: 400,
+          error: result.error
+        });
+      }
+      const key = String(challengeId);
+      const existing = this.inFlight.get(key);
+      if (existing) {
+        const result = sbcSubmitFailure(
+          SBC_SUBMIT_ERROR_CODES.IN_FLIGHT,
+          ["challenge.submit-in-flight"]
+        );
+        onDiagnostic(result);
+        return new RejectedSubmitObservable({
+          success: false,
+          status: 409,
+          error: result.error
+        });
+      }
+      let observable;
+      try {
+        observable = invoke();
+      } catch {
+        const result = sbcSubmitFailure(
+          SBC_SUBMIT_ERROR_CODES.INVALID_RESPONSE,
+          ["submit.invoke-threw"]
+        );
+        onDiagnostic(result);
+        return new RejectedSubmitObservable({
+          success: false,
+          status: 500,
+          error: result.error
+        });
+      }
+      if (!isRecord12(observable) || typeof observable.observe !== "function") {
+        const result = sbcSubmitFailure(
+          SBC_SUBMIT_ERROR_CODES.INVALID_RESPONSE,
+          ["submit.observable"]
+        );
+        onDiagnostic(result);
+        return new RejectedSubmitObservable({
+          success: false,
+          status: 500,
+          error: result.error
+        });
+      }
+      this.inFlight.set(key, observable);
+      let responseObserved = false;
+      this.observableAdapter.observeOnce(observable, observerContext, "sbc.submit-challenge").then((observed) => {
+        if (!observed.success) {
+          onDiagnostic(observed);
+          return;
+        }
+        responseObserved = true;
+        const result = parseSbcSubmitResponse(observed.data);
+        if (!result.success) {
+          onDiagnostic(result);
+          return;
+        }
+        onSuccess(result.data);
+      }).catch(() => {
+        onDiagnostic(
+          sbcSubmitFailure(SBC_SUBMIT_ERROR_CODES.INVALID_RESPONSE, [
+            "submit.monitor-threw"
+          ])
+        );
+      }).finally(() => {
+        if (responseObserved && this.inFlight.get(key) === observable) {
+          this.inFlight.delete(key);
         }
       });
-      return result;
-    };
+      return observable;
+    }
+  };
+
+  // src/fsu/patches/sbc-submit.js
+  var SBC_SUBMIT_PATCH_IDS = Object.freeze({
+    TRANSACTION: "sbc.submit-transaction"
+  });
+  function installSbcSubmitPatch(deps) {
+    const {
+      sbcCountService,
+      onCountChanged,
+      patchLifecycle,
+      debug: debug2
+    } = deps;
+    const transactionService = deps.transactionService ?? new SbcSubmitTransactionService();
+    return patchLifecycle.install({
+      id: SBC_SUBMIT_PATCH_IDS.TRANSACTION,
+      phase: "late",
+      targetLabel: "UTSBCService.prototype.submitChallenge",
+      resolveTarget: () => typeof UTSBCService === "undefined" ? null : {
+        owner: UTSBCService.prototype,
+        key: "submitChallenge"
+      },
+      verify: ({ originalDescriptor, originalValue }) => ({
+        ok: originalDescriptor !== void 0 && "value" in originalDescriptor && originalDescriptor.writable === true && typeof originalValue === "function",
+        missing: ["UTSBCService.prototype.submitChallenge"]
+      }),
+      apply: ({ target, originalDescriptor, originalValue }) => {
+        Object.defineProperty(target.owner, target.key, {
+          ...originalDescriptor,
+          value: function fsuSubmitChallengeTransaction(...args) {
+            return transactionService.intercept({
+              args,
+              observerContext: this,
+              invoke: () => originalValue.apply(this, args),
+              onSuccess: () => {
+                sbcCountService.recordCompletion();
+                onCountChanged();
+              },
+              onDiagnostic: (result) => debug2.log("SBC submit transaction", result)
+            });
+          }
+        });
+      }
+    });
   }
 
   // src/fsu/patches/misc-patches.js
@@ -10318,12 +12487,45 @@
   }
 
   // src/fsu/patches/panel-patches.js
+  var PLAYER_DETAILS_PATCH_IDS = Object.freeze({
+    QUICK_LIST_RENDER: "details.quick-list-render"
+  });
+  function installPlayerDetailsEntryPatch(deps) {
+    const { call, events, patchLifecycle } = deps;
+    return patchLifecycle.install({
+      id: PLAYER_DETAILS_PATCH_IDS.QUICK_LIST_RENDER,
+      phase: "sbc-core",
+      targetLabel: "UTQuickListPanelViewController.prototype.renderView",
+      resolveTarget: () => typeof UTQuickListPanelViewController === "undefined" ? null : {
+        owner: UTQuickListPanelViewController.prototype,
+        key: "renderView"
+      },
+      verify: ({ originalDescriptor, originalValue }) => ({
+        ok: originalDescriptor !== void 0 && "value" in originalDescriptor && originalDescriptor.writable === true && typeof originalValue === "function" && originalValue === call.panel.quickRender,
+        missing: [
+          "UTQuickListPanelViewController.prototype.renderView.original-mismatch"
+        ]
+      }),
+      apply: ({ target, originalDescriptor, originalValue }) => {
+        Object.defineProperty(target.owner, target.key, {
+          ...originalDescriptor,
+          value: function fsuPlayerDetailsEntry(...args) {
+            const result = originalValue.call(this, ...args);
+            events.detailsButtonSet(this);
+            return result;
+          }
+        });
+      }
+    });
+  }
+  function registerPlayerDetailsLifecycleEvents(deps) {
+    const { call, events, patchLifecycle } = deps;
+    events.setPlayerDetailsPatchEnabled = (enabled) => enabled ? installPlayerDetailsEntryPatch({ call, events, patchLifecycle }) : patchLifecycle.restore(PLAYER_DETAILS_PATCH_IDS.QUICK_LIST_RENDER);
+  }
   function installPanelPatches(deps) {
-    const { call, events, info, fy: fy2, cntlr: cntlr2, isPhone: isPhone2 } = deps;
-    UTQuickListPanelViewController.prototype.renderView = function() {
-      call.panel.quickRender.call(this);
-      events.detailsButtonSet(this);
-    };
+    const { call, events, info, fy: fy2, cntlr: cntlr2, isPhone: isPhone2, patchLifecycle } = deps;
+    registerPlayerDetailsLifecycleEvents({ call, events, patchLifecycle });
+    events.setPlayerDetailsPatchEnabled(true);
     UTRewardSelectionChoiceView.prototype.expandRewardSet = function(e2, t) {
       call.panel.reward.call(this, e2, t);
       let reward = t.rewards.find((i) => i.count), tn = this._rewardsCarousel._tnsCarousel.__root;
@@ -10424,18 +12626,53 @@
       );
       installSectionedListPatches(c.pick("call", "events", "info", "fy", "cntlr", "services", "debug"));
       registerBuildIgnoreEvents(c.pick("events", "info", "fy", "set", "build", "debug"));
-      installPlayerListPatches(c.pick("call", "events", "info", "cntlr", "isPhone", "debug", "repositories", "services", "fy"));
+      installPlayerListPatches(
+        c.pick(
+          "call",
+          "events",
+          "info",
+          "cntlr",
+          "isPhone",
+          "debug",
+          "repositories",
+          "services",
+          "fy",
+          "futbinId",
+          "patchLifecycle"
+        )
+      );
       installSbcHubPatches(c.pick("info", "events", "services", "fy", "cntlr"));
       installAcademyHubPatches(c.pick("info", "events", "fy", "repositories", "debug"));
       registerSbcInfoFillEvent(c.pick("events", "info", "fy", "html", "repositories"));
       registerSbcNavEvents(
-        c.pick("events", "info", "fy", "cntlr", "isPhone", "repositories", "services", "futbinId", "GM_openInTab")
+        c.pick(
+          "events",
+          "info",
+          "fy",
+          "cntlr",
+          "isPhone",
+          "repositories",
+          "services",
+          "futbinId",
+          "GM_openInTab",
+          "patchLifecycle"
+        )
       );
     }
     installSbcCore() {
       const c = this.ctx;
       installPlayerBioPatches(c.pick("events", "info", "cntlr", "services", "debug", "fy", "repositories"));
-      installPanelPatches(c.pick("call", "events", "info", "fy", "cntlr", "isPhone"));
+      installPanelPatches(
+        c.pick(
+          "call",
+          "events",
+          "info",
+          "fy",
+          "cntlr",
+          "isPhone",
+          "patchLifecycle"
+        )
+      );
       this.wireSbcMatchEvents();
       registerSbcSubstitutionEvents({ events: c.events });
       installObjectivesHubPatches(c.pick("call", "events", "info", "fy", "isPhone", "services"));
@@ -10455,7 +12692,19 @@
     installMarketAndSquad() {
       const c = this.ctx;
       installMarketPatches(
-        c.pick("call", "events", "info", "cntlr", "isPhone", "fy", "debug", "repositories", "services", "GM_setValue")
+        c.pick(
+          "call",
+          "events",
+          "info",
+          "cntlr",
+          "isPhone",
+          "fy",
+          "debug",
+          "repositories",
+          "services",
+          "GM_setValue",
+          "patchLifecycle"
+        )
       );
       installStorePatches(
         c.pick(
@@ -10470,7 +12719,9 @@
           "services",
           "GM_setValue",
           "AssetLocationUtils",
-          "unsafeWindow"
+          "unsafeWindow",
+          "patchLifecycle",
+          "debug"
         )
       );
       installSearchPatches(c.pick("call", "events", "info", "isPhone", "cntlr", "fy"));
@@ -10559,7 +12810,9 @@
       const c = this.ctx;
       installSbcSubmitPatch({
         sbcCountService: c.ctx.sbcCountService,
-        onCountChanged: () => c.SBCCount.changeCount()
+        onCountChanged: () => c.SBCCount.changeCount(),
+        patchLifecycle: c.patchLifecycle,
+        debug: c.debug
       });
       registerMiscEvents(c.pick("events", "info", "cntlr", "services", "repositories", "debug", "fy"));
       installMiscPatches(c.pick("events", "info", "fy", "debug"));
@@ -10908,45 +13161,58 @@
 
   // src/fsu/domain/SbcRequirementsService.js
   var SbcRequirementsService = class {
-    requirementsToText(requirement, eligibilityKeys, localize) {
-      let rKey = requirement.getFirstKey();
-      let rIds = requirement.getValue(rKey);
-      function combine(t) {
-        return _.map(t, function(value, index, array) {
-          return index < array.length - 1 ? value + " " + _.toUpper(localize("label.general.or")) : value;
-        }).join(" ");
-      }
-      switch (rKey) {
+    /**
+     * @param {unknown} requirement
+     * @param {Record<string, string | number>} eligibilityKeys
+     * @param {{
+     *   readRequirement: (requirement: unknown) => {
+     *     success: boolean,
+     *     data?: { key: string | number, values: unknown[] }
+     *   },
+     *   getEntityName: (
+     *     kind: "club" | "league" | "nation",
+     *     id: unknown
+     *   ) => { success: boolean, data?: string },
+     *   localize: (key: string, values?: unknown[]) => string
+     * }} helpers
+     */
+    requirementsToText(requirement, eligibilityKeys, helpers) {
+      const result = helpers.readRequirement(requirement);
+      if (!result.success || !result.data) return "";
+      const { key, values } = result.data;
+      const combine = (labels) => {
+        const separator = ` ${helpers.localize("label.general.or").toUpperCase()} `;
+        return labels.filter(Boolean).join(separator);
+      };
+      const entityNames = (kind) => values.map((value) => {
+        const name = helpers.getEntityName(kind, value);
+        return name.success ? name.data || "" : "";
+      });
+      switch (key) {
         case eligibilityKeys.CLUB_ID:
-          return combine(_.uniq(_.map(rIds, (value) => {
-            return UTLocalizationUtil.teamIdToAbbr15(value, services.Localization);
-          })));
+          return combine([...new Set(entityNames("club"))]);
         case eligibilityKeys.LEAGUE_ID:
-          return combine(_.map(rIds, (value) => {
-            return UTLocalizationUtil.leagueIdToName(value, services.Localization);
-          }));
+          return combine(entityNames("league"));
         case eligibilityKeys.NATION_ID:
-          return combine(_.map(rIds, (value) => {
-            return UTLocalizationUtil.nationIdToName(value, services.Localization);
-          }));
+          return combine(entityNames("nation"));
         case eligibilityKeys.PLAYER_RARITY:
-          return combine(_.map(rIds, (value) => {
-            return localize(`item.raretype${value}`);
-          }));
+          return combine(values.map((value) => helpers.localize(`item.raretype${value}`)));
         case eligibilityKeys.PLAYER_MIN_OVR:
-          return combine(_.map(rIds, (value) => {
-            return localize("sbc.requirements.rating.min.val", [value]);
-          }));
+          return combine(
+            values.map(
+              (value) => helpers.localize("sbc.requirements.rating.min.val", [value])
+            )
+          );
         case eligibilityKeys.PLAYER_RARITY_GROUP:
-          return combine(_.map(rIds, (value) => {
-            return localize(`Player_Group_${value}`);
-          }));
+          return combine(values.map((value) => helpers.localize(`Player_Group_${value}`)));
         case eligibilityKeys.PLAYER_EXACT_OVR:
-          return combine(_.map(rIds, (value) => {
-            return localize("sbc.requirements.rating.exact.val", [value]);
-          }));
+          return combine(
+            values.map(
+              (value) => helpers.localize("sbc.requirements.rating.exact.val", [value])
+            )
+          );
         default:
-          return requirement.getValue(requirement.getFirstKey()).join();
+          return values.join();
       }
     }
   };
@@ -10965,11 +13231,11 @@
     ITEM_PURCHASE_CAPACITY: "item.purchase-capacity",
     ITEM_LISTING_INVENTORY: "item.listing-inventory"
   });
-  function isRecord(value) {
+  function isRecord13(value) {
     return value !== null && typeof value === "object";
   }
-  function asPropertyBag(value) {
-    if (isRecord(value)) return value;
+  function asPropertyBag2(value) {
+    if (isRecord13(value)) return value;
     if (typeof value === "function") {
       return (
         /** @type {Record<string, unknown>} */
@@ -11086,7 +13352,7 @@
     }
     /** @returns {Record<string, unknown>} */
     getCriteria() {
-      return isRecord(this.model.searchCriteria) ? this.model.searchCriteria : this.criteria;
+      return isRecord13(this.model.searchCriteria) ? this.model.searchCriteria : this.criteria;
     }
   };
   var EaRuntimeAdapter = class {
@@ -11123,7 +13389,7 @@
       }
       if (name === EA_CAPABILITIES.MARKET_QUERY_MODEL) {
         const runtime = this.getMarketRuntime();
-        if (!isRecord(runtime)) {
+        if (!isRecord13(runtime)) {
           return { name, supported: false, missing: ["marketRuntime"] };
         }
         const requiredConstructors = ["UTSearchCriteriaDTO", "UTBucketedItemSearchViewModel"];
@@ -11133,16 +13399,16 @@
           if (typeof runtime[key] !== "function") missing.push(`marketRuntime.${key}`);
         }
         for (const key of requiredEnums) {
-          if (!isRecord(runtime[key])) missing.push(`marketRuntime.${key}`);
+          if (!isRecord13(runtime[key])) missing.push(`marketRuntime.${key}`);
         }
         return { name, supported: missing.length === 0, missing };
       }
       if (name === EA_CAPABILITIES.CURRENCY_STEPS) {
         const runtime = this.getMarketRuntime();
-        if (!isRecord(runtime)) {
+        if (!isRecord13(runtime)) {
           return { name, supported: false, missing: ["marketRuntime"] };
         }
-        const currencyInput = asPropertyBag(runtime.UTCurrencyInputControl);
+        const currencyInput = asPropertyBag2(runtime.UTCurrencyInputControl);
         if (!currencyInput) {
           return { name, supported: false, missing: ["marketRuntime.UTCurrencyInputControl"] };
         }
@@ -11157,8 +13423,8 @@
       }
       if (name === EA_CAPABILITIES.ITEM_STATIC_DATA) {
         const repositories2 = this.getRepositories();
-        const itemRepository = isRecord(repositories2) ? repositories2.Item : void 0;
-        if (!isRecord(itemRepository) || typeof itemRepository.getStaticDataByDefId !== "function") {
+        const itemRepository = isRecord13(repositories2) ? repositories2.Item : void 0;
+        if (!isRecord13(itemRepository) || typeof itemRepository.getStaticDataByDefId !== "function") {
           return {
             name,
             supported: false,
@@ -11170,12 +13436,12 @@
       if (name === EA_CAPABILITIES.ITEM_PURCHASE_CAPACITY) {
         const repositories2 = this.getRepositories();
         const runtime = this.getItemRuntime();
-        const itemRepository = isRecord(repositories2) ? repositories2.Item : void 0;
+        const itemRepository = isRecord13(repositories2) ? repositories2.Item : void 0;
         const missing = [];
-        if (!isRecord(itemRepository) || typeof itemRepository.numItemsInCache !== "function") {
+        if (!isRecord13(itemRepository) || typeof itemRepository.numItemsInCache !== "function") {
           missing.push("repositories.Item.numItemsInCache");
         }
-        if (!isRecord(runtime) || !isRecord(runtime.ItemPile) || runtime.ItemPile.PURCHASED === void 0) {
+        if (!isRecord13(runtime) || !isRecord13(runtime.ItemPile) || runtime.ItemPile.PURCHASED === void 0) {
           missing.push("itemRuntime.ItemPile.PURCHASED");
         }
         return { name, supported: missing.length === 0, missing };
@@ -11183,43 +13449,43 @@
       if (name === EA_CAPABILITIES.ITEM_LISTING_INVENTORY) {
         const repositories2 = this.getRepositories();
         const runtime = this.getItemRuntime();
-        const itemRepository = isRecord(repositories2) ? repositories2.Item : void 0;
+        const itemRepository = isRecord13(repositories2) ? repositories2.Item : void 0;
         const missing = [];
-        const transfer = isRecord(itemRepository) ? itemRepository.transfer : void 0;
-        const unassigned = isRecord(itemRepository) ? itemRepository.unassigned : void 0;
-        const club = isRecord(itemRepository) ? itemRepository.club : void 0;
-        const clubItems = isRecord(club) ? club.items : void 0;
-        if (!isRecord(transfer) || typeof transfer.get !== "function") {
+        const transfer = isRecord13(itemRepository) ? itemRepository.transfer : void 0;
+        const unassigned = isRecord13(itemRepository) ? itemRepository.unassigned : void 0;
+        const club = isRecord13(itemRepository) ? itemRepository.club : void 0;
+        const clubItems = isRecord13(club) ? club.items : void 0;
+        if (!isRecord13(transfer) || typeof transfer.get !== "function") {
           missing.push("repositories.Item.transfer.get");
         }
-        if (!isRecord(transfer) || !isRecord(transfer._collection)) {
+        if (!isRecord13(transfer) || !isRecord13(transfer._collection)) {
           missing.push("repositories.Item.transfer._collection");
         }
-        if (!isRecord(unassigned) || typeof unassigned.get !== "function") {
+        if (!isRecord13(unassigned) || typeof unassigned.get !== "function") {
           missing.push("repositories.Item.unassigned.get");
         }
-        if (!isRecord(clubItems) || typeof clubItems.get !== "function") {
+        if (!isRecord13(clubItems) || typeof clubItems.get !== "function") {
           missing.push("repositories.Item.club.items.get");
         }
-        if (!isRecord(itemRepository) || typeof itemRepository.getPileSize !== "function") {
+        if (!isRecord13(itemRepository) || typeof itemRepository.getPileSize !== "function") {
           missing.push("repositories.Item.getPileSize");
         }
-        if (!isRecord(itemRepository) || typeof itemRepository.numItemsInCache !== "function") {
+        if (!isRecord13(itemRepository) || typeof itemRepository.numItemsInCache !== "function") {
           missing.push("repositories.Item.numItemsInCache");
         }
-        if (!isRecord(runtime) || !isRecord(runtime.ItemPile) || runtime.ItemPile.TRANSFER === void 0) {
+        if (!isRecord13(runtime) || !isRecord13(runtime.ItemPile) || runtime.ItemPile.TRANSFER === void 0) {
           missing.push("itemRuntime.ItemPile.TRANSFER");
         }
         return { name, supported: missing.length === 0, missing };
       }
       const services2 = this.getServices();
-      if (!isRecord(services2)) {
+      if (!isRecord13(services2)) {
         return { name, supported: false, missing: ["services"] };
       }
       if (name === EA_CAPABILITIES.MARKET_SEARCH) {
         const itemService = services2.Item;
         const missing = [];
-        if (!isRecord(itemService)) {
+        if (!isRecord13(itemService)) {
           missing.push("services.Item");
         } else {
           if (typeof itemService.clearTransferMarketCache !== "function") {
@@ -11237,25 +13503,25 @@
         const itemService = services2.Item;
         const localization = services2.Localization;
         const notification = services2.Notification;
-        if (!isRecord(itemService) || typeof itemService.move !== "function") {
+        if (!isRecord13(itemService) || typeof itemService.move !== "function") {
           missing.push("services.Item.move");
         }
-        if (!isRecord(localization) || typeof localization.localize !== "function") {
+        if (!isRecord13(localization) || typeof localization.localize !== "function") {
           missing.push("services.Localization.localize");
         }
-        if (!isRecord(notification) || typeof notification.queue !== "function") {
+        if (!isRecord13(notification) || typeof notification.queue !== "function") {
           missing.push("services.Notification.queue");
         }
-        if (!isRecord(runtime)) {
+        if (!isRecord13(runtime)) {
           missing.push("itemRuntime");
         } else {
-          if (!isRecord(runtime.ItemPile) || runtime.ItemPile.CLUB === void 0) {
+          if (!isRecord13(runtime.ItemPile) || runtime.ItemPile.CLUB === void 0) {
             missing.push("itemRuntime.ItemPile.CLUB");
           }
-          if (!isRecord(runtime.UINotificationType) || runtime.UINotificationType.NEUTRAL === void 0 || runtime.UINotificationType.NEGATIVE === void 0) {
+          if (!isRecord13(runtime.UINotificationType) || runtime.UINotificationType.NEUTRAL === void 0 || runtime.UINotificationType.NEGATIVE === void 0) {
             missing.push("itemRuntime.UINotificationType");
           }
-          if (!isRecord(runtime.NetworkErrorManager) || typeof runtime.NetworkErrorManager.handleStatus !== "function") {
+          if (!isRecord13(runtime.NetworkErrorManager) || typeof runtime.NetworkErrorManager.handleStatus !== "function") {
             missing.push("itemRuntime.NetworkErrorManager.handleStatus");
           }
         }
@@ -11266,25 +13532,25 @@
         const missing = [];
         const itemService = services2.Item;
         const userService = services2.User;
-        if (!isRecord(itemService) || typeof itemService.bid !== "function") {
+        if (!isRecord13(itemService) || typeof itemService.bid !== "function") {
           missing.push("services.Item.bid");
         }
-        if (!isRecord(itemService) || typeof itemService.move !== "function") {
+        if (!isRecord13(itemService) || typeof itemService.move !== "function") {
           missing.push("services.Item.move");
         }
-        if (!isRecord(userService) || typeof userService.getUser !== "function") {
+        if (!isRecord13(userService) || typeof userService.getUser !== "function") {
           missing.push("services.User.getUser");
         }
-        if (!isRecord(runtime)) {
+        if (!isRecord13(runtime)) {
           missing.push("itemRuntime");
         } else {
-          if (!isRecord(runtime.ItemPile) || runtime.ItemPile.CLUB === void 0) {
+          if (!isRecord13(runtime.ItemPile) || runtime.ItemPile.CLUB === void 0) {
             missing.push("itemRuntime.ItemPile.CLUB");
           }
-          if (!isRecord(runtime.GameCurrency) || runtime.GameCurrency.COINS === void 0) {
+          if (!isRecord13(runtime.GameCurrency) || runtime.GameCurrency.COINS === void 0) {
             missing.push("itemRuntime.GameCurrency.COINS");
           }
-          if (!isRecord(runtime.UtasErrorCode) || runtime.UtasErrorCode.PERMISSION_DENIED === void 0) {
+          if (!isRecord13(runtime.UtasErrorCode) || runtime.UtasErrorCode.PERMISSION_DENIED === void 0) {
             missing.push("itemRuntime.UtasErrorCode.PERMISSION_DENIED");
           }
         }
@@ -11296,28 +13562,28 @@
         const itemService = services2.Item;
         const localization = services2.Localization;
         const notification = services2.Notification;
-        if (!isRecord(itemService) || typeof itemService.list !== "function") {
+        if (!isRecord13(itemService) || typeof itemService.list !== "function") {
           missing.push("services.Item.list");
         }
-        if (!isRecord(localization) || typeof localization.localize !== "function") {
+        if (!isRecord13(localization) || typeof localization.localize !== "function") {
           missing.push("services.Localization.localize");
         }
-        if (!isRecord(notification) || typeof notification.queue !== "function") {
+        if (!isRecord13(notification) || typeof notification.queue !== "function") {
           missing.push("services.Notification.queue");
         }
-        if (!isRecord(runtime)) {
+        if (!isRecord13(runtime)) {
           missing.push("itemRuntime");
         } else {
-          if (!isRecord(runtime.UINotificationType) || runtime.UINotificationType.NEGATIVE === void 0) {
+          if (!isRecord13(runtime.UINotificationType) || runtime.UINotificationType.NEGATIVE === void 0) {
             missing.push("itemRuntime.UINotificationType.NEGATIVE");
           }
-          if (!isRecord(runtime.NetworkErrorManager) || typeof runtime.NetworkErrorManager.checkCriticalStatus !== "function" || typeof runtime.NetworkErrorManager.handleStatus !== "function") {
+          if (!isRecord13(runtime.NetworkErrorManager) || typeof runtime.NetworkErrorManager.checkCriticalStatus !== "function" || typeof runtime.NetworkErrorManager.handleStatus !== "function") {
             missing.push("itemRuntime.NetworkErrorManager");
           }
-          if (!isRecord(runtime.HttpStatusCode) || runtime.HttpStatusCode.FORBIDDEN === void 0) {
+          if (!isRecord13(runtime.HttpStatusCode) || runtime.HttpStatusCode.FORBIDDEN === void 0) {
             missing.push("itemRuntime.HttpStatusCode.FORBIDDEN");
           }
-          if (!isRecord(runtime.UtasErrorCode)) {
+          if (!isRecord13(runtime.UtasErrorCode)) {
             missing.push("itemRuntime.UtasErrorCode");
           } else {
             for (const key of [
@@ -11336,13 +13602,13 @@
       }
       if (name === EA_CAPABILITIES.UNASSIGNED_RESET) {
         const itemService = services2.Item;
-        if (!isRecord(itemService)) {
+        if (!isRecord13(itemService)) {
           return { name, supported: false, missing: ["services.Item"] };
         }
         const itemDao = itemService.itemDao;
-        const itemRepo = isRecord(itemDao) ? itemDao.itemRepo : void 0;
-        const unassigned = isRecord(itemRepo) ? itemRepo.unassigned : void 0;
-        if (!isRecord(unassigned) || typeof unassigned.reset !== "function") {
+        const itemRepo = isRecord13(itemDao) ? itemDao.itemRepo : void 0;
+        const unassigned = isRecord13(itemRepo) ? itemRepo.unassigned : void 0;
+        if (!isRecord13(unassigned) || typeof unassigned.reset !== "function") {
           return {
             name,
             supported: false,
@@ -11352,11 +13618,11 @@
         return { name, supported: true, missing: [] };
       }
       const authentication = services2.Authentication;
-      if (!isRecord(authentication)) {
+      if (!isRecord13(authentication)) {
         return { name, supported: false, missing: ["services.Authentication"] };
       }
       const session = authentication.utasSession;
-      if (!isRecord(session) || session.id === void 0 || session.id === null || session.id === "") {
+      if (!isRecord13(session) || session.id === void 0 || session.id === null || session.id === "") {
         return {
           name,
           supported: false,
@@ -11379,11 +13645,11 @@
         return null;
       }
       const services2 = this.getServices();
-      if (!isRecord(services2)) return null;
+      if (!isRecord13(services2)) return null;
       const authentication = services2.Authentication;
-      if (!isRecord(authentication)) return null;
+      if (!isRecord13(authentication)) return null;
       const session = authentication.utasSession;
-      if (!isRecord(session)) return null;
+      if (!isRecord13(session)) return null;
       return String(session.id);
     }
     /**
@@ -11393,19 +13659,19 @@
     createPlayerMarketSearch(definitionId) {
       if (!this.supports(EA_CAPABILITIES.MARKET_QUERY_MODEL)) return null;
       const runtime = this.getMarketRuntime();
-      if (!isRecord(runtime)) return null;
+      if (!isRecord13(runtime)) return null;
       const CriteriaConstructor = runtime.UTSearchCriteriaDTO;
       const ModelConstructor = runtime.UTBucketedItemSearchViewModel;
       const searchType = runtime.SearchType;
       const searchCategory = runtime.SearchCategory;
       const itemSearchFeature = runtime.ItemSearchFeature;
-      if (typeof CriteriaConstructor !== "function" || typeof ModelConstructor !== "function" || !isRecord(searchType) || !isRecord(searchCategory) || !isRecord(itemSearchFeature)) {
+      if (typeof CriteriaConstructor !== "function" || typeof ModelConstructor !== "function" || !isRecord13(searchType) || !isRecord13(searchCategory) || !isRecord13(itemSearchFeature)) {
         return null;
       }
       try {
         const criteria = Reflect.construct(CriteriaConstructor, []);
         const model = Reflect.construct(ModelConstructor, []);
-        if (!isRecord(criteria) || !isRecord(model) || !isRecord(model.defaultSearchCriteria)) {
+        if (!isRecord13(criteria) || !isRecord13(model) || !isRecord13(model.defaultSearchCriteria)) {
           return null;
         }
         const update = model.updateSearchCriteria;
@@ -11433,8 +13699,8 @@
     incrementMarketPrice(value, direction) {
       if (!this.supports(EA_CAPABILITIES.CURRENCY_STEPS)) return null;
       const runtime = this.getMarketRuntime();
-      if (!isRecord(runtime)) return null;
-      const currencyInput = asPropertyBag(runtime.UTCurrencyInputControl);
+      if (!isRecord13(runtime)) return null;
+      const currencyInput = asPropertyBag2(runtime.UTCurrencyInputControl);
       if (!currencyInput) return null;
       const method = direction === "above" ? currencyInput.getIncrementAboveVal : currencyInput.getIncrementBelowVal;
       if (typeof method !== "function") return null;
@@ -11453,7 +13719,7 @@
       }
       const services2 = this.getServices();
       const runtime = this.getItemRuntime();
-      if (!isRecord(services2) || !isRecord(runtime)) {
+      if (!isRecord13(services2) || !isRecord13(runtime)) {
         return Promise.resolve(unavailableMoveResult(capability.name, ["services", "itemRuntime"]));
       }
       const itemService = services2.Item;
@@ -11462,7 +13728,7 @@
       const itemPile = runtime.ItemPile;
       const notificationType = runtime.UINotificationType;
       const networkErrorManager = runtime.NetworkErrorManager;
-      if (!isRecord(itemService) || !isRecord(localization) || !isRecord(notification) || !isRecord(itemPile) || !isRecord(notificationType) || !isRecord(networkErrorManager)) {
+      if (!isRecord13(itemService) || !isRecord13(localization) || !isRecord13(notification) || !isRecord13(itemPile) || !isRecord13(notificationType) || !isRecord13(networkErrorManager)) {
         return Promise.resolve(unavailableMoveResult(capability.name, capability.missing));
       }
       const move = itemService.move;
@@ -11474,7 +13740,7 @@
       }
       try {
         const observable = move.call(itemService, items, itemPile.CLUB);
-        if (!isRecord(observable) || typeof observable.observe !== "function") {
+        if (!isRecord13(observable) || typeof observable.observe !== "function") {
           return Promise.resolve(
             unavailableMoveResult(capability.name, ["services.Item.move.observe"])
           );
@@ -11486,16 +13752,16 @@
             if (settled) return;
             settled = true;
             try {
-              if (isRecord(sender) && typeof sender.unobserve === "function") {
+              if (isRecord13(sender) && typeof sender.unobserve === "function") {
                 sender.unobserve(observerContext);
               }
-              if (!isRecord(response)) {
+              if (!isRecord13(response)) {
                 resolve(unavailableMoveResult(capability.name, ["move.response"]));
                 return;
               }
               if (response.success) {
                 const data2 = response.data;
-                const movedCount = isRecord(data2) && Array.isArray(data2.itemIds) ? data2.itemIds.length : 0;
+                const movedCount = isRecord13(data2) && Array.isArray(data2.itemIds) ? data2.itemIds.length : 0;
                 const messageKey = movedCount > 1 ? "notification.item.allToClub" : "notification.item.oneToClub";
                 const message2 = movedCount > 1 ? localize.call(localization, messageKey, [movedCount]) : localize.call(localization, messageKey);
                 queue.call(notification, [message2, notificationType.NEUTRAL]);
@@ -11505,7 +13771,7 @@
               const message = localize.call(localization, "notification.item.moveFailed");
               queue.call(notification, [message, notificationType.NEGATIVE]);
               const data = response.data;
-              const untradeableSwap = Boolean(isRecord(data) && data.untradeableSwap);
+              const untradeableSwap = Boolean(isRecord13(data) && data.untradeableSwap);
               if (!untradeableSwap) {
                 handleStatus.call(networkErrorManager, response.status);
               }
@@ -11545,7 +13811,7 @@
       }
       const services2 = this.getServices();
       const runtime = this.getItemRuntime();
-      if (!isRecord(services2) || !isRecord(runtime) || !isRecord(item)) {
+      if (!isRecord13(services2) || !isRecord13(runtime) || !isRecord13(item)) {
         return Promise.resolve(unavailablePurchaseResult(["services", "itemRuntime", "item"]));
       }
       const itemService = services2.Item;
@@ -11553,7 +13819,7 @@
       const itemPile = runtime.ItemPile;
       const gameCurrency = runtime.GameCurrency;
       const utasErrorCode = runtime.UtasErrorCode;
-      if (!isRecord(itemService) || !isRecord(userService) || !isRecord(itemPile) || !isRecord(gameCurrency) || !isRecord(utasErrorCode)) {
+      if (!isRecord13(itemService) || !isRecord13(userService) || !isRecord13(itemPile) || !isRecord13(gameCurrency) || !isRecord13(utasErrorCode)) {
         return Promise.resolve(unavailablePurchaseResult(capability.missing));
       }
       const getAuctionData = item.getAuctionData;
@@ -11573,7 +13839,7 @@
       try {
         const auction = getAuctionData.call(item);
         const user = getUser.call(userService);
-        if (!isRecord(auction) || !isRecord(user) || typeof user.getCurrency !== "function") {
+        if (!isRecord13(auction) || !isRecord13(user) || typeof user.getCurrency !== "function") {
           return Promise.resolve(
             unavailablePurchaseResult(["item.auctionData", "services.User.getUser().getCurrency"])
           );
@@ -11581,7 +13847,7 @@
         const currency = user.getCurrency(gameCurrency.COINS);
         const canBuy = auction.canBuy;
         const getSecondsRemaining = auction.getSecondsRemaining;
-        if (!isRecord(currency) || typeof canBuy !== "function" || typeof getSecondsRemaining !== "function") {
+        if (!isRecord13(currency) || typeof canBuy !== "function" || typeof getSecondsRemaining !== "function") {
           return Promise.resolve(
             unavailablePurchaseResult([
               "user.currency.amount",
@@ -11598,7 +13864,7 @@
         }
         onBeforeBid();
         const bidObservable = bid.call(itemService, item, Number(price));
-        if (!isRecord(bidObservable) || typeof bidObservable.observe !== "function") {
+        if (!isRecord13(bidObservable) || typeof bidObservable.observe !== "function") {
           return Promise.resolve(unavailablePurchaseResult(["services.Item.bid.observe"]));
         }
         const observeBid = bidObservable.observe;
@@ -11607,18 +13873,18 @@
           const onBid = (sender, bidResponse) => {
             if (settled) return;
             try {
-              if (isRecord(sender) && typeof sender.unobserve === "function") {
+              if (isRecord13(sender) && typeof sender.unobserve === "function") {
                 sender.unobserve(observerContext);
               }
-              if (!isRecord(bidResponse) || !bidResponse.success) {
+              if (!isRecord13(bidResponse) || !bidResponse.success) {
                 settled = true;
-                const error = isRecord(bidResponse) ? bidResponse.error : void 0;
-                const permissionDenied = isRecord(error) && error.code === utasErrorCode.PERMISSION_DENIED;
+                const error = isRecord13(bidResponse) ? bidResponse.error : void 0;
+                const permissionDenied = isRecord13(error) && error.code === utasErrorCode.PERMISSION_DENIED;
                 resolve({ success: false, reason: "bid-failed", permissionDenied });
                 return;
               }
               const moveObservable = move.call(itemService, item, itemPile.CLUB);
-              if (!isRecord(moveObservable) || typeof moveObservable.observe !== "function") {
+              if (!isRecord13(moveObservable) || typeof moveObservable.observe !== "function") {
                 settled = true;
                 resolve(purchasedMoveFailure(price, ["services.Item.move.observe"]));
                 return;
@@ -11628,10 +13894,10 @@
                 if (settled) return;
                 settled = true;
                 try {
-                  if (isRecord(moveSender) && typeof moveSender.unobserve === "function") {
+                  if (isRecord13(moveSender) && typeof moveSender.unobserve === "function") {
                     moveSender.unobserve(observerContext);
                   }
-                  if (isRecord(moveResponse) && moveResponse.success) {
+                  if (isRecord13(moveResponse) && moveResponse.success) {
                     resolve({ success: true, price: Number(price) });
                   } else {
                     resolve(purchasedMoveFailure(price));
@@ -11649,7 +13915,7 @@
             } catch (error) {
               settled = true;
               resolve(
-                isRecord(bidResponse) && bidResponse.success ? purchasedMoveFailure(price, [], error) : unavailablePurchaseResult([], error)
+                isRecord13(bidResponse) && bidResponse.success ? purchasedMoveFailure(price, [], error) : unavailablePurchaseResult([], error)
               );
             }
           };
@@ -11679,7 +13945,7 @@
       }
       const services2 = this.getServices();
       const runtime = this.getItemRuntime();
-      if (!isRecord(services2) || !isRecord(runtime)) {
+      if (!isRecord13(services2) || !isRecord13(runtime)) {
         return Promise.resolve(unavailableListingResult(["services", "itemRuntime"]));
       }
       const itemService = services2.Item;
@@ -11689,7 +13955,7 @@
       const networkErrorManager = runtime.NetworkErrorManager;
       const httpStatusCode = runtime.HttpStatusCode;
       const utasErrorCode = runtime.UtasErrorCode;
-      if (!isRecord(itemService) || !isRecord(localization) || !isRecord(notification) || !isRecord(notificationType) || !isRecord(networkErrorManager) || !isRecord(httpStatusCode) || !isRecord(utasErrorCode)) {
+      if (!isRecord13(itemService) || !isRecord13(localization) || !isRecord13(notification) || !isRecord13(notificationType) || !isRecord13(networkErrorManager) || !isRecord13(httpStatusCode) || !isRecord13(utasErrorCode)) {
         return Promise.resolve(unavailableListingResult(capability.missing));
       }
       const list = itemService.list;
@@ -11708,7 +13974,7 @@
           Number(buyNowPrice),
           Number(durationSeconds)
         );
-        if (!isRecord(observable) || typeof observable.observe !== "function") {
+        if (!isRecord13(observable) || typeof observable.observe !== "function") {
           return Promise.resolve(unavailableListingResult(["services.Item.list.observe"]));
         }
         const observe = observable.observe;
@@ -11718,10 +13984,10 @@
             if (settled) return;
             settled = true;
             try {
-              if (isRecord(sender) && typeof sender.unobserve === "function") {
+              if (isRecord13(sender) && typeof sender.unobserve === "function") {
                 sender.unobserve(observerContext);
               }
-              if (!isRecord(response)) {
+              if (!isRecord13(response)) {
                 resolve(unavailableListingResult(["listing.response"]));
                 return;
               }
@@ -11729,7 +13995,7 @@
                 resolve({ success: true });
                 return;
               }
-              const error = isRecord(response.error) ? response.error : void 0;
+              const error = isRecord13(response.error) ? response.error : void 0;
               const code = error?.code ?? response.status;
               if (checkCriticalStatus.call(networkErrorManager, code)) {
                 handleStatus.call(networkErrorManager, code);
@@ -11779,13 +14045,13 @@
         return unavailableUnassignedResetResult(capability.missing);
       }
       const services2 = this.getServices();
-      if (!isRecord(services2) || !isRecord(services2.Item)) {
+      if (!isRecord13(services2) || !isRecord13(services2.Item)) {
         return unavailableUnassignedResetResult(["services.Item"]);
       }
       const itemDao = services2.Item.itemDao;
-      const itemRepo = isRecord(itemDao) ? itemDao.itemRepo : void 0;
-      const unassigned = isRecord(itemRepo) ? itemRepo.unassigned : void 0;
-      const reset = isRecord(unassigned) ? unassigned.reset : void 0;
+      const itemRepo = isRecord13(itemDao) ? itemDao.itemRepo : void 0;
+      const unassigned = isRecord13(itemRepo) ? itemRepo.unassigned : void 0;
+      const reset = isRecord13(unassigned) ? unassigned.reset : void 0;
       if (typeof reset !== "function") {
         return unavailableUnassignedResetResult([
           "services.Item.itemDao.itemRepo.unassigned.reset"
@@ -11808,8 +14074,8 @@
         return unavailableItemRepositoryResult(capability.name, capability.missing);
       }
       const repositories2 = this.getRepositories();
-      const itemRepository = isRecord(repositories2) ? repositories2.Item : void 0;
-      const getStaticDataByDefId = isRecord(itemRepository) ? itemRepository.getStaticDataByDefId : void 0;
+      const itemRepository = isRecord13(repositories2) ? repositories2.Item : void 0;
+      const getStaticDataByDefId = isRecord13(itemRepository) ? itemRepository.getStaticDataByDefId : void 0;
       if (typeof getStaticDataByDefId !== "function") {
         return unavailableItemRepositoryResult(capability.name, capability.missing);
       }
@@ -11830,10 +14096,10 @@
       }
       const repositories2 = this.getRepositories();
       const runtime = this.getItemRuntime();
-      const itemRepository = isRecord(repositories2) ? repositories2.Item : void 0;
-      const itemPile = isRecord(runtime) ? runtime.ItemPile : void 0;
-      const numItemsInCache = isRecord(itemRepository) ? itemRepository.numItemsInCache : void 0;
-      if (!isRecord(itemPile) || typeof numItemsInCache !== "function") {
+      const itemRepository = isRecord13(repositories2) ? repositories2.Item : void 0;
+      const itemPile = isRecord13(runtime) ? runtime.ItemPile : void 0;
+      const numItemsInCache = isRecord13(itemRepository) ? itemRepository.numItemsInCache : void 0;
+      if (!isRecord13(itemPile) || typeof numItemsInCache !== "function") {
         return unavailableItemRepositoryResult(capability.name, capability.missing);
       }
       try {
@@ -11855,15 +14121,15 @@
         return unavailableItemRepositoryResult(capability.name, capability.missing);
       }
       const repositories2 = this.getRepositories();
-      const itemRepository = isRecord(repositories2) ? repositories2.Item : void 0;
-      if (!isRecord(itemRepository)) {
+      const itemRepository = isRecord13(repositories2) ? repositories2.Item : void 0;
+      if (!isRecord13(itemRepository)) {
         return unavailableItemRepositoryResult(capability.name, capability.missing);
       }
       const transfer = itemRepository.transfer;
       const unassigned = itemRepository.unassigned;
       const club = itemRepository.club;
-      const clubItems = isRecord(club) ? club.items : void 0;
-      if (!isRecord(transfer) || !isRecord(unassigned) || !isRecord(clubItems) || typeof transfer.get !== "function" || typeof unassigned.get !== "function" || typeof clubItems.get !== "function" || !isRecord(transfer._collection)) {
+      const clubItems = isRecord13(club) ? club.items : void 0;
+      if (!isRecord13(transfer) || !isRecord13(unassigned) || !isRecord13(clubItems) || typeof transfer.get !== "function" || typeof unassigned.get !== "function" || typeof clubItems.get !== "function" || !isRecord13(transfer._collection)) {
         return unavailableItemRepositoryResult(capability.name, capability.missing);
       }
       try {
@@ -11885,11 +14151,11 @@
       }
       const repositories2 = this.getRepositories();
       const runtime = this.getItemRuntime();
-      const itemRepository = isRecord(repositories2) ? repositories2.Item : void 0;
-      const itemPile = isRecord(runtime) ? runtime.ItemPile : void 0;
-      const getPileSize = isRecord(itemRepository) ? itemRepository.getPileSize : void 0;
-      const numItemsInCache = isRecord(itemRepository) ? itemRepository.numItemsInCache : void 0;
-      if (!isRecord(itemPile) || typeof getPileSize !== "function" || typeof numItemsInCache !== "function") {
+      const itemRepository = isRecord13(repositories2) ? repositories2.Item : void 0;
+      const itemPile = isRecord13(runtime) ? runtime.ItemPile : void 0;
+      const getPileSize = isRecord13(itemRepository) ? itemRepository.getPileSize : void 0;
+      const numItemsInCache = isRecord13(itemRepository) ? itemRepository.numItemsInCache : void 0;
+      if (!isRecord13(itemPile) || typeof getPileSize !== "function" || typeof numItemsInCache !== "function") {
         return unavailableItemRepositoryResult(capability.name, capability.missing);
       }
       try {
@@ -11905,7 +14171,7 @@
         return false;
       }
       const services2 = this.getServices();
-      if (!isRecord(services2) || !isRecord(services2.Item)) return false;
+      if (!isRecord13(services2) || !isRecord13(services2.Item)) return false;
       const clear = services2.Item.clearTransferMarketCache;
       if (typeof clear !== "function") return false;
       clear.call(services2.Item);
@@ -11923,7 +14189,7 @@
         return Promise.resolve(unavailableResult(capability.name, capability.missing));
       }
       const services2 = this.getServices();
-      if (!isRecord(services2) || !isRecord(services2.Item)) {
+      if (!isRecord13(services2) || !isRecord13(services2.Item)) {
         return Promise.resolve(unavailableResult(capability.name, ["services.Item"]));
       }
       const search = services2.Item.searchTransferMarket;
@@ -11934,7 +14200,7 @@
       }
       try {
         const observable = search.call(services2.Item, criteria, type);
-        if (!isRecord(observable)) {
+        if (!isRecord13(observable)) {
           return Promise.resolve(
             unavailableResult(capability.name, ["services.Item.searchTransferMarket.observe"])
           );
@@ -11955,9 +14221,139 @@
     }
   };
 
+  // src/fsu/domain/MarketResults.js
+  var MARKET_RESULT_INVALID = "MARKET_RESULT_INVALID";
+  function isRecord14(value) {
+    return value !== null && typeof value === "object" && !Array.isArray(value);
+  }
+  function invalidError(operation, issues) {
+    return {
+      code: MARKET_RESULT_INVALID,
+      operation,
+      issues
+    };
+  }
+  function normalizeAuctionLookupResult(value) {
+    if (!isRecord14(value) || !Array.isArray(value.auctionInfo)) {
+      return {
+        success: false,
+        data: { auctions: [] },
+        error: invalidError("auction-lookup", ["auctionInfo must be an array"])
+      };
+    }
+    const auctions = [];
+    for (const auction of value.auctionInfo) {
+      if (!isRecord14(auction) || !Number.isFinite(auction.buyNowPrice) || Number(auction.buyNowPrice) < 0) {
+        return {
+          success: false,
+          data: { auctions: [] },
+          error: invalidError("auction-lookup", [
+            "every auction must have a non-negative numeric buyNowPrice"
+          ])
+        };
+      }
+      auctions.push(auction);
+    }
+    return { success: true, data: { auctions } };
+  }
+  function normalizeMarketSearchResult(value) {
+    if (!isRecord14(value) || typeof value.success !== "boolean") {
+      return {
+        success: false,
+        data: { items: [] },
+        error: invalidError("market-search", ["success must be a boolean"])
+      };
+    }
+    if (!value.success) {
+      if (!isRecord14(value.error)) {
+        return {
+          success: false,
+          data: { items: [] },
+          error: invalidError("market-search", ["failed result must include an error object"])
+        };
+      }
+      return { success: false, data: { items: [] }, error: value.error };
+    }
+    if (!isRecord14(value.data) || !Array.isArray(value.data.items)) {
+      return {
+        success: false,
+        data: { items: [] },
+        error: invalidError("market-search", ["successful result data.items must be an array"])
+      };
+    }
+    return { success: true, data: { items: value.data.items } };
+  }
+  function normalizeMarketPurchaseResult(value) {
+    if (!isRecord14(value) || typeof value.success !== "boolean") {
+      return {
+        success: false,
+        purchased: false,
+        price: null,
+        reason: "invalid-result",
+        permissionDenied: false,
+        error: invalidError("market-purchase", ["success must be a boolean"])
+      };
+    }
+    const purchased = value.purchased === true || value.success;
+    const price = Number.isFinite(value.price) ? Number(value.price) : null;
+    const reason = typeof value.reason === "string" ? value.reason : null;
+    const permissionDenied = value.permissionDenied === true;
+    const error = isRecord14(value.error) ? value.error : void 0;
+    if (!value.success && reason === null && !error) {
+      return {
+        success: false,
+        purchased,
+        price,
+        reason: "invalid-result",
+        permissionDenied,
+        error: invalidError("market-purchase", [
+          "failed result must include a reason or error object"
+        ])
+      };
+    }
+    return {
+      success: value.success,
+      purchased,
+      price,
+      reason,
+      permissionDenied,
+      ...error ? { error } : {}
+    };
+  }
+  function normalizeMarketListingResult(value) {
+    if (!isRecord14(value) || typeof value.success !== "boolean") {
+      return {
+        success: false,
+        error: invalidError("market-listing", ["success must be a boolean"])
+      };
+    }
+    const isKnownEaFailure = typeof value.critical === "boolean" && (typeof value.code === "string" || typeof value.code === "number");
+    if (!value.success && !isRecord14(value.error) && !isKnownEaFailure) {
+      return {
+        success: false,
+        error: invalidError("market-listing", ["failed result must include an error object"])
+      };
+    }
+    return {
+      success: value.success,
+      ...isRecord14(value.error) ? { error: value.error } : {}
+    };
+  }
+  function summarizeAuctionPrices(prices, limit = 3) {
+    const counts = /* @__PURE__ */ new Map();
+    for (const price of prices) {
+      if (!Number.isFinite(price)) continue;
+      counts.set(price, (counts.get(price) ?? 0) + 1);
+    }
+    return [...counts.entries()].sort(([left], [right]) => left - right).slice(0, Math.max(0, limit)).map(([price, count]) => ({ price, count }));
+  }
+
   // src/fsu/domain/MarketActionService.js
+  function hasOwn(object, key) {
+    return object !== null && typeof object === "object" && Object.prototype.hasOwnProperty.call(object, key);
+  }
   var MarketActionService = class {
-    _getAuctionPrice(i, p, helpers) {
+    _getAuctionPriceResult(i, p, helpers) {
       const { debug: debug2 = { log: () => {
       } }, ea, getInfo, notice, xmlHttpRequest } = helpers;
       const info = getInfo();
@@ -11978,40 +14374,56 @@
                 debug2.log("EA capability unavailable", ea?.inspect?.(EA_CAPABILITIES.UTAS_SESSION));
               }
               notice("notice.loaderror", 2);
-              resolve([]);
+              resolve({
+                success: false,
+                data: { auctions: [] },
+                error: { code: "MARKET_REQUEST_REJECTED", status: response.status }
+              });
             } else {
-              const transferMarketResponse = safeParseJson(responseText(response), { auctionInfo: [] }, {
+              const parsedResponse = safeParseJson(responseText(response), null, {
                 label: "transfer-market-auctions",
                 onError: (error, context) => debug2.log(`${context.label} parse failed`, error)
               });
-              resolve(transferMarketResponse.auctionInfo || []);
+              const result = normalizeAuctionLookupResult(parsedResponse);
+              if (!result.success) {
+                debug2.log("Transfer market response rejected", result.error);
+              }
+              resolve(result);
             }
           },
           onerror: function() {
             notice("notice.loaderror", 2);
-            resolve([]);
+            resolve({
+              success: false,
+              data: { auctions: [] },
+              error: { code: "MARKET_NETWORK_ERROR" }
+            });
           }
         });
       });
+    }
+    async _getAuctionPrice(i, p, helpers) {
+      const result = await this._getAuctionPriceResult(i, p, helpers);
+      return result.data.auctions;
     }
     async getAuction(e2, player, helpers) {
       const {
         fy: fy2,
         debug: debug2,
-        futbinId: futbinId2,
+        futbinId,
         getInfo,
         getCachePrice,
-        createButton: createButton2,
+        renderAuctionPrices,
         pdb
       } = helpers;
       const info = getInfo();
       e2.setInteractionState(0);
       e2.setSubtext(fy2("quicklist.getpriceload"));
       const defId = player.definitionId;
-      if (_.has(info.futbinId, defId)) {
-        await futbinId2.getPrice(defId, info.futbinId[defId]);
+      if (hasOwn(info.futbinId, defId)) {
+        await futbinId.getPrice(defId, info.futbinId[defId]);
       } else {
-        await futbinId2.getId(player);
+        await futbinId.getId(player);
       }
       let price = getCachePrice(defId, 1).num;
       let result = await this._getAuctionPrice(defId, price, helpers);
@@ -12046,27 +14458,11 @@
         }
       }
       if (priceList.length) {
-        const priceListJson = _.countBy(priceList);
-        const displayPrice = _.fromPairs(_.take(_.toPairs(priceListJson), 3));
-        pdb[defId] = Number(_.first(_.keys(displayPrice))).toLocaleString();
+        const displayPrices = summarizeAuctionPrices(priceList);
+        pdb[defId] = displayPrices[0].price.toLocaleString();
         e2.setSubtext(pdb[defId]);
         e2.displayCurrencyIcon(true);
-        let displayPriceCount = 0;
-        _.forEach(displayPrice, (value, key) => {
-          displayPriceCount++;
-          let displayElement = createButton2(
-            new UTGroupButtonControl(),
-            `${fy2("quicklist.getpricelt")} ${displayPriceCount}`,
-            () => {
-            },
-            "accordian"
-          );
-          displayElement.setInteractionState(0);
-          displayElement.getRootElement().style.fontSize = "87.5%";
-          displayElement.setSubtext(`${Number(key).toLocaleString()} ×${value}`);
-          displayElement.displayCurrencyIcon(true);
-          e2.getRootElement().parentNode.appendChild(displayElement.getRootElement());
-        });
+        renderAuctionPrices(e2, displayPrices);
       } else {
         e2.setSubtext(fy2("buyplayer.error.child3").slice(0, -1));
       }
@@ -12085,11 +14481,12 @@
         debug: debug2,
         isPhone: isPhone2,
         getCurrentController,
-        ea
+        ea,
+        maxNewItems = 100
       } = helpers;
       const info = getInfo();
       info.run.bulkbuy = true;
-      const purchaseCapacity = ea.isPurchaseCapacityReached(MAX_NEW_ITEMS);
+      const purchaseCapacity = ea.isPurchaseCapacityReached(maxNewItems);
       if (!purchaseCapacity.success) {
         debug2.log("EA purchase-capacity capability unavailable", purchaseCapacity.error);
         notice("notice.loaderror", 2);
@@ -12134,11 +14531,13 @@
         } else {
           let currentPlayer = priceList[priceList.length - 1];
           const purchasePrice = currentPlayer._auction.buyNowPrice;
-          const purchaseResult = await ea.purchaseItemToClub(
-            currentPlayer,
-            purchasePrice,
-            this,
-            () => sendPinEvents("Item - Detail View")
+          const purchaseResult = normalizeMarketPurchaseResult(
+            await ea.purchaseItemToClub(
+              currentPlayer,
+              purchasePrice,
+              this,
+              () => sendPinEvents("Item - Detail View")
+            )
           );
           if (purchaseResult.success || purchaseResult.purchased) {
             notice(["buyplayer.success", playerName, purchasePrice], 0);
@@ -12199,7 +14598,8 @@
         debug: debug2,
         isPhone: isPhone2,
         getCurrentController,
-        ea
+        ea,
+        maxNewItems = 100
       } = helpers;
       showLoader();
       let shouldMarkBuyError = false;
@@ -12222,7 +14622,7 @@
         hideLoader();
         return;
       }
-      const purchaseCapacity = ea.isPurchaseCapacityReached(MAX_NEW_ITEMS);
+      const purchaseCapacity = ea.isPurchaseCapacityReached(maxNewItems);
       if (!purchaseCapacity.success) {
         debug2.log("EA purchase-capacity capability unavailable", purchaseCapacity.error);
         notice("notice.loaderror", 2);
@@ -12243,11 +14643,13 @@
         } else {
           let currentPlayer = priceList[priceList.length - 1];
           const purchasePrice = currentPlayer._auction.buyNowPrice;
-          const purchaseResult = await ea.purchaseItemToClub(
-            currentPlayer,
-            purchasePrice,
-            this,
-            () => sendPinEvents("Item - Detail View")
+          const purchaseResult = normalizeMarketPurchaseResult(
+            await ea.purchaseItemToClub(
+              currentPlayer,
+              purchasePrice,
+              this,
+              () => sendPinEvents("Item - Detail View")
+            )
           );
           if (purchaseResult.success || purchaseResult.purchased) {
             notice(["buyplayer.success", playerName, purchasePrice], 0);
@@ -12301,7 +14703,7 @@
         wait,
         notice,
         sendPinEvents,
-        futbinId: futbinId2,
+        futbinId,
         debug: debug2,
         ea
       } = helpers;
@@ -12322,10 +14724,10 @@
         marketSearch.setMaxBuy(Number(price));
       } else {
         try {
-          if (_.has(info.futbinId, defId)) {
-            await futbinId2.getPrice(defId, info.futbinId[defId]);
+          if (hasOwn(info.futbinId, defId)) {
+            await futbinId.getPrice(defId, info.futbinId[defId]);
           } else {
-            await futbinId2.getId(player);
+            await futbinId.getId(player);
           }
         } catch {
           return [];
@@ -12343,9 +14745,13 @@
           break;
         }
         ea.clearTransferMarketCache();
-        let response = await this.searchTransferMarket(marketSearch.getCriteria(), 1, helpers);
-        const items = response?.success && Array.isArray(response?.data?.items) ? response.data.items : null;
-        if (items) {
+        const response = await this.searchTransferMarket(
+          marketSearch.getCriteria(),
+          1,
+          helpers
+        );
+        if (response.success) {
+          const items = response.data.items;
           sendPinEvents("Transfer Market Results - List View");
           result = result.concat(items);
           queried.push(currentMaxBuy);
@@ -12370,8 +14776,10 @@
       }
       return result;
     }
-    searchTransferMarket(criteria, type, helpers) {
-      return helpers.ea.searchTransferMarket(criteria, type, this);
+    async searchTransferMarket(criteria, type, helpers) {
+      return normalizeMarketSearchResult(
+        await helpers.ea.searchTransferMarket(criteria, type, this)
+      );
     }
     async transferToClub(controller, list, helpers) {
       const { notice, isPhone: isPhone2, ea, debug: debug2 } = helpers;
@@ -12390,7 +14798,7 @@
     }
     async playerToAuction(d, p, time, helpers) {
       const {
-        futbinId: futbinId2,
+        futbinId,
         getInfo,
         getCachePrice,
         notice,
@@ -12410,10 +14818,10 @@
       const t = listingItem.alreadyListed;
       if (i) {
         try {
-          if (_.has(info.futbinId, i.definitionId)) {
-            await futbinId2.getPrice(i.definitionId, info.futbinId[i.definitionId]);
+          if (hasOwn(info.futbinId, i.definitionId)) {
+            await futbinId.getPrice(i.definitionId, info.futbinId[i.definitionId]);
           } else {
-            await futbinId2.getId(i);
+            await futbinId.getId(i);
           }
         } catch {
           return;
@@ -12439,17 +14847,23 @@
             notice("notice.loaderror", 2);
             return false;
           }
-          const result = await ea.listItemForSale(
-            i,
-            startingPrice,
-            price,
-            time * 3600,
-            getCurrentController()
+          const result = normalizeMarketListingResult(
+            await ea.listItemForSale(
+              i,
+              startingPrice,
+              price,
+              time * 3600,
+              getCurrentController()
+            )
           );
           if (result.success) {
             notice(["notice.auctionsuccess", i._staticData.name, price], 0);
           } else if (result.error?.code === "EA_CAPABILITY_UNAVAILABLE") {
             debug2.log("EA listing capability unavailable", result.error);
+            notice("notice.loaderror", 2);
+            return false;
+          } else if (result.error?.code === MARKET_RESULT_INVALID) {
+            debug2.log("EA listing result rejected", result.error);
             notice("notice.loaderror", 2);
             return false;
           }
@@ -13740,30 +16154,378 @@
     }
   };
 
+  // src/fsu/domain/SbcSnapshotResults.js
+  var SBC_SNAPSHOT_INVALID = "SBC_SNAPSHOT_INVALID";
+  function isRecord15(value) {
+    return value !== null && typeof value === "object" && !Array.isArray(value);
+  }
+  function invalid2(provider, issues) {
+    return {
+      success: false,
+      error: {
+        code: SBC_SNAPSHOT_INVALID,
+        provider,
+        issues
+      }
+    };
+  }
+  function finiteNumber2(value) {
+    if (value === null || value === void 0 || value === "") return null;
+    const result = Number(value);
+    return Number.isFinite(result) ? result : null;
+  }
+  function positiveInteger(value, label) {
+    const result = finiteNumber2(value);
+    return result !== null && Number.isInteger(result) && result > 0 ? { success: true, data: result } : invalid2("futbin-squad", [label]);
+  }
+  function parseFutbinTopSquads(response) {
+    if (!isRecord15(response) || !Array.isArray(response.data)) {
+      return invalid2("futbin-top-squads", ["data"]);
+    }
+    const squads = [];
+    for (const [index, item] of response.data.entries()) {
+      if (!isRecord15(item)) {
+        return invalid2("futbin-top-squads", [`data[${index}]`]);
+      }
+      const id = positiveInteger(item.id, `data[${index}].id`);
+      const likes = finiteNumber2(item.likes);
+      if (!id.success || likes === null) {
+        return invalid2("futbin-top-squads", [
+          !id.success ? `data[${index}].id` : `data[${index}].likes`
+        ]);
+      }
+      squads.push({ ...item, id: id.data, likes });
+    }
+    return { success: true, data: squads, mappings: [] };
+  }
+  function parseFutbinSquadPlayer(item, label) {
+    const integerFields = [
+      "Player_Resource",
+      "id",
+      "rating",
+      "club",
+      "league",
+      "nation",
+      "raretype"
+    ];
+    const normalized = { ...item };
+    for (const field of integerFields) {
+      const value = finiteNumber2(item[field]);
+      if (value === null || !Number.isInteger(value) || value < 0) {
+        return invalid2("futbin-squad", [`${label}.${field}`]);
+      }
+      normalized[field] = value;
+    }
+    if (Number(normalized.Player_Resource) <= 0 || Number(normalized.id) <= 0 || typeof item.org_pos !== "string" || !Array.isArray(item.alternativePositions) || !item.alternativePositions.every((position) => typeof position === "string")) {
+      return invalid2("futbin-squad", [`${label}.shape`]);
+    }
+    const price = finiteNumber2(item.price);
+    if (price === null || price < 0) {
+      return invalid2("futbin-squad", [`${label}.price`]);
+    }
+    normalized.price = price;
+    return { success: true, data: normalized };
+  }
+  function parseFutbinSquad(response) {
+    if (!isRecord15(response) || !isRecord15(response.squad_data) || typeof response.squad_data.Formation !== "string") {
+      return invalid2("futbin-squad", ["squad_data"]);
+    }
+    const squad = { ...response.squad_data };
+    const mappings = [];
+    const playerEntries = Object.entries(response.squad_data).filter(
+      ([key]) => /^cardlid\d+$/.test(key)
+    );
+    if (playerEntries.length === 0) {
+      return invalid2("futbin-squad", ["squad_data.cardlid"]);
+    }
+    for (const [key, item] of playerEntries) {
+      if (!isRecord15(item)) {
+        return invalid2("futbin-squad", [`squad_data.${key}`]);
+      }
+      const parsed = parseFutbinSquadPlayer(item, `squad_data.${key}`);
+      if (!parsed.success) return parsed;
+      squad[key] = parsed.data;
+      mappings.push(parsed.data);
+    }
+    return { success: true, data: squad, mappings };
+  }
+  function parseFutGgSquad(response) {
+    if (!isRecord15(response) || !isRecord15(response.data) || !isRecord15(response.data.data)) {
+      return invalid2("futgg-squad", ["data.data"]);
+    }
+    const positions = response.data.data.activeGroupPositions;
+    if (!Array.isArray(positions) && !isRecord15(positions)) {
+      return invalid2("futgg-squad", ["data.data.activeGroupPositions"]);
+    }
+    for (const [key, position] of Object.entries(positions)) {
+      if (!isRecord15(position) || !Number.isInteger(Number(position.playerEaId)) || Number(position.playerEaId) <= 0) {
+        return invalid2("futgg-squad", [
+          `data.data.activeGroupPositions.${key}`
+        ]);
+      }
+    }
+    return { success: true, data: response.data, mappings: [] };
+  }
+  function parseRemoteSbcSquad(response, type) {
+    if (type === 1) return parseFutbinTopSquads(response);
+    if (type === 2) return parseFutbinSquad(response);
+    if (type === 3) return parseFutGgSquad(response);
+    return invalid2("sbc-squad", ["type"]);
+  }
+
+  // src/fsu/domain/SbcUndoHistoryService.js
+  function itemFingerprint(item) {
+    if (!item || typeof item !== "object") return "empty";
+    const record = (
+      /** @type {Record<string, unknown>} */
+      item
+    );
+    return [
+      record.id ?? "",
+      record.definitionId ?? "",
+      record.concept === true ? "concept" : "owned"
+    ].join(":");
+  }
+  function snapshotFingerprint(snapshot) {
+    return snapshot.map(itemFingerprint).join("|");
+  }
+  var SbcUndoHistoryService = class {
+    /**
+     * @param {UndoHistoryState | null | undefined} state
+     * @param {unknown} players
+     */
+    capture(state, players) {
+      if (!Array.isArray(players)) return state;
+      const snapshots = Array.isArray(state?.snapshots) ? [...state.snapshots] : [];
+      const index = state && Number.isInteger(state.index) ? Number(state.index) : -1;
+      const snapshot = Object.freeze([...players]);
+      const current = snapshots[index];
+      if (Array.isArray(current) && snapshotFingerprint(current) === snapshotFingerprint(snapshot)) {
+        return { snapshots, index, changed: false };
+      }
+      snapshots.splice(index + 1);
+      snapshots.push(snapshot);
+      return {
+        snapshots,
+        index: snapshots.length - 1,
+        changed: true
+      };
+    }
+    /**
+     * @param {UndoHistoryState | null | undefined} state
+     * @param {number} slotIndex
+     * @param {unknown} item
+     */
+    replaceCurrentItem(state, slotIndex, item) {
+      const snapshots = Array.isArray(state?.snapshots) ? [...state.snapshots] : [];
+      const index = state && Number.isInteger(state.index) ? Number(state.index) : -1;
+      const current = snapshots[index];
+      if (!Array.isArray(current) || !Number.isInteger(slotIndex) || slotIndex < 0 || slotIndex >= current.length) {
+        return { snapshots, index, changed: false };
+      }
+      const replacement = [...current];
+      replacement[slotIndex] = item;
+      snapshots[index] = Object.freeze(replacement);
+      return { snapshots, index, changed: true };
+    }
+  };
+
+  // src/fsu/ea/SbcVirtualChallengeAdapter.js
+  var SBC_FILL_CAPABILITIES = Object.freeze({
+    VIRTUAL_CHALLENGE: "sbc.virtual-challenge"
+  });
+  function isRecord16(value) {
+    return value !== null && typeof value === "object";
+  }
+  function unavailable3(missing) {
+    return {
+      success: false,
+      error: {
+        code: "EA_CAPABILITY_UNAVAILABLE",
+        capability: SBC_FILL_CAPABILITIES.VIRTUAL_CHALLENGE,
+        missing
+      }
+    };
+  }
+  var SbcVirtualChallengeAdapter = class {
+    /**
+     * @param {{ getRuntime?: () => unknown }} [options]
+     */
+    constructor({ getRuntime = () => void 0 } = {}) {
+      this.getRuntime = getRuntime;
+    }
+    /** @param {unknown} challenge */
+    create(challenge) {
+      if (!isRecord16(challenge) || !isRecord16(challenge.squad) || typeof challenge.squad.getFormation !== "function" || typeof challenge.squad.getPlayers !== "function" || !Array.isArray(challenge.eligibilityRequirements)) {
+        return unavailable3(["challenge.squad", "challenge.requirements"]);
+      }
+      let runtime;
+      try {
+        runtime = this.getRuntime();
+      } catch {
+        return unavailable3(["sbc.virtual-challenge.runtime"]);
+      }
+      if (!isRecord16(runtime)) {
+        return unavailable3(["sbc.virtual-challenge.runtime"]);
+      }
+      const sourceSquad = challenge.squad;
+      if (!isRecord16(sourceSquad)) {
+        return unavailable3(["challenge.squad"]);
+      }
+      const ChallengeEntity = (
+        /** @type {RuntimeConstructor | null} */
+        typeof runtime.UTSBCChallengeEntity === "function" ? (
+          /** @type {unknown} */
+          runtime.UTSBCChallengeEntity
+        ) : null
+      );
+      const NullItemEntity = (
+        /** @type {RuntimeConstructor | null} */
+        typeof runtime.UTNullItemEntity === "function" ? (
+          /** @type {unknown} */
+          runtime.UTNullItemEntity
+        ) : null
+      );
+      const ItemEntity = (
+        /** @type {RuntimeConstructor | null} */
+        typeof runtime.UTItemEntity === "function" ? (
+          /** @type {unknown} */
+          runtime.UTItemEntity
+        ) : null
+      );
+      const SquadEntity = (
+        /** @type {RuntimeConstructor | null} */
+        typeof runtime.UTSquadEntity === "function" ? (
+          /** @type {unknown} */
+          runtime.UTSquadEntity
+        ) : null
+      );
+      const ChemistryUtils = (
+        /** @type {RuntimeConstructor | null} */
+        typeof runtime.UTSquadChemCalculatorUtils === "function" ? (
+          /** @type {unknown} */
+          runtime.UTSquadChemCalculatorUtils
+        ) : null
+      );
+      const generateSbcSquadOptions = runtime.generateSbcSquadOptions;
+      const missing = [];
+      if (!ChallengeEntity) {
+        missing.push("UTSBCChallengeEntity");
+      }
+      if (!NullItemEntity) {
+        missing.push("UTNullItemEntity");
+      }
+      if (!ItemEntity) {
+        missing.push("UTItemEntity");
+      }
+      if (!SquadEntity) {
+        missing.push("UTSquadEntity");
+      }
+      if (!ChemistryUtils) {
+        missing.push("UTSquadChemCalculatorUtils");
+      }
+      if (typeof generateSbcSquadOptions !== "function" || !runtime.sbcFactory || !runtime.squadDao || !runtime.chemistryService || !runtime.teamConfig) {
+        missing.push("sbc.virtual-challenge.dependencies");
+      }
+      if (missing.length > 0) return unavailable3(missing);
+      if (!ChallengeEntity || !NullItemEntity || !ItemEntity || !SquadEntity || !ChemistryUtils || typeof generateSbcSquadOptions !== "function") {
+        return unavailable3(["sbc.virtual-challenge.constructors"]);
+      }
+      try {
+        const getFormation = sourceSquad.getFormation;
+        const getPlayers = sourceSquad.getPlayers;
+        if (typeof getFormation !== "function" || typeof getPlayers !== "function") {
+          return unavailable3(["challenge.squad.methods"]);
+        }
+        const formation = getFormation.call(sourceSquad);
+        const sourceSlots = getPlayers.call(sourceSquad);
+        if (!isRecord16(formation) || typeof formation.name !== "string" || !Array.isArray(sourceSlots) || !sourceSlots.every(
+          (slot) => isRecord16(slot) && typeof slot.getItem === "function"
+        )) {
+          return unavailable3(["challenge.squad.snapshot"]);
+        }
+        const newChallenge = new ChallengeEntity({
+          assetId: "virtual",
+          description: "virtual",
+          eligibilityOperation: challenge.eligibilityOperation,
+          endTime: challenge.endTime,
+          formation: formation.name,
+          id: 888888,
+          name: "virtual",
+          priority: challenge.priority,
+          repeatable: challenge.repeatable,
+          requirements: challenge.eligibilityRequirements,
+          rewards: [],
+          setId: 888888,
+          status: challenge.status,
+          timesCompleted: challenge.timesCompleted,
+          type: challenge.type
+        });
+        const squadInfo = {
+          chemistry: 0,
+          id: 888888,
+          formation: formation.name,
+          manager: [new NullItemEntity()],
+          players: Array.from({ length: 23 }, (_2, index) => ({
+            index,
+            itemData: new ItemEntity()
+          })),
+          rating: 0
+        };
+        const simpleBrickIndices = Array.isArray(sourceSquad.simpleBrickIndices) ? sourceSquad.simpleBrickIndices : [];
+        const brickIndices = simpleBrickIndices.length > 0 ? Array.from({ length: 11 }, (_2, index) => ({
+          index,
+          playerType: simpleBrickIndices.includes(index) ? "BRICK" : "DEFAULT"
+        })) : void 0;
+        const newSquad = new SquadEntity(
+          generateSbcSquadOptions(
+            squadInfo,
+            runtime.sbcFactory,
+            brickIndices
+          ),
+          runtime.squadDao,
+          new ChemistryUtils(runtime.chemistryService, runtime.teamConfig)
+        );
+        if (!isRecord16(newSquad) || typeof newSquad.setPlayers !== "function" || !isRecord16(newChallenge)) {
+          return unavailable3(["sbc.virtual-challenge.result"]);
+        }
+        newSquad.setPlayers(
+          sourceSlots.map((slot) => slot.getItem()),
+          true
+        );
+        newChallenge.squad = newSquad;
+        return { success: true, data: newChallenge };
+      } catch {
+        return unavailable3(["sbc.virtual-challenge.create"]);
+      }
+    }
+  };
+
   // src/fsu/domain/SbcDataService.js
   var SbcDataService = class {
-    constructor({ responseAdapter = new SbcResponseAdapter() } = {}) {
+    constructor({
+      responseAdapter = new SbcResponseAdapter(),
+      undoHistoryService = new SbcUndoHistoryService()
+    } = {}) {
       this.responseAdapter = responseAdapter;
+      this.undoHistoryService = undoHistoryService;
     }
     async getFutbinSbcSquad(id, type, helpers) {
-      const { getInfo, externalRequest, notice, hideLoader, fy: fy2, futbinId: futbinId2 } = helpers;
+      const { getInfo, externalRequest, notice, hideLoader, fy: fy2, futbinId } = helpers;
       const info = getInfo();
       const platform = info.base.platform == "pc" ? "PC" : "PS";
       const url = type == 1 ? `https://www.futbin.org/futbin/api/${info.base.year}/getChallengeTopSquads?chal_id=${id}&platform=${platform}` : type == 2 ? `https://www.futbin.org/futbin/api/${info.base.year}/getSquadByID?squadId=${id}&platform=${platform}` : `https://www.fut.gg/api/squads/${id}`;
       try {
         const futBinResponse = await externalRequest("GET", url);
-        const parsedResponse = safeParseJson(futBinResponse, {}, { label: "futbin-sbc-squad" });
-        const data = parsedResponse[type == 2 ? "squad_data" : "data"];
-        if (data) {
-          if (type == 2) {
-            _.map(data, (i, k) => {
-              if (_.includes(k, "cardlid")) {
-                futbinId2.set(i.Player_Resource, i.id);
-                futbinId2.setPrice(i, i.Player_Resource);
-              }
-            });
+        const parsedResponse = safeParseJson(futBinResponse, null, {
+          label: "futbin-sbc-squad"
+        });
+        const result = parseRemoteSbcSquad(parsedResponse, Number(type));
+        if (result.success) {
+          if (result.mappings.length > 0) {
+            futbinId.commitSquadPlayers(result.mappings);
           }
-          return data;
+          return result.data;
         }
         notice("notice.squaderror", 2);
         hideLoader();
@@ -13785,76 +16547,22 @@
     adaptSbcChallengeSquadResponse(response) {
       return this.responseAdapter.adaptChallengeSquadResponse(response);
     }
-    createVirtualChallenge(c) {
-      const challengeInfo = {
-        assetId: "virtual",
-        description: "virtual",
-        eligibilityOperation: c.eligibilityOperation,
-        endTime: c.endTime,
-        formation: c.squad.getFormation().name,
-        id: 888888,
-        name: "virtual",
-        priority: c.priority,
-        repeatable: c.repeatable,
-        requirements: c.eligibilityRequirements,
-        rewards: [],
-        setId: 888888,
-        status: c.status,
-        timesCompleted: c.timesCompleted,
-        type: c.type
-      };
-      const newChallenge = new UTSBCChallengeEntity(challengeInfo);
-      const squadInfo = {
-        chemistry: 0,
-        id: 888888,
-        formation: c.squad.getFormation().name,
-        manager: [new UTNullItemEntity()],
-        players: [],
-        rating: 0
-      };
-      for (let i = 0; i < 23; i++) {
-        squadInfo.players.push({
-          index: i,
-          itemData: new UTItemEntity()
-        });
-      }
-      let brickIndices = void 0;
-      if (c.squad.simpleBrickIndices.length) {
-        brickIndices = [];
-        for (let i = 0; i < 11; i++) {
-          brickIndices.push({
-            index: i,
-            playerType: c.squad.simpleBrickIndices.includes(i) ? "BRICK" : "DEFAULT"
-          });
-        }
-      }
-      const newSquad = new UTSquadEntity(
-        factories.Squad.generateSBCSquadConstructorOptions(
-          squadInfo,
-          services.SBC.sbcDAO.factory,
-          brickIndices
-        ),
-        services.Squad.squadDao,
-        new UTSquadChemCalculatorUtils(services.Chemistry, repositories.TeamConfig)
-      );
-      newSquad.setPlayers(
-        c.squad.getPlayers().map((i) => i.getItem()),
-        true
-      );
-      newChallenge.squad = newSquad;
-      return newChallenge;
-    }
     saveOldSquad(s2, t, helpers) {
       const { getInfo, isPhone: isPhone2, getCurrentController } = helpers;
       const info = getInfo();
       if (s2.isSBC() && (!info.base.savesquad || !t)) {
         const fsu = s2._fsu ??= {};
-        fsu.oldSquad ??= [];
-        fsu.oldSquadCount ??= -1;
         const pl = s2.getPlayers().map((i) => i.getItem());
-        if (fsu.oldSquadCount == -1 || fsu.oldSquad[fsu.oldSquadCount].map((i) => i.id).join() !== pl.map((i) => i.id).join()) {
-          fsu.oldSquadCount++;
-          fsu.oldSquad.push(pl);
+        const history = this.undoHistoryService.capture(
+          {
+            snapshots: fsu.oldSquad,
+            index: fsu.oldSquadCount
+          },
+          pl
+        );
+        fsu.oldSquad = history.snapshots;
+        fsu.oldSquadCount = history.index;
+        if (history.changed) {
           if (isPhone2() && getCurrentController().className == "UTSquadItemDetailsNavigationController") {
             setTimeout(() => {
               getCurrentController().parentViewController._eBackButtonTapped();
@@ -13869,6 +16577,21 @@
           }
         }
       }
+    }
+    replaceOldSquadItem(squad, slotIndex, item) {
+      const fsu = squad?._fsu;
+      if (!fsu) return false;
+      const history = this.undoHistoryService.replaceCurrentItem(
+        {
+          snapshots: fsu.oldSquad,
+          index: fsu.oldSquadCount
+        },
+        slotIndex,
+        item
+      );
+      fsu.oldSquad = history.snapshots;
+      fsu.oldSquadCount = history.index;
+      return history.changed;
     }
     getRatingPlayers(squad, ratings, helpers) {
       const { getItemBy, ignorePlayerToCriteria, getInfo, debug: debug2 } = helpers;
@@ -13986,15 +16709,38 @@
     }
   };
   function registerSbcDataEvents(deps) {
-    const { events, info, fy: fy2, futbinId: futbinId2, isPhone: isPhone2, cntlr: cntlr2, services: services2 } = deps;
+    const {
+      events,
+      info,
+      fy: fy2,
+      futbinId,
+      isPhone: isPhone2,
+      cntlr: cntlr2,
+      services: services2,
+      repositories: repositories2
+    } = deps;
     const service = new SbcDataService();
+    const virtualChallengeAdapter = new SbcVirtualChallengeAdapter({
+      getRuntime: () => ({
+        UTSBCChallengeEntity: typeof UTSBCChallengeEntity === "undefined" ? void 0 : UTSBCChallengeEntity,
+        UTNullItemEntity: typeof UTNullItemEntity === "undefined" ? void 0 : UTNullItemEntity,
+        UTItemEntity: typeof UTItemEntity === "undefined" ? void 0 : UTItemEntity,
+        UTSquadEntity: typeof UTSquadEntity === "undefined" ? void 0 : UTSquadEntity,
+        UTSquadChemCalculatorUtils: typeof UTSquadChemCalculatorUtils === "undefined" ? void 0 : UTSquadChemCalculatorUtils,
+        generateSbcSquadOptions: typeof factories === "undefined" ? void 0 : (...args) => factories.Squad.generateSBCSquadConstructorOptions(...args),
+        sbcFactory: services2.SBC?.sbcDAO?.factory,
+        squadDao: services2.Squad?.squadDao,
+        chemistryService: services2.Chemistry,
+        teamConfig: repositories2.TeamConfig
+      })
+    });
     const helpers = {
       getInfo: () => info,
       externalRequest: (...args) => events.externalRequest(...args),
       notice: (...args) => events.notice(...args),
       hideLoader: (...args) => events.hideLoader(...args),
       fy: fy2,
-      futbinId: futbinId2,
+      futbinId,
       getItemBy: (...args) => events.getItemBy(...args),
       ignorePlayerToCriteria: (...args) => events.ignorePlayerToCriteria(...args),
       debug: deps.debug,
@@ -14003,8 +16749,16 @@
       localize: (key) => services2.Localization.localize(key)
     };
     events.getFutbinSbcSquad = (id, type) => service.getFutbinSbcSquad(id, type, helpers);
-    events.createVirtualChallenge = (c) => service.createVirtualChallenge(c);
+    events.createVirtualChallenge = (c) => {
+      const result = virtualChallengeAdapter.create(c);
+      if (!result.success) {
+        deps.debug.log("Virtual SBC challenge unavailable", result.error);
+        return null;
+      }
+      return result.data;
+    };
     events.saveOldSquad = (s2, t) => service.saveOldSquad(s2, t, helpers);
+    events.replaceOldSquadItem = (s2, index, item) => service.replaceOldSquadItem(s2, index, item);
     events.getRatingPlayers = (squad, ratings) => service.getRatingPlayers(squad, ratings, helpers);
     events.getFastSbcSubText = (j) => service.getFastSbcSubText(j, helpers);
     events.adaptSbcSetsResponse = (response) => service.adaptSbcSetsResponse(response);
@@ -14145,9 +16899,40 @@
     events.popup = (...args) => popup({ info, fy: fy2, createDF: events.createDF }, ...args);
   }
 
+  // src/fsu/ui/MarketAuctionRenderer.js
+  function renderAuctionPriceBreakdown(anchor, rows, deps) {
+    if (!anchor || typeof anchor.getRootElement !== "function" || typeof deps.createControl !== "function") {
+      return false;
+    }
+    const parent = anchor.getRootElement()?.parentNode;
+    if (!parent) return false;
+    for (const [index, row] of rows.entries()) {
+      const control = deps.createControl();
+      if (!control) return false;
+      const displayElement = deps.createButton(
+        control,
+        `${deps.localize("quicklist.getpricelt")} ${index + 1}`,
+        () => {
+        },
+        "accordian"
+      );
+      if (!displayElement || typeof displayElement.setInteractionState !== "function" || typeof displayElement.getRootElement !== "function" || typeof displayElement.setSubtext !== "function" || typeof displayElement.displayCurrencyIcon !== "function") {
+        return false;
+      }
+      const root = displayElement.getRootElement();
+      if (!root?.style) return false;
+      displayElement.setInteractionState(0);
+      root.style.fontSize = "87.5%";
+      displayElement.setSubtext(`${row.price.toLocaleString()} ×${row.count}`);
+      displayElement.displayCurrencyIcon(true);
+      parent.appendChild(root);
+    }
+    return true;
+  }
+
   // src/fsu/core/DomainHelpers.js
   function createDomainHelpers(ctx) {
-    const { events, info, repositories: repositories2, services: services2, cntlr: cntlr2, debug: debug2, fy: fy2, eafy, futbinId: futbinId2, pdb, isPhone: isPhone2 } = ctx;
+    const { events, info, repositories: repositories2, services: services2, cntlr: cntlr2, debug: debug2, fy: fy2, eafy, futbinId, pdb, isPhone: isPhone2 } = ctx;
     const ea = new EaRuntimeAdapter({
       getServices: () => services2,
       getRepositories: () => repositories2,
@@ -14175,12 +16960,17 @@
           getInfo: () => info,
           fy: fy2,
           debug: debug2,
-          futbinId: futbinId2,
+          futbinId,
           getCachePrice: eventProxy("getCachePrice"),
-          createButton: eventProxy("createButton"),
           pdb,
           notice: eventProxy("notice"),
           ea,
+          maxNewItems: typeof MAX_NEW_ITEMS === "number" && Number.isFinite(MAX_NEW_ITEMS) ? MAX_NEW_ITEMS : 100,
+          renderAuctionPrices: (anchor, rows) => renderAuctionPriceBreakdown(anchor, rows, {
+            createControl: () => typeof UTGroupButtonControl === "undefined" ? null : new UTGroupButtonControl(),
+            createButton: eventProxy("createButton"),
+            localize: fy2
+          }),
           xmlHttpRequest: ctx.GM_xmlhttpRequest,
           showLoader: () => events.showLoader(),
           hideLoader: () => events.hideLoader(),
@@ -14442,9 +17232,32 @@
     }
   }
 
+  // src/fsu/ui/PlayerDetailsRenderer.js
+  function isRecord17(value) {
+    return value !== null && typeof value === "object";
+  }
+  function resolvePlayerDetailsTarget(options) {
+    const candidate = options.isPhone ? options.currentController : options.rightController;
+    if (!isRecord17(candidate)) return null;
+    const controller = "rootController" in candidate && isRecord17(candidate.rootController) ? candidate.rootController : candidate;
+    const panelView = controller.panelView ?? controller.panel;
+    return panelView ? { controller, panelView } : null;
+  }
+  function resolvePlayerDetailsItem(value) {
+    if (!isRecord17(value) || typeof value.isPlayer !== "function" || !Number.isInteger(value.definitionId) || Number(value.definitionId) < 0) {
+      return null;
+    }
+    try {
+      if (value.isPlayer.call(value) !== true) return null;
+    } catch {
+      return null;
+    }
+    return { item: value, definitionId: Number(value.definitionId) };
+  }
+
   // src/fsu/core/ModuleRegistry.js
   function registerEarlyModules(ctx) {
-    const { events, info, fy: fy2, SBCEligibilityKey: SBCEligibilityKey2 } = ctx;
+    const { events, info, fy: fy2, services: services2, SBCEligibilityKey: SBCEligibilityKey2 } = ctx;
     const helpers = createDomainHelpers(ctx);
     registerUiEvents({ events, info, fy: fy2 });
     const playerSearchService = new PlayerSearchService();
@@ -14453,7 +17266,16 @@
     events.isPrecious = (rating, flag, price, type) => playerValueService.isPrecious(rating, flag, price, type);
     events.invalidatePlayerSearchCache = () => playerSearchService.invalidateCache();
     const sbcRequirementsService = new SbcRequirementsService();
-    events.requirementsToText = (requirement) => sbcRequirementsService.requirementsToText(requirement, SBCEligibilityKey2, fy2);
+    const sbcReadAdapter = new SbcReadAdapter({
+      getSbcRepository: () => services2.SBC?.repository,
+      getLocalization: () => services2.Localization,
+      getLocalizationUtil: () => typeof UTLocalizationUtil === "undefined" ? void 0 : UTLocalizationUtil
+    });
+    events.requirementsToText = (requirement) => sbcRequirementsService.requirementsToText(requirement, SBCEligibilityKey2, {
+      readRequirement: (value) => sbcReadAdapter.readRequirement(value),
+      getEntityName: (kind, id) => sbcReadAdapter.getEntityName(kind, id),
+      localize: fy2
+    });
   }
   function registerLateModules(ctx) {
     const { events, info, repositories: repositories2, services: services2, cntlr: cntlr2, debug: debug2, fy: fy2, isPhone: isPhone2, pdb } = ctx;
@@ -14466,6 +17288,7 @@
       isPhone: isPhone2,
       cntlr: cntlr2,
       services: services2,
+      repositories: repositories2,
       debug: debug2
     });
     registerSbcRatingEvents({ events, info, debug: debug2, fy: fy2 });
@@ -14483,15 +17306,17 @@
     Object.assign(events, new AcademyCalcService().createFacade(helpers.academy));
     Object.assign(events, new FgRatingService().createFacade(helpers.fg));
     events.detailsButtonSet = (e2) => {
-      if (!isPhone2() && !cntlr2.current().rightController) return;
-      let controller = isPhone2() ? cntlr2.current() : cntlr2.right();
-      if (!controller) return;
-      if (controller.hasOwnProperty("rootController")) controller = controller.rootController;
-      const panelView = controller.panelView || controller.panel;
-      if (!panelView) return;
-      const item = e2.item;
-      if (!item?.isPlayer()) return;
-      const defId = item.definitionId;
+      const currentController = cntlr2.current();
+      const target = resolvePlayerDetailsTarget({
+        isPhone: isPhone2(),
+        currentController,
+        rightController: currentController?.rightController ? cntlr2.right() : null
+      });
+      if (!target) return;
+      const { controller, panelView } = target;
+      const playerContext = resolvePlayerDetailsItem(e2.item);
+      if (!playerContext) return;
+      const { item, definitionId: defId } = playerContext;
       renderPlayerDetailsButtons(
         { events, fy: fy2, info, repositories: repositories2, services: services2, pdb },
         { controller, panelView, item, defId, e: e2 }
@@ -14543,7 +17368,9 @@
         uaTile: UTUnassignedTileView.prototype.setNumberOfItems,
         store: {
           setPacks: UTStoreView.prototype.setPacks,
-          setCategory: UTStoreViewController.prototype.setCategory
+          eOpenPack: UTStoreViewController.prototype.eOpenPack,
+          setCategory: UTStoreViewController.prototype.setCategory,
+          onPackLoadComplete: UTStoreHubViewController.prototype.onPackLoadComplete
         },
         market: {
           eSearch: UTMarketSearchFiltersViewController.prototype.eSearchSelected,
@@ -14619,8 +17446,8 @@
       createButton: (...args) => events.createButton(...args),
       popup: (...args) => events.popup(...args)
     });
-    const futbinId2 = priceService.createFutbinIdFacade();
-    return { set, build, lock, SBCCount, futbinId: futbinId2 };
+    const futbinId = priceService.createFutbinIdFacade();
+    return { set, build, lock, SBCCount, futbinId };
   }
   function attachServiceNotices(ctx, { events, fy: fy2 }) {
     ctx.settingsService.setOnSave(() => events.notice(fy2("notice.setsuccess"), 0));
@@ -14812,6 +17639,88 @@
     return { fsuSC, fsuSV };
   }
 
+  // src/fsu/domain/PlayerMetadataResults.js
+  var PLAYER_METADATA_INVALID = "PLAYER_METADATA_INVALID";
+  function isRecord18(value) {
+    return value !== null && typeof value === "object" && !Array.isArray(value);
+  }
+  function invalid3(provider, issues) {
+    return {
+      success: false,
+      error: { code: PLAYER_METADATA_INVALID, provider, issues }
+    };
+  }
+  function parsePlayerMetaConfig(value) {
+    if (!isRecord18(value)) return invalid3("meta", ["response must be an object"]);
+    const bodyTypeSource = value.bodyType;
+    const baseBodyType = value.baseBodyType;
+    const realFace = value.realFace;
+    if (!isRecord18(bodyTypeSource) || !isRecord18(baseBodyType) || !Array.isArray(realFace)) {
+      return invalid3("meta", ["bodyType", "baseBodyType", "realFace"]);
+    }
+    const bodyType = {};
+    for (const [typeKey, ids] of Object.entries(bodyTypeSource)) {
+      const type = Number(typeKey);
+      if (!Number.isInteger(type) || !Array.isArray(ids)) {
+        return invalid3("meta", [`bodyType.${typeKey}`]);
+      }
+      for (const id of ids) {
+        if (!Number.isInteger(id) || Number(id) <= 0) {
+          return invalid3("meta", [`bodyType.${typeKey}.id`]);
+        }
+        bodyType[String(id)] = type;
+      }
+    }
+    const normalizedBaseBodyType = {};
+    for (const [id, typeValue] of Object.entries(baseBodyType)) {
+      if (!Number.isInteger(Number(id)) || !Number.isInteger(typeValue)) {
+        return invalid3("meta", [`baseBodyType.${id}`]);
+      }
+      normalizedBaseBodyType[id] = Number(typeValue);
+    }
+    if (!realFace.every((id) => Number.isInteger(id) && Number(id) > 0)) {
+      return invalid3("meta", ["realFace"]);
+    }
+    return {
+      success: true,
+      data: { bodyType, baseBodyType: normalizedBaseBodyType, realFace: [...realFace] }
+    };
+  }
+  function parseGgRatingConfig(value) {
+    if (!isRecord18(value) || !isRecord18(value.rank)) {
+      return invalid3("ggrating", ["rank must be an object"]);
+    }
+    for (const [role, thresholds] of Object.entries(value.rank)) {
+      if (!Array.isArray(thresholds) || !thresholds.every((threshold) => Number.isFinite(threshold))) {
+        return invalid3("ggrating", [`rank.${role}`]);
+      }
+    }
+    return { success: true, data: value };
+  }
+  function parseEvolutionMetadata(value) {
+    if (!isRecord18(value) || !Array.isArray(value.new) || !value.new.every((id) => Number.isInteger(id) && Number(id) > 0)) {
+      return invalid3("evolutions", ["new must be an array of positive integers"]);
+    }
+    return { success: true, data: { new: [...value.new] } };
+  }
+  function parsePlayerMetadataRows(value) {
+    if (!Array.isArray(value)) {
+      return invalid3("playermeta", ["response must be an array"]);
+    }
+    const players = {};
+    for (const [index, row] of value.entries()) {
+      if (!Array.isArray(row) || row.length !== 4 || !row.every((entry) => Number.isFinite(entry)) || !Number.isInteger(row[0]) || Number(row[0]) <= 0) {
+        return invalid3("playermeta", [`row[${index}]`]);
+      }
+      players[String(row[0])] = {
+        badytype: Number(row[1]),
+        weight: Number(row[2]),
+        realface: Number(row[3])
+      };
+    }
+    return { success: true, data: players };
+  }
+
   // src/fsu/domain/RemoteConfigService.js
   var API_BASE_URL = "https://api.fut.to/26";
   var README_URL = "https://mfrasi851i.feishu.cn/wiki/wikcng1Ih7fFRidBfMdNS9SrucR";
@@ -14888,12 +17797,22 @@
       });
       this.loadEndpoint(api, "sbc", "sbc.json", { reward: [], new: [] }, (data) => this.applySbc(data));
       this.loadEndpoint(api, "ggrating", "ggrating.json", {}, (data) => {
-        this.info.GGRRAR = data;
-        this.debug.log(`GGRRAR加载完毕！`);
+        const result = parseGgRatingConfig(data);
+        if (result.success) {
+          this.info.GGRRAR = result.data;
+          this.debug.log(`GGRRAR加载完毕！`);
+        } else {
+          this.debug.log("ggrating response rejected", result.error);
+        }
       });
       this.loadEndpoint(api, "evolutions", "evolutions.json", { new: [] }, (data) => {
-        this.info.evolutions.new = data.new || [];
-        this.debug.log(`evolutions加载完毕！`);
+        const result = parseEvolutionMetadata(data);
+        if (result.success) {
+          this.info.evolutions.new = result.data.new;
+          this.debug.log(`evolutions加载完毕！`);
+        } else {
+          this.debug.log("evolutions response rejected", result.error);
+        }
       });
       this.loadEndpoint(api, "inpacks", "inpacks.json", {}, (data) => this.applyInpacks(data));
       this.loadEndpoint(api, "other", "other.json", {}, (data) => this.applyOther(data));
@@ -14924,17 +17843,14 @@
       });
     }
     applyMeta(metaJson) {
-      if (_.has(metaJson, "bodyType")) {
-        this.info.meta.bodyType = _.fromPairs(
-          _.flatMap(
-            metaJson.bodyType,
-            (ids, bodyType) => ids.map((id) => [id, Number(bodyType)])
-          )
-        );
+      const result = parsePlayerMetaConfig(metaJson);
+      if (!result.success) {
+        this.debug.log("meta response rejected", result.error);
+        return false;
       }
-      _.has(metaJson, "baseBodyType") && (this.info.meta.baseBodyType = metaJson.baseBodyType);
-      _.has(metaJson, "realFace") && (this.info.meta.realFace = metaJson.realFace);
+      this.info.meta = { ...this.info.meta, ...result.data };
       this.debug.log(`meta加载完毕！`);
+      return true;
     }
     applyFastSbc(fastSbcJson) {
       _.forEach(fastSbcJson, (item, key) => {
@@ -14968,31 +17884,45 @@
       this.debug.log(`other加载完毕！`);
     }
     applyPlayerMeta(data) {
-      this.info.playermeta = {};
-      _.forEach(data, (value) => {
-        if (value.length == 4) {
-          this.info.playermeta[value[0]] = {
-            badytype: value[1],
-            weight: value[2],
-            realface: value[3]
-          };
-        }
-      });
+      const result = parsePlayerMetadataRows(data);
+      if (!result.success) {
+        this.debug.log("playermeta response rejected", result.error);
+        return false;
+      }
+      this.info.playermeta = result.data;
       this.debug.log(`playermeta加载完毕！`);
+      return true;
     }
   };
 
   // src/fsu/patches/app-init.js
   function registerAppInitEvents(deps) {
-    const { events, info, fy: fy2 } = deps;
-    UTHomeHubView.prototype.getAcademyTile = function() {
-      if (info.evolutions.newCount > 0 && !this._academyTile.__root.querySelector(".fsu-task")) {
-        this._academyTile.__tileContent.before(
-          events.createDF(`<div class="fsu-task">${info.evolutions.html}</div>`)
-        );
+    const { events, info, fy: fy2, patchLifecycle } = deps;
+    patchLifecycle.install({
+      id: "home.academy-tile",
+      phase: "pre-installer-bootstrap",
+      targetLabel: "UTHomeHubView.prototype.getAcademyTile",
+      resolveTarget: () => typeof UTHomeHubView === "undefined" ? null : { owner: UTHomeHubView.prototype, key: "getAcademyTile" },
+      verify: ({ originalDescriptor, originalValue }) => ({
+        ok: originalDescriptor === void 0 && originalValue === void 0,
+        missing: ["UTHomeHubView.prototype.getAcademyTile.unexpected-existing"]
+      }),
+      apply: ({ target }) => {
+        Object.defineProperty(target.owner, target.key, {
+          configurable: true,
+          enumerable: true,
+          writable: true,
+          value: function getAcademyTile() {
+            if (info.evolutions.newCount > 0 && !this._academyTile.__root.querySelector(".fsu-task")) {
+              this._academyTile.__tileContent.before(
+                events.createDF(`<div class="fsu-task">${info.evolutions.html}</div>`)
+              );
+            }
+            return this._academyTile;
+          }
+        });
       }
-      return this._academyTile;
-    };
+    });
     events.addLoadingElment = () => {
       if (!info.base.close) {
         info.base.close = events.createButton(
@@ -15040,7 +17970,7 @@
       set,
       build,
       lock,
-      futbinId: futbinId2,
+      futbinId,
       debug: debug2,
       GM_getValue: GM_getValue2,
       GM_setValue: GM_setValue2,
@@ -15059,7 +17989,7 @@
       set.init();
       build.init();
       lock.init();
-      futbinId2.init();
+      futbinId.init();
       info.myPacksSort = GM_getValue2("packsSort", "desc");
       let nav = cntlr2.current().parentViewController.navigationBar;
       if (nav) {
@@ -15321,6 +18251,241 @@
     }
   };
 
+  // src/fsu/core/PatchLifecycleRegistry.js
+  var SAFE_DIAGNOSTIC_MEMBER = /^[A-Za-z0-9_$.[\]:-]{1,160}$/;
+  function isRecord19(value) {
+    return value !== null && typeof value === "object";
+  }
+  function sanitizeMissing(values) {
+    if (!Array.isArray(values)) return [];
+    return values.filter(
+      /** @returns {value is string} */
+      (value) => typeof value === "string" && SAFE_DIAGNOSTIC_MEMBER.test(value)
+    ).slice(0, 20);
+  }
+  function isPatchTarget(value) {
+    if (!isRecord19(value)) return false;
+    const owner = value.owner;
+    const hasOwner = typeof owner === "object" && owner !== null || typeof owner === "function";
+    return hasOwner && (typeof value.key === "string" || typeof value.key === "symbol");
+  }
+  function restoreOriginalProperty(context, hadOwnProperty) {
+    try {
+      if (hadOwnProperty) {
+        if (!context.originalDescriptor) return false;
+        Object.defineProperty(
+          context.target.owner,
+          context.target.key,
+          context.originalDescriptor
+        );
+        return true;
+      }
+      return Reflect.deleteProperty(context.target.owner, context.target.key);
+    } catch {
+      return false;
+    }
+  }
+  var PatchLifecycleRegistry = class {
+    /**
+     * @param {{ onDiagnostic?: (diagnostic: PatchDiagnostic) => void }} [options]
+     */
+    constructor({ onDiagnostic = () => {
+    } } = {}) {
+      this.onDiagnostic = onDiagnostic;
+      this.installations = /* @__PURE__ */ new Map();
+      this.diagnostics = [];
+      this.sequence = 0;
+    }
+    /**
+     * @param {string} id
+     * @param {string} phase
+     * @param {PatchLifecycleStatus} status
+     * @param {unknown} [missing]
+     * @returns {PatchDiagnostic}
+     */
+    record(id, phase, status, missing = []) {
+      const diagnostic = {
+        id: SAFE_DIAGNOSTIC_MEMBER.test(id) ? id : "invalid-patch",
+        phase: SAFE_DIAGNOSTIC_MEMBER.test(phase) ? phase : "unknown",
+        status,
+        sequence: ++this.sequence,
+        missing: sanitizeMissing(missing)
+      };
+      this.diagnostics.push(diagnostic);
+      try {
+        this.onDiagnostic({
+          ...diagnostic,
+          missing: [...diagnostic.missing]
+        });
+      } catch {
+      }
+      return diagnostic;
+    }
+    /**
+     * @param {unknown} descriptorValue
+     * @returns {PatchDiagnostic}
+     */
+    install(descriptorValue) {
+      if (!isRecord19(descriptorValue)) {
+        return this.record("invalid-patch", "unknown", "invalid-descriptor");
+      }
+      const id = typeof descriptorValue.id === "string" && SAFE_DIAGNOSTIC_MEMBER.test(descriptorValue.id) ? descriptorValue.id : "invalid-patch";
+      const phase = typeof descriptorValue.phase === "string" && SAFE_DIAGNOSTIC_MEMBER.test(descriptorValue.phase) ? descriptorValue.phase : "unknown";
+      if (id === "invalid-patch" || phase === "unknown" || typeof descriptorValue.resolveTarget !== "function" || typeof descriptorValue.apply !== "function" || descriptorValue.verify !== void 0 && typeof descriptorValue.verify !== "function" || descriptorValue.restore !== void 0 && typeof descriptorValue.restore !== "function") {
+        return this.record(id, phase, "invalid-descriptor");
+      }
+      const descriptor = (
+        /** @type {PatchDescriptor} */
+        descriptorValue
+      );
+      const existingInstallation = this.installations.get(descriptor.id);
+      if (existingInstallation) {
+        return this.record(
+          descriptor.id,
+          existingInstallation.descriptor.phase,
+          "already-installed"
+        );
+      }
+      let target;
+      try {
+        target = descriptor.resolveTarget();
+      } catch {
+        return this.record(descriptor.id, descriptor.phase, "unsupported", [
+          "target-resolution-threw"
+        ]);
+      }
+      if (!isPatchTarget(target)) {
+        return this.record(descriptor.id, descriptor.phase, "unsupported", [
+          descriptor.targetLabel || "target"
+        ]);
+      }
+      let hadOwnProperty;
+      let context;
+      try {
+        hadOwnProperty = Object.prototype.hasOwnProperty.call(
+          target.owner,
+          target.key
+        );
+        const originalDescriptor = Object.getOwnPropertyDescriptor(
+          target.owner,
+          target.key
+        );
+        context = {
+          target,
+          originalDescriptor,
+          originalValue: Reflect.get(target.owner, target.key)
+        };
+      } catch {
+        return this.record(descriptor.id, descriptor.phase, "unsupported", [
+          "target-inspection-threw"
+        ]);
+      }
+      if (descriptor.verify) {
+        let verification;
+        try {
+          verification = descriptor.verify(context);
+        } catch {
+          return this.record(descriptor.id, descriptor.phase, "verify-failed", [
+            "verify-threw"
+          ]);
+        }
+        const verificationPassed = verification === true || isRecord19(verification) && verification.ok === true;
+        if (!verificationPassed) {
+          const missing = isRecord19(verification) && verification.ok === false ? verification.missing : [];
+          return this.record(
+            descriptor.id,
+            descriptor.phase,
+            "verify-failed",
+            missing
+          );
+        }
+      }
+      try {
+        descriptor.apply(context);
+      } catch {
+        const restored = restoreOriginalProperty(context, hadOwnProperty);
+        return this.record(
+          descriptor.id,
+          descriptor.phase,
+          restored ? "apply-failed" : "apply-failed-restore-failed",
+          restored ? ["apply-threw"] : ["apply-threw", "target.restore"]
+        );
+      }
+      this.installations.set(descriptor.id, {
+        descriptor,
+        context,
+        hadOwnProperty
+      });
+      return this.record(descriptor.id, descriptor.phase, "installed");
+    }
+    /**
+     * Installs descriptors in caller-provided order. Runtime failure in one descriptor
+     * does not prevent later descriptors from being attempted.
+     * @param {unknown[]} descriptors
+     * @returns {PatchDiagnostic[]}
+     */
+    installMany(descriptors) {
+      return descriptors.map((descriptor) => this.install(descriptor));
+    }
+    /**
+     * @param {string} id
+     * @returns {PatchDiagnostic}
+     */
+    restore(id) {
+      const installation = this.installations.get(id);
+      if (!installation) {
+        return this.record(id, "unknown", "not-installed");
+      }
+      let hookFailed = false;
+      if (installation.descriptor.restore) {
+        try {
+          installation.descriptor.restore(installation.context);
+        } catch {
+          hookFailed = true;
+        }
+      }
+      const restored = restoreOriginalProperty(
+        installation.context,
+        installation.hadOwnProperty
+      );
+      if (!restored) {
+        return this.record(id, installation.descriptor.phase, "restore-failed", [
+          "target.restore"
+        ]);
+      }
+      this.installations.delete(id);
+      return this.record(
+        id,
+        installation.descriptor.phase,
+        hookFailed ? "restored-with-hook-failure" : "restored",
+        hookFailed ? ["restore-hook-threw"] : []
+      );
+    }
+    /**
+     * Restores in reverse installation order so nested wrappers unwind correctly.
+     * @returns {PatchDiagnostic[]}
+     */
+    restoreAll() {
+      return [...this.installations.keys()].reverse().map((id) => this.restore(id));
+    }
+    /**
+     * @param {string} id
+     * @returns {boolean}
+     */
+    isInstalled(id) {
+      return this.installations.has(id);
+    }
+    /**
+     * @returns {PatchDiagnostic[]}
+     */
+    getDiagnostics() {
+      return this.diagnostics.map((diagnostic) => ({
+        ...diagnostic,
+        missing: [...diagnostic.missing]
+      }));
+    }
+  };
+
   // src/fsu/domain/FastSbcService.js
   var FastSbcService = class {
     calculateQuantity({ clubMode, playerPool, criteria, helpers }) {
@@ -15496,6 +18661,7 @@
       let result = _.flatMap(searchCriteriaList, (criteria) => getItemBy(2, criteria));
       result = _.uniqBy(result, "id");
       const newChallenge = createVirtualChallenge(controller.challenge);
+      if (!newChallenge) return [];
       const currentList = newChallenge.squad.getPlayers().map((slot) => slot.getItem());
       const resultList = [];
       for (const player of result) {
@@ -15511,7 +18677,7 @@
 
   // src/fsu/domain/SbcSquadFillService.js
   var SbcSquadFillService = class {
-    fillFromPlayerList(challenge, list, type, helpers) {
+    async fillFromPlayerList(challenge, list, type, helpers) {
       const { showLoader, getFormation, ignorePosition, loadPlayerInfo, saveSquad, saveOldSquad } = helpers;
       showLoader();
       const substitute = Array.from(list);
@@ -15539,14 +18705,113 @@
         return baseFitIndex == -1 ? null : substitute.splice(baseFitIndex, 1)[0];
       });
       loadPlayerInfo(playerlist);
-      saveSquad(challenge, challenge.squad, playerlist, []);
-      saveOldSquad(challenge.squad, false);
+      const result = await saveSquad(
+        challenge,
+        challenge.squad,
+        playerlist,
+        []
+      );
+      if (result?.success) {
+        saveOldSquad(challenge.squad, false);
+      }
+      return result;
     }
   };
 
+  // src/fsu/domain/SbcSaveResults.js
+  var SBC_SAVE_ERROR_CODES = Object.freeze({
+    PRECONDITION: "SBC_SAVE_PRECONDITION_FAILED",
+    REJECTED: "SBC_SAVE_REJECTED",
+    INVALID_RESPONSE: "SBC_SAVE_INVALID_RESPONSE"
+  });
+  function isRecord20(value) {
+    return value !== null && typeof value === "object";
+  }
+  function sbcSaveFailure(code, stage, issues) {
+    return {
+      success: false,
+      error: { code, stage, issues }
+    };
+  }
+  function parseSbcSaveResponse(response) {
+    if (!isRecord20(response) || typeof response.success !== "boolean") {
+      return sbcSaveFailure(
+        SBC_SAVE_ERROR_CODES.INVALID_RESPONSE,
+        "save",
+        ["response.success"]
+      );
+    }
+    return response.success ? { success: true, data: response } : sbcSaveFailure(SBC_SAVE_ERROR_CODES.REJECTED, "save", [
+      "response.success"
+    ]);
+  }
+  function parseSbcLoadedSquad(response) {
+    if (!isRecord20(response) || !isRecord20(response.response) || !isRecord20(response.response.squad) || !Array.isArray(response.response.squad._players)) {
+      return sbcSaveFailure(
+        SBC_SAVE_ERROR_CODES.INVALID_RESPONSE,
+        "load",
+        ["response.squad.players"]
+      );
+    }
+    const loadedSquad = response.response.squad;
+    const loadedSlots = loadedSquad._players;
+    if (!Array.isArray(loadedSlots)) {
+      return sbcSaveFailure(
+        SBC_SAVE_ERROR_CODES.INVALID_RESPONSE,
+        "load",
+        ["response.squad.players"]
+      );
+    }
+    const players = [];
+    for (const [index, slot] of loadedSlots.entries()) {
+      if (!isRecord20(slot) || !("_item" in slot)) {
+        return sbcSaveFailure(
+          SBC_SAVE_ERROR_CODES.INVALID_RESPONSE,
+          "load",
+          [`response.squad.players[${index}]`]
+        );
+      }
+      players.push(slot._item);
+    }
+    return {
+      success: true,
+      data: { loadedSquad, players }
+    };
+  }
+
   // src/fsu/domain/SbcSquadSaveService.js
   var SbcSquadSaveService = class {
-    async save(challenge, squad, players, helpers) {
+    constructor({ observableAdapter = new EaObservableAdapter() } = {}) {
+      this.observableAdapter = observableAdapter;
+      this.inFlight = /* @__PURE__ */ new Map();
+      this.activeTransactions = 0;
+    }
+    save(challenge, squad, players, helpers) {
+      const challengeId = Number(challenge?.id);
+      if (!Number.isInteger(challengeId) || challengeId <= 0 || !squad || typeof squad.removeAllItems !== "function" || typeof squad.setPlayers !== "function" || typeof squad.getPlayers !== "function" || !Array.isArray(players)) {
+        return Promise.resolve(
+          this.preconditionFailure(helpers, [
+            "challenge.id",
+            "squad",
+            "players"
+          ])
+        );
+      }
+      const key = String(challengeId);
+      const existing = this.inFlight.get(key);
+      if (existing) return existing;
+      const transaction = this.runTransaction(
+        challenge,
+        squad,
+        players,
+        helpers
+      ).finally(() => {
+        this.inFlight.delete(key);
+      });
+      this.inFlight.set(key, transaction);
+      return transaction;
+    }
+    async runTransaction(challenge, squad, players, helpers) {
       const {
         setSaving,
         saveChallenge,
@@ -15559,278 +18824,365 @@
         getActiveView,
         debug: debug2
       } = helpers;
+      let originalPlayers;
+      try {
+        const originalSlots = squad.getPlayers();
+        if (!Array.isArray(originalSlots) || !originalSlots.every(
+          (slot) => slot && typeof slot.getItem === "function"
+        )) {
+          return this.preconditionFailure(helpers, ["squad.players"]);
+        }
+        originalPlayers = originalSlots.map((slot) => slot.getItem());
+      } catch {
+        return this.preconditionFailure(helpers, ["squad.players"]);
+      }
+      this.activeTransactions++;
       setSaving(true);
-      squad.removeAllItems();
-      squad.setPlayers(players, true);
-      await saveChallenge(challenge).observe(
-        this,
-        async function(observer, response) {
-          if (!response.success) {
-            notice("notice.templateerror", 2);
-            squad.removeAllItems();
-            setSaving(false);
-            hideLoader();
-            return;
+      try {
+        squad.removeAllItems();
+        squad.setPlayers(players, true);
+        const saveObservable = saveChallenge(challenge);
+        const observedSave = await this.observableAdapter.observeOnce(
+          saveObservable,
+          this,
+          "sbc.save-challenge"
+        );
+        if (!observedSave.success) {
+          return this.rollback(squad, originalPlayers, observedSave, notice);
+        }
+        const saveResult = parseSbcSaveResponse(observedSave.data);
+        if (!saveResult.success) {
+          return this.rollback(squad, originalPlayers, saveResult, notice);
+        }
+        const loadObservable = loadChallengeData(challenge);
+        const observedLoad = await this.observableAdapter.observeOnce(
+          loadObservable,
+          this,
+          "sbc.load-challenge"
+        );
+        if (!observedLoad.success) {
+          return this.rollback(squad, originalPlayers, observedLoad, notice);
+        }
+        const loadResult = parseSbcLoadedSquad(observedLoad.data);
+        if (!loadResult.success) {
+          return this.rollback(squad, originalPlayers, loadResult, notice);
+        }
+        const { loadedSquad, players: loadedPlayers } = loadResult.data;
+        challenge.squad.setPlayers(loadedPlayers, true);
+        challenge.onDataChange.notify({ squad: loadedSquad });
+        if (isPhone2() && getCurrentController().className === "UTSBCSquadDetailPanelViewController") {
+          setTimeout(() => {
+            getCurrentController().parentViewController._eBackButtonTapped();
+          }, 500);
+        }
+        notice("notice.templatesuccess", 0);
+        const view = getActiveView();
+        if (view) {
+          debug2.log(view.getView()._interactionState);
+          if (!view.getView()._interactionState) {
+            view.getView().setInteractionState(true);
           }
-          loadChallengeData(challenge).observe(
-            this,
-            async function(loadObserver, { response: { squad: loadedSquad } }) {
-              hideLoader();
-              const squadPlayers = loadedSquad._players.map((slot) => slot._item);
-              challenge.squad.setPlayers(squadPlayers, true);
-              challenge.onDataChange.notify({ squad: loadedSquad });
-              setSaving(false);
-              if (isPhone2() && getCurrentController().className == "UTSBCSquadDetailPanelViewController") {
-                setTimeout(() => {
-                  getCurrentController().parentViewController._eBackButtonTapped();
-                }, 500);
-              }
-              notice("notice.templatesuccess", 0);
-              const view = getActiveView();
-              if (view) {
-                debug2.log(view.getView()._interactionState);
-                if (!view.getView()._interactionState) {
-                  view.getView().setInteractionState(true);
-                }
-              }
-              loadPlayerInfo(squadPlayers);
-            }
-          );
         }
+        loadPlayerInfo(loadedPlayers);
+        return {
+          success: true,
+          data: { loadedSquad, players: loadedPlayers }
+        };
+      } catch {
+        return this.rollback(
+          squad,
+          originalPlayers,
+          sbcSaveFailure(
+            SBC_SAVE_ERROR_CODES.INVALID_RESPONSE,
+            "save",
+            ["transaction.threw"]
+          ),
+          notice
+        );
+      } finally {
+        this.activeTransactions = Math.max(0, this.activeTransactions - 1);
+        setSaving(this.activeTransactions > 0);
+        if (this.activeTransactions === 0) {
+          hideLoader();
+        }
+        this.updateBulkBuyButton(squad);
+      }
+    }
+    rollback(squad, originalPlayers, result, notice) {
+      try {
+        squad.removeAllItems();
+        squad.setPlayers(originalPlayers, true);
+      } catch {
+      }
+      notice("notice.templateerror", 2);
+      return result;
+    }
+    preconditionFailure(helpers, issues) {
+      const result = sbcSaveFailure(
+        SBC_SAVE_ERROR_CODES.PRECONDITION,
+        "precondition",
+        issues
       );
-      if (squad?._fsu?.bulkBuyBtn?.getRootElement()) {
-        if (squad.isDream()) {
-          squad._fsu.bulkBuyBtn.show();
-        } else {
-          squad._fsu.bulkBuyBtn.hide();
+      try {
+        helpers.notice("notice.templateerror", 2);
+        if (this.activeTransactions === 0) {
+          helpers.setSaving(false);
+          helpers.hideLoader();
         }
+      } catch {
+      }
+      return result;
+    }
+    updateBulkBuyButton(squad) {
+      if (!squad?._fsu?.bulkBuyBtn?.getRootElement()) return;
+      if (squad.isDream()) {
+        squad._fsu.bulkBuyBtn.show();
+      } else {
+        squad._fsu.bulkBuyBtn.hide();
       }
     }
   };
 
   // src/fsu/domain/SbcTemplateService.js
   var SbcTemplateService = class {
+    constructor({ operation = new CancellableOperation() } = {}) {
+      this.operation = operation;
+    }
+    cancel() {
+      return this.operation.cancel();
+    }
+    isRunning() {
+      return this.operation.isRunning();
+    }
     async loadTemplate(controller, type, sId, helpers) {
-      const {
-        showLoader,
-        changeLoadingText,
-        notice,
-        getFutbinSbcSquad,
-        getItemBy,
-        ignorePlayerToCriteria,
-        createVirtualChallenge,
-        saveSquad,
-        saveOldSquad,
-        isTemplateRunning,
-        setTemplateRunning,
-        getGoldenRange,
-        getFormationMap,
-        debug: debug2,
-        isPhone: isPhone2,
-        navigateBack
-      } = helpers;
-      controller.setInteractionState(0);
-      const squadPos = controller.challenge.squad.getFieldPlayers().map((slot) => slot.isBrick() ? null : slot.getGeneralPosition());
-      showLoader();
-      changeLoadingText("loadingclose.template1");
-      setTemplateRunning(true);
-      notice("notice.templateload", 1);
-      const fsu = _.get(controller, "challenge.squad._fsu") || _.set(controller, "challenge.squad._fsu", {});
-      let planCount = 0;
-      let resultSquad = [];
-      let resultCount = 0;
-      let resultValue = 0;
-      let resultId = 0;
-      const refePlan = [];
-      if (type == 1) {
-        let list = await getFutbinSbcSquad(controller.challenge.id, type);
-        list = _.filter(list, (item) => item.likes >= 0);
-        if (list && list.length == 0) {
-          return;
-        }
-        if (fsu && fsu.templatePlan) {
-          list = _.reject(list, (item) => _.includes(fsu.templatePlan, item.id));
-        }
-        refePlan.push(...list.slice(0, 5).map((item) => item.id));
-      } else {
-        refePlan.push(sId);
-      }
-      for (const planId of refePlan) {
-        planCount++;
-        changeLoadingText([
-          "loadingclose.template2",
-          `${planCount}`,
-          `${refePlan.length - planCount}`
-        ]);
-        if (!isTemplateRunning()) return;
-        const planSquad = await getFutbinSbcSquad(planId, type == 1 ? 2 : type);
-        if (!planSquad) continue;
-        let ownedPlayer = 0;
-        let surplusValue = 0;
-        const createSquad = new Array(11);
-        const copySquadPos = cloneJson(controller.challenge.squad.getFormation().generalPositions);
-        const formationMap = getFormationMap();
-        for (let i = 0; i < createSquad.length; i++) {
-          let posIndex = i;
-          if (type !== 3) {
-            if (_.has(formationMap, planSquad.Formation)) {
-              posIndex = copySquadPos.lastIndexOf(formationMap[planSquad.Formation][i]);
-              copySquadPos[posIndex] = null;
-            }
+      const operation = this.operation.start();
+      try {
+        const {
+          showLoader,
+          changeLoadingText,
+          notice,
+          getFutbinSbcSquad,
+          getItemBy,
+          ignorePlayerToCriteria,
+          createVirtualChallenge,
+          saveSquad,
+          saveOldSquad,
+          getGoldenRange,
+          getFormationMap,
+          debug: debug2,
+          isPhone: isPhone2,
+          navigateBack
+        } = helpers;
+        controller.setInteractionState(0);
+        const squadPos = controller.challenge.squad.getFieldPlayers().map((slot) => slot.isBrick() ? null : slot.getGeneralPosition());
+        showLoader();
+        changeLoadingText("loadingclose.template1");
+        notice("notice.templateload", 1);
+        const fsu = _.get(controller, "challenge.squad._fsu") || _.set(controller, "challenge.squad._fsu", {});
+        let planCount = 0;
+        let resultSquad = [];
+        let resultCount = 0;
+        let resultValue = 0;
+        let resultId = 0;
+        const refePlan = [];
+        if (type == 1) {
+          let list = await getFutbinSbcSquad(controller.challenge.id, type);
+          list = _.filter(list, (item) => item.likes >= 0);
+          if (list && list.length == 0) {
+            return;
           }
-          if (type == 3) {
-            if ("data" in planSquad && "activeGroupPositions" in planSquad.data && i in planSquad.data.activeGroupPositions) {
-              let player = new UTItemEntity();
-              player.definitionId = planSquad.data.activeGroupPositions[i].playerEaId;
-              player.stackCount = 1;
-              const cachePlayer = getItemBy(2, { definitionId: player.definitionId })[0];
-              if (cachePlayer) {
-                player.id = cachePlayer.id;
-                player.concept = false;
-              } else {
-                player.id = player.definitionId;
-                player.concept = true;
+          if (fsu && fsu.templatePlan) {
+            list = _.reject(list, (item) => _.includes(fsu.templatePlan, item.id));
+          }
+          refePlan.push(...list.slice(0, 5).map((item) => item.id));
+        } else {
+          refePlan.push(sId);
+        }
+        for (const planId of refePlan) {
+          planCount++;
+          changeLoadingText([
+            "loadingclose.template2",
+            `${planCount}`,
+            `${refePlan.length - planCount}`
+          ]);
+          if (!operation.isActive()) return;
+          const planSquad = await getFutbinSbcSquad(planId, type == 1 ? 2 : type);
+          if (!planSquad) continue;
+          let ownedPlayer = 0;
+          let surplusValue = 0;
+          const createSquad = new Array(11);
+          const copySquadPos = cloneJson(controller.challenge.squad.getFormation().generalPositions);
+          const formationMap = getFormationMap();
+          for (let i = 0; i < createSquad.length; i++) {
+            let posIndex = i;
+            if (type !== 3) {
+              if (_.has(formationMap, planSquad.Formation)) {
+                posIndex = copySquadPos.lastIndexOf(formationMap[planSquad.Formation][i]);
+                copySquadPos[posIndex] = null;
               }
-              createSquad[posIndex] = player;
-            } else {
-              createSquad[posIndex] = null;
             }
-          } else {
-            const planIndex = `cardlid${11 - i}`;
-            const basicCriteria = ignorePlayerToCriteria({});
-            if (squadPos[posIndex] !== null) {
-              if (planIndex in planSquad) {
+            if (type == 3) {
+              if ("data" in planSquad && "activeGroupPositions" in planSquad.data && i in planSquad.data.activeGroupPositions) {
                 let player = new UTItemEntity();
-                const planPlayer = planSquad[planIndex];
-                player.definitionId = planPlayer.Player_Resource;
+                player.definitionId = planSquad.data.activeGroupPositions[i].playerEaId;
                 player.stackCount = 1;
-                const cachePlayer = _.find(
-                  getItemBy(2, { ...basicCriteria, definitionId: player.definitionId })
-                );
+                const cachePlayer = getItemBy(2, { definitionId: player.definitionId })[0];
                 if (cachePlayer) {
-                  player = cachePlayer;
-                  ownedPlayer++;
+                  player.id = cachePlayer.id;
+                  player.concept = false;
                 } else {
-                  const basePos = _.map(planPlayer.alternativePositions, (pos) => PlayerPosition[pos]);
-                  const preferredPos = PlayerPosition[planPlayer.org_pos];
-                  basePos.push(preferredPos);
-                  player.id = planPlayer.Player_Resource;
+                  player.id = player.definitionId;
                   player.concept = true;
-                  surplusValue += planPlayer.price;
-                  player._rating = planPlayer.rating;
-                  player.teamId = planPlayer.club;
-                  player.leagueId = planPlayer.league;
-                  player.nationId = planPlayer.nation;
-                  player.preferredPosition = preferredPos;
-                  player.basePossiblePositions = basePos;
-                  player._rareflag = planPlayer.raretype;
-                  if (planPlayer.raretype !== 0) {
-                    player.groups.push(4);
-                  }
                 }
                 createSquad[posIndex] = player;
               } else {
                 createSquad[posIndex] = null;
               }
             } else {
-              createSquad[posIndex] = null;
+              const planIndex = `cardlid${11 - i}`;
+              const basicCriteria = ignorePlayerToCriteria({});
+              if (squadPos[posIndex] !== null) {
+                if (planIndex in planSquad) {
+                  let player = new UTItemEntity();
+                  const planPlayer = planSquad[planIndex];
+                  player.definitionId = planPlayer.Player_Resource;
+                  player.stackCount = 1;
+                  const cachePlayer = _.find(
+                    getItemBy(2, { ...basicCriteria, definitionId: player.definitionId })
+                  );
+                  if (cachePlayer) {
+                    player = cachePlayer;
+                    ownedPlayer++;
+                  } else {
+                    const basePos = _.map(planPlayer.alternativePositions, (pos) => PlayerPosition[pos]);
+                    const preferredPos = PlayerPosition[planPlayer.org_pos];
+                    basePos.push(preferredPos);
+                    player.id = planPlayer.Player_Resource;
+                    player.concept = true;
+                    surplusValue += planPlayer.price;
+                    player._rating = planPlayer.rating;
+                    player.teamId = planPlayer.club;
+                    player.leagueId = planPlayer.league;
+                    player.nationId = planPlayer.nation;
+                    player.preferredPosition = preferredPos;
+                    player.basePossiblePositions = basePos;
+                    player._rareflag = planPlayer.raretype;
+                    if (planPlayer.raretype !== 0) {
+                      player.groups.push(4);
+                    }
+                  }
+                  createSquad[posIndex] = player;
+                } else {
+                  createSquad[posIndex] = null;
+                }
+              } else {
+                createSquad[posIndex] = null;
+              }
             }
           }
+          if (resultSquad.length == 0 || surplusValue < resultValue || surplusValue == resultValue && ownedPlayer > resultCount) {
+            resultSquad = createSquad;
+            resultCount = ownedPlayer;
+            resultValue = surplusValue;
+            resultId = planId;
+          }
         }
-        if (resultSquad.length == 0 || surplusValue < resultValue || surplusValue == resultValue && ownedPlayer > resultCount) {
-          resultSquad = createSquad;
-          resultCount = ownedPlayer;
-          resultValue = surplusValue;
-          resultId = planId;
-        }
-      }
-      debug2.log(
-        `最终结果：阵容：`,
-        resultSquad,
-        `拥有球员：`,
-        resultCount,
-        `剩余需花费：`,
-        resultValue,
-        `阵容id:`,
-        resultId
-      );
-      if (!isTemplateRunning()) return;
-      const conceptIndexes = _.flatMap(resultSquad, (player, index) => player?.concept ? [index] : []);
-      const excludeDefIds = _.map(resultSquad, "databaseId");
-      if (conceptIndexes.length) {
-        debug2.log("开始尝试替换假想球员！");
-        let tempSquad = _.map(resultSquad, (player) => player ? player : new UTItemEntity());
-        const newChallenge = createVirtualChallenge(controller.challenge);
-        newChallenge.squad.setPlayers(tempSquad);
-        const sortedConceptIndexes = _.sortBy(
-          conceptIndexes,
-          (index) => newChallenge.squad.getPlayer(index)._chemistry
+        debug2.log(
+          `最终结果：阵容：`,
+          resultSquad,
+          `拥有球员：`,
+          resultCount,
+          `剩余需花费：`,
+          resultValue,
+          `阵容id:`,
+          resultId
         );
-        for (const index of sortedConceptIndexes) {
-          if (!isTemplateRunning()) break;
-          await new Promise((resolve) => setTimeout(resolve, 0));
-          const copySquad = _.map(tempSquad, (player) => player);
-          const conceptPlayer = copySquad[index];
-          const searchMaxRating = Math.min(conceptPlayer.rating + 10, getGoldenRange());
-          let searchCriteria = { NEdatabaseId: excludeDefIds, LTrating: searchMaxRating, lock: false };
-          searchCriteria = ignorePlayerToCriteria(searchCriteria);
-          const indexPos = newChallenge.squad.getPlayer(index).generalPosition;
-          changeLoadingText([
-            "loadingclose.template3",
-            _.indexOf(sortedConceptIndexes, index) + 1,
-            sortedConceptIndexes.length,
-            PlayerPosition[indexPos]
-          ]);
-          const searchResultsList = _.orderBy(
-            getItemBy(2, searchCriteria),
-            [
-              (item) => item.basePossiblePositions.includes(indexPos),
-              (item) => item.rating,
-              (item) => item.teamId === conceptPlayer.teamId,
-              (item) => item.nationId === conceptPlayer.nationId,
-              (item) => item.leagueId === conceptPlayer.leagueId
-            ],
-            ["desc", "asc", "desc", "desc", "desc"]
+        if (!operation.isActive()) return;
+        const conceptIndexes = _.flatMap(resultSquad, (player, index) => player?.concept ? [index] : []);
+        const excludeDefIds = _.map(resultSquad, "databaseId");
+        if (conceptIndexes.length) {
+          debug2.log("开始尝试替换假想球员！");
+          let tempSquad = _.map(resultSquad, (player) => player ? player : new UTItemEntity());
+          const newChallenge = createVirtualChallenge(controller.challenge);
+          if (!newChallenge) return;
+          newChallenge.squad.setPlayers(tempSquad);
+          const sortedConceptIndexes = _.sortBy(
+            conceptIndexes,
+            (index) => newChallenge.squad.getPlayer(index)._chemistry
           );
-          const satisfyPlayers = [];
-          for (const fillPlayer of searchResultsList) {
-            copySquad[index] = fillPlayer;
-            newChallenge.squad.setPlayers(copySquad);
-            if (newChallenge.meetsRequirements()) {
-              satisfyPlayers.push({
-                player: fillPlayer,
-                playerChemistry: newChallenge.squad.getPlayer(index)._chemistry,
-                squadChemistry: newChallenge.squad._chemistry,
-                rating: fillPlayer.rating
-              });
+          for (const index of sortedConceptIndexes) {
+            if (!operation.isActive()) break;
+            await new Promise((resolve) => setTimeout(resolve, 0));
+            const copySquad = _.map(tempSquad, (player) => player);
+            const conceptPlayer = copySquad[index];
+            const searchMaxRating = Math.min(conceptPlayer.rating + 10, getGoldenRange());
+            let searchCriteria = { NEdatabaseId: excludeDefIds, LTrating: searchMaxRating, lock: false };
+            searchCriteria = ignorePlayerToCriteria(searchCriteria);
+            const indexPos = newChallenge.squad.getPlayer(index).generalPosition;
+            changeLoadingText([
+              "loadingclose.template3",
+              _.indexOf(sortedConceptIndexes, index) + 1,
+              sortedConceptIndexes.length,
+              PlayerPosition[indexPos]
+            ]);
+            const searchResultsList = _.orderBy(
+              getItemBy(2, searchCriteria),
+              [
+                (item) => item.basePossiblePositions.includes(indexPos),
+                (item) => item.rating,
+                (item) => item.teamId === conceptPlayer.teamId,
+                (item) => item.nationId === conceptPlayer.nationId,
+                (item) => item.leagueId === conceptPlayer.leagueId
+              ],
+              ["desc", "asc", "desc", "desc", "desc"]
+            );
+            const satisfyPlayers = [];
+            for (const fillPlayer of searchResultsList) {
+              copySquad[index] = fillPlayer;
+              newChallenge.squad.setPlayers(copySquad);
+              if (newChallenge.meetsRequirements()) {
+                satisfyPlayers.push({
+                  player: fillPlayer,
+                  playerChemistry: newChallenge.squad.getPlayer(index)._chemistry,
+                  squadChemistry: newChallenge.squad._chemistry,
+                  rating: fillPlayer.rating
+                });
+              }
+            }
+            if (satisfyPlayers.length) {
+              const firstCandidate = _.first(
+                _.orderBy(
+                  satisfyPlayers,
+                  [
+                    (item) => item.squadChemistry,
+                    (item) => item.playerChemistry,
+                    (item) => item.player.rating
+                  ],
+                  ["desc", "desc", "asc"]
+                )
+              );
+              debug2.log(`${PlayerPosition[indexPos]}第一候选者`, firstCandidate);
+              tempSquad[index] = firstCandidate.player;
             }
           }
-          if (satisfyPlayers.length) {
-            const firstCandidate = _.first(
-              _.orderBy(
-                satisfyPlayers,
-                [
-                  (item) => item.squadChemistry,
-                  (item) => item.playerChemistry,
-                  (item) => item.player.rating
-                ],
-                ["desc", "desc", "asc"]
-              )
-            );
-            debug2.log(`${PlayerPosition[indexPos]}第一候选者`, firstCandidate);
-            tempSquad[index] = firstCandidate.player;
-          }
+          debug2.log(`最终阵容`, tempSquad);
+          resultSquad = tempSquad;
         }
-        debug2.log(`最终阵容`, tempSquad);
-        resultSquad = tempSquad;
-      }
-      if (!isTemplateRunning()) return;
-      await saveSquad(controller.challenge, controller.challenge.squad, resultSquad);
-      saveOldSquad(controller.challenge.squad, false);
-      fsu.templatePlan ??= [];
-      fsu.templatePlan.push(resultId);
-      if (isPhone2()) {
-        navigateBack();
+        if (!operation.isActive()) return;
+        const saveResult = await saveSquad(
+          controller.challenge,
+          controller.challenge.squad,
+          resultSquad
+        );
+        if (!saveResult?.success) return;
+        saveOldSquad(controller.challenge.squad, false);
+        fsu.templatePlan ??= [];
+        fsu.templatePlan.push(resultId);
+        if (isPhone2()) {
+          navigateBack();
+        }
+      } finally {
+        this.operation.finish(operation);
       }
     }
   };
@@ -15898,8 +19250,8 @@
     events.hideLoader = () => {
       document.querySelector(".ut-click-shield").classList.remove("showing", "fsu-loading");
       document.querySelector(".loaderIcon").style.display = "none";
-      if (info.run.template) {
-        info.run.template = false;
+      if (typeof events.isSbcTemplateRunning === "function" && events.isSbcTemplateRunning()) {
+        events.cancelSbcTemplate();
         if (isPhone2()) {
           if (cntlr2.current() instanceof UTSBCSquadOverviewViewController) {
             cntlr2.current()._fsu.fillSquadBtn.setInteractionState(1);
@@ -15936,8 +19288,11 @@
     const sbcServices = createSbcServices();
     const runtime = createAppRuntime();
     const { info, ctx, store, httpClient, priceService, debug: debug2, cntlr: cntlr2, fy: fy2, eafy } = runtime;
+    const patchLifecycle = new PatchLifecycleRegistry({
+      onDiagnostic: (diagnostic) => debug2.log("Patch lifecycle", diagnostic)
+    });
     attachBootstrapEvents(events, { info, cntlr: cntlr2, isPhone, fy: fy2 });
-    const { set, build, lock, SBCCount, futbinId: futbinId2 } = createStartupFacades(ctx, {
+    const { set, build, lock, SBCCount, futbinId } = createStartupFacades(ctx, {
       events,
       isPhone,
       fy: fy2,
@@ -15963,7 +19318,7 @@
       build,
       lock,
       SBCCount,
-      futbinId: futbinId2,
+      futbinId,
       eafy,
       SBCEligibilityKey,
       unsafeWindow,
@@ -15974,6 +19329,7 @@
       GM_xmlhttpRequest,
       GM_openInTab,
       GM_info,
+      patchLifecycle,
       ...sbcServices
     });
     runMidBootstrap({ fsuCtx, ctx, events, fy: fy2 });

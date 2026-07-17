@@ -1,9 +1,56 @@
+export const PLAYER_DETAILS_PATCH_IDS = Object.freeze({
+  QUICK_LIST_RENDER: "details.quick-list-render"
+});
+
+export function installPlayerDetailsEntryPatch(deps) {
+  const { call, events, patchLifecycle } = deps;
+  return patchLifecycle.install({
+    id: PLAYER_DETAILS_PATCH_IDS.QUICK_LIST_RENDER,
+    phase: "sbc-core",
+    targetLabel: "UTQuickListPanelViewController.prototype.renderView",
+    resolveTarget: () =>
+      typeof UTQuickListPanelViewController === "undefined"
+        ? null
+        : {
+            owner: UTQuickListPanelViewController.prototype,
+            key: "renderView"
+          },
+    verify: ({ originalDescriptor, originalValue }) => ({
+      ok:
+        originalDescriptor !== undefined &&
+        "value" in originalDescriptor &&
+        originalDescriptor.writable === true &&
+        typeof originalValue === "function" &&
+        originalValue === call.panel.quickRender,
+      missing: [
+        "UTQuickListPanelViewController.prototype.renderView.original-mismatch"
+      ]
+    }),
+    apply: ({ target, originalDescriptor, originalValue }) => {
+      Object.defineProperty(target.owner, target.key, {
+        ...originalDescriptor,
+        value: function fsuPlayerDetailsEntry(...args) {
+          const result = originalValue.call(this, ...args);
+          events.detailsButtonSet(this);
+          return result;
+        }
+      });
+    }
+  });
+}
+
+export function registerPlayerDetailsLifecycleEvents(deps) {
+  const { call, events, patchLifecycle } = deps;
+  events.setPlayerDetailsPatchEnabled = (enabled) =>
+    enabled
+      ? installPlayerDetailsEntryPatch({ call, events, patchLifecycle })
+      : patchLifecycle.restore(PLAYER_DETAILS_PATCH_IDS.QUICK_LIST_RENDER);
+}
+
 export function installPanelPatches(deps) {
-  const { call, events, info, fy, cntlr, isPhone } = deps;
-  UTQuickListPanelViewController.prototype.renderView = function () {
-    call.panel.quickRender.call(this);
-    events.detailsButtonSet(this)
-};
+  const { call, events, info, fy, cntlr, isPhone, patchLifecycle } = deps;
+  registerPlayerDetailsLifecycleEvents({ call, events, patchLifecycle });
+  events.setPlayerDetailsPatchEnabled(true);
 
 UTRewardSelectionChoiceView.prototype.expandRewardSet = function(e,t) {
     call.panel.reward.call(this,e,t);

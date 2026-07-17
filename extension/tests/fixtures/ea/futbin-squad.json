@@ -1,0 +1,35 @@
+{
+  "squad_data": {
+    "Formation": "4-4-2",
+    "cardlid11": {
+      "Player_Resource": "50563169",
+      "id": "7001",
+      "rating": "83",
+      "club": "32",
+      "league": "13",
+      "nation": "52",
+      "raretype": "1",
+      "org_pos": "ST",
+      "alternativePositions": ["CF"],
+      "price": "1200",
+      "LCPrice": "1200",
+      "MinPrice": "300",
+      "MaxPrice": "10000"
+    },
+    "cardlid10": {
+      "Player_Resource": "50608571",
+      "id": "7002",
+      "rating": "81",
+      "club": "111456",
+      "league": "31",
+      "nation": "104",
+      "raretype": "0",
+      "org_pos": "CM",
+      "alternativePositions": ["CDM"],
+      "price": "900",
+      "LCPrice": "900",
+      "MinPrice": "300",
+      "MaxPrice": "10000"
+    }
+  }
+}

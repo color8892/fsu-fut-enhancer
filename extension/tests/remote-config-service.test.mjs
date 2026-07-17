@@ -96,6 +96,16 @@ export function runRemoteConfigServiceTests() {
   assert.deepStrictEqual(info.meta.bodyType, { 10: 2, 11: 2 });
   assert.deepStrictEqual(info.meta.baseBodyType, { 10: 2 });
   assert.deepStrictEqual(info.meta.realFace, [10]);
+  const previousMeta = structuredClone(info.meta);
+  assert.strictEqual(
+    service.applyMeta({
+      bodyType: { 2: ["bad"] },
+      baseBodyType: {},
+      realFace: []
+    }),
+    false
+  );
+  assert.deepStrictEqual(info.meta, previousMeta);
 
   requests[2].onload({
     response: JSON.stringify({
@@ -116,4 +126,14 @@ export function runRemoteConfigServiceTests() {
 
   requests[5].onload({ response: JSON.stringify({ pc: { 84: 1200 } }) });
   assert.deepStrictEqual(info.lowpriceApplied, { pc: { 84: 1200 } });
+
+  info.playermeta = { 5: { badytype: 1, weight: 70, realface: 0 } };
+  assert.strictEqual(service.applyPlayerMeta([[6, 2, "invalid", 1]]), false);
+  assert.deepStrictEqual(info.playermeta, {
+    5: { badytype: 1, weight: 70, realface: 0 }
+  });
+  assert.strictEqual(service.applyPlayerMeta([[6, 2, 80, 1]]), true);
+  assert.deepStrictEqual(info.playermeta, {
+    6: { badytype: 2, weight: 80, realface: 1 }
+  });
 }

@@ -1,8 +1,249 @@
+import { InPacksSearchService } from "../domain/InPacksSearchService.js";
+import { IN_PACKS_SEARCH_ERROR_CODES } from "../domain/InPacksSearchResults.js";
+import { StorePackCatalogService } from "../domain/StorePackCatalogService.js";
+import { StorePackOpenTransactionService } from "../domain/StorePackOpenTransactionService.js";
+import { EaObservableAdapter } from "../ea/EaObservableAdapter.js";
+import { InPacksSearchAdapter } from "../ea/InPacksSearchAdapter.js";
+import { StorePackCatalogAdapter } from "../ea/StorePackCatalogAdapter.js";
+import { StorePackOpenAdapter } from "../ea/StorePackOpenAdapter.js";
+
 let inPacksController;
 let specialPlayersController;
 
+export const STORE_PATCH_IDS = Object.freeze({
+    PACK_LIST: "store.pack-list",
+    PACK_OPEN_TRANSACTION: "store.pack-open-transaction",
+    REVEAL_LIST: "store.reveal-list",
+    PACK_ANIMATION: "store.pack-animation",
+    CATEGORY_NAVIGATION: "store.category-navigation",
+    HUB_TILES: "store.hub-tiles"
+});
+
+function installStoreUiMethodPatch(options) {
+    const {
+        id,
+        targetLabel,
+        resolveTarget,
+        expectedOriginal,
+        verifyOriginal = true,
+        patchedMethod,
+        patchLifecycle
+    } = options;
+    return patchLifecycle.install({
+        id,
+        phase: "market-and-squad",
+        targetLabel,
+        resolveTarget,
+        verify: ({ originalDescriptor, originalValue }) => ({
+            ok:
+                typeof patchedMethod === "function" &&
+                (originalDescriptor === undefined ||
+                    ("value" in originalDescriptor &&
+                        originalDescriptor.writable === true)) &&
+                (originalValue === undefined ||
+                    typeof originalValue === "function") &&
+                (!verifyOriginal || originalValue === expectedOriginal),
+            missing: [`${targetLabel}.original-mismatch`]
+        }),
+        apply: ({ target, originalDescriptor }) => {
+            Object.defineProperty(target.owner, target.key, {
+                configurable: originalDescriptor?.configurable ?? true,
+                enumerable: originalDescriptor?.enumerable ?? false,
+                writable: originalDescriptor?.writable ?? true,
+                value: patchedMethod
+            });
+        }
+    });
+}
+
+export function installStoreRevealPatch(deps) {
+    return installStoreUiMethodPatch({
+        id: STORE_PATCH_IDS.REVEAL_LIST,
+        targetLabel: "UTStoreRevealModalListView.prototype.addItems",
+        resolveTarget: () =>
+            typeof UTStoreRevealModalListView === "undefined"
+                ? null
+                : {
+                    owner: UTStoreRevealModalListView.prototype,
+                    key: "addItems"
+                },
+        expectedOriginal: deps.call.plist.storeReveal,
+        patchedMethod: deps.patchedMethod,
+        patchLifecycle: deps.patchLifecycle
+    });
+}
+
+export function installStorePackAnimationPatch(deps) {
+    return installStoreUiMethodPatch({
+        id: STORE_PATCH_IDS.PACK_ANIMATION,
+        targetLabel: "UTPackAnimationViewController.prototype.runAnimation",
+        resolveTarget: () =>
+            typeof UTPackAnimationViewController === "undefined"
+                ? null
+                : {
+                    owner: UTPackAnimationViewController.prototype,
+                    key: "runAnimation"
+                },
+        verifyOriginal: false,
+        patchedMethod: deps.patchedMethod,
+        patchLifecycle: deps.patchLifecycle
+    });
+}
+
+export function installStoreCategoryPatch(deps) {
+    return installStoreUiMethodPatch({
+        id: STORE_PATCH_IDS.CATEGORY_NAVIGATION,
+        targetLabel: "UTStoreViewController.prototype.setCategory",
+        resolveTarget: () =>
+            typeof UTStoreViewController === "undefined"
+                ? null
+                : {
+                    owner: UTStoreViewController.prototype,
+                    key: "setCategory"
+                },
+        expectedOriginal: deps.call.other.store.setCategory,
+        patchedMethod: deps.patchedMethod,
+        patchLifecycle: deps.patchLifecycle
+    });
+}
+
+export function installStoreHubPatch(deps) {
+    return installStoreUiMethodPatch({
+        id: STORE_PATCH_IDS.HUB_TILES,
+        targetLabel: "UTStoreHubViewController.prototype.onPackLoadComplete",
+        resolveTarget: () =>
+            typeof UTStoreHubViewController === "undefined"
+                ? null
+                : {
+                    owner: UTStoreHubViewController.prototype,
+                    key: "onPackLoadComplete"
+                },
+        expectedOriginal: deps.call.other.store.onPackLoadComplete,
+        patchedMethod: deps.patchedMethod,
+        patchLifecycle: deps.patchLifecycle
+    });
+}
+
+export function installStorePackListPatch(deps) {
+    const { call, patchLifecycle, patchedMethod } = deps;
+    return patchLifecycle.install({
+        id: STORE_PATCH_IDS.PACK_LIST,
+        phase: "market-and-squad",
+        targetLabel: "UTStoreView.prototype.setPacks",
+        resolveTarget: () =>
+            typeof UTStoreView === "undefined"
+                ? null
+                : { owner: UTStoreView.prototype, key: "setPacks" },
+        verify: ({ originalDescriptor, originalValue }) => ({
+            ok:
+                originalDescriptor !== undefined &&
+                "value" in originalDescriptor &&
+                originalDescriptor.writable === true &&
+                typeof originalValue === "function" &&
+                typeof patchedMethod === "function" &&
+                originalValue === call.other.store.setPacks,
+            missing: ["UTStoreView.prototype.setPacks.original-mismatch"]
+        }),
+        apply: ({ target, originalDescriptor }) => {
+            Object.defineProperty(target.owner, target.key, {
+                ...originalDescriptor,
+                value: patchedMethod
+            });
+        }
+    });
+}
+
+export function registerStorePackListLifecycleEvents(deps) {
+    const { call, events, patchLifecycle, patchedMethod } = deps;
+    events.setStorePackListPatchEnabled = (enabled) =>
+        enabled
+            ? installStorePackListPatch({
+                call,
+                patchLifecycle,
+                patchedMethod
+            })
+            : patchLifecycle.restore(STORE_PATCH_IDS.PACK_LIST);
+}
+
+export function installStorePackOpenPatch(deps) {
+    const {
+        call,
+        patchLifecycle,
+        transactionService,
+        onSuccess,
+        onDiagnostic
+    } = deps;
+    return patchLifecycle.install({
+        id: STORE_PATCH_IDS.PACK_OPEN_TRANSACTION,
+        phase: "market-and-squad",
+        targetLabel: "UTStoreViewController.prototype.eOpenPack",
+        resolveTarget: () =>
+            typeof UTStoreViewController === "undefined"
+                ? null
+                : {
+                    owner: UTStoreViewController.prototype,
+                    key: "eOpenPack"
+                },
+        verify: ({ originalDescriptor, originalValue }) => ({
+            ok:
+                originalDescriptor !== undefined &&
+                "value" in originalDescriptor &&
+                originalDescriptor.writable === true &&
+                typeof originalValue === "function" &&
+                originalValue === call.other.store.eOpenPack,
+            missing: [
+                "UTStoreViewController.prototype.eOpenPack.original-mismatch"
+            ]
+        }),
+        apply: ({ target, originalDescriptor, originalValue }) => {
+            Object.defineProperty(target.owner, target.key, {
+                ...originalDescriptor,
+                value: function fsuStorePackOpenTransaction(...args) {
+                    return transactionService.intercept({
+                        controller: this,
+                        args,
+                        invoke: () => originalValue.apply(this, args),
+                        onSuccess,
+                        onDiagnostic
+                    });
+                }
+            });
+        }
+    });
+}
+
+export function registerStorePackOpenLifecycleEvents(deps) {
+    const { events, patchLifecycle } = deps;
+    events.setStorePackOpenPatchEnabled = (enabled) =>
+        enabled
+            ? installStorePackOpenPatch(deps)
+            : patchLifecycle.restore(STORE_PATCH_IDS.PACK_OPEN_TRANSACTION);
+}
+
+export function commitStorePackOpenState(info, result) {
+    const { packId, remainingCount, availablePackIds } = result;
+    if (remainingCount > 0) {
+        info.douagain.pack = packId;
+    } else if (!availablePackIds.includes(info.douagain.pack)) {
+        info.douagain.pack = 0;
+    }
+}
+
+export function commitInPacksPlayers(info, players) {
+    try {
+        players.forEach((player) => {
+            player.concept = false;
+            player.isInPacks = true;
+        });
+    } catch {
+        return false;
+    }
+    info.inpacks.players = [...players];
+    return true;
+}
+
 export function installStorePatches(deps) {
-    const { call, events, info, cntlr, isPhone, fy, repositories, services, GM_setValue, AssetLocationUtils, unsafeWindow } = deps;
+    const { call, events, info, cntlr, isPhone, fy, repositories, services, GM_setValue, AssetLocationUtils, unsafeWindow, patchLifecycle, debug } = deps;
     const GM_openInTab = unsafeWindow.GM_openInTab;
 
     events.showPlayerListPopup = (title, text, players, desc) => {
@@ -89,12 +330,44 @@ export function installStorePatches(deps) {
     };
 
     //球员预览包打开 读取球员列表查询价格
-    UTStoreRevealModalListView.prototype.addItems = function(e, t, i, o) {
+    function fsuStoreRevealItems(e, t, i, o) {
         //25.21 预览包重排序 球员、稀有度、评分
-        const showPlayers = _.orderBy(e, [i => i.isPlayer(), "rareflag", "rating"], ["desc", "desc", "desc"]);
-        call.plist.storeReveal.call(this, showPlayers, t, i, o);
-        events.loadPlayerInfo(e);
+        let showPlayers = e;
+        try {
+            showPlayers = _.orderBy(e, [i => i.isPlayer(), "rareflag", "rating"], ["desc", "desc", "desc"]);
+        } catch {
+            debug.log("Store reveal list", {
+                success: false,
+                error: {
+                    code: "STORE_REVEAL_ENHANCEMENT_FAILED",
+                    issues: ["store.reveal-sort"]
+                }
+            });
+        }
+        const result = call.plist.storeReveal.call(this, showPlayers, t, i, o);
+        try {
+            events.loadPlayerInfo(e);
+        } catch {
+            debug.log("Store reveal list", {
+                success: false,
+                error: {
+                    code: "STORE_REVEAL_ENHANCEMENT_FAILED",
+                    issues: ["store.reveal-player-info"]
+                }
+            });
+        }
+        return result;
     }
+    const storeRevealLifecycleDeps = {
+        call,
+        patchLifecycle,
+        patchedMethod: fsuStoreRevealItems
+    };
+    events.setStoreRevealPatchEnabled = (enabled) =>
+        enabled
+            ? installStoreRevealPatch(storeRevealLifecycleDeps)
+            : patchLifecycle.restore(STORE_PATCH_IDS.REVEAL_LIST);
+    events.setStoreRevealPatchEnabled(true);
 
     //** 25.21 移除包名多余字符 */
     events.truncateStrict = (text, maxLength = 26, tail = '...') => {
@@ -109,56 +382,66 @@ export function installStorePatches(deps) {
         }
         return result;
     };
-    UTStoreView.prototype.setPacks = function(e, t, i, o) {
-        
-        //** 25.21 包排重加载 */
+    const gameCurrency =
+        typeof GameCurrency === "undefined" ? {} : GameCurrency;
+    const storePackCatalogService = new StorePackCatalogService(
+        new StorePackCatalogAdapter({
+            coinsCurrency: gameCurrency.COINS,
+            pointsCurrency: gameCurrency.POINTS,
+            localize: (key) => services.Localization.localize(key),
+            getPackValue: (id) => events.getOddo(id),
+            truncate: (text) => events.truncateStrict(text)
+        })
+    );
+    const inPacksSearchService = new InPacksSearchService({
+        adapter: new InPacksSearchAdapter({
+            CriteriaConstructor:
+                typeof UTSearchCriteriaDTO === "undefined"
+                    ? undefined
+                    : UTSearchCriteriaDTO,
+            searchConceptItems: (criteria) =>
+                services.Item.searchConceptItems(criteria),
+            observableAdapter: new EaObservableAdapter()
+        })
+    });
+
+    function fsuStorePackList(e, t, i, o) {
         const HideAndShow = this.getStoreCategory() == 'mypacks';
-        let showList;
-        if(HideAndShow){
-            const packList = [];
-            this._fsuPacks = {};
-            for (const ep of e) {
-                const key = `${ep.id}-${ep.tradable}`;
-                if (!packList.some(plp => `${plp.id}-${plp.tradable}` === key)) {
-                    packList.push(ep);
-                }
-                this._fsuPacks[key] ??= (() => {
-                    let rawName = services.Localization.localize(ep.packName);
-                    const name = ep.tradable ? `*${rawName}` : rawName;
-                    return {
-                        packId: ep.id,
-                        tradable: ep.tradable,
-                        count: 0,
-                        isPlayers: ep.contentType === 'players',
-                        name: events.truncateStrict(name),
-                        fullName: name,
-                        value: events.getOddo(ep.id)
-                    };
-                })();
-                this._fsuPacks[key].count++;
-            }
-            //debug.log(packList, this._fsuPacks)
-            showList = _.orderBy(packList, item => events.getOddo(item.id), info.myPacksSort);
-        }else{
-            const ONE_DAY = 86400; // 秒
-            const now = Math.floor(Date.now() / 1000);
-            const categoryId = this.getStoreCategory();
-
-            // 25.22 增加新包的new标识
-            e.forEach(item => {
-                item.isNew = item.start && now - item.start <= ONE_DAY && categoryId !== 3;
+        const categoryId = this.getStoreCategory();
+        let catalog;
+        try {
+            catalog = storePackCatalogService.createCatalog(e, {
+                categoryId,
+                isMyPacks: HideAndShow,
+                nowSeconds: Math.floor(Date.now() / 1000),
+                sortDirection: info.myPacksSort
             });
-
-            const sorted = _.orderBy(e, [
-                item => !item.getPrice(GameCurrency.POINTS) && item.getPrice(GameCurrency.COINS) && item.id !== 101,
-                item => item.isNew, // 直接用 isNew 属性
-                item => 'previewCreateTime' in item,
-                item => {
-                    const price = item.getPrice(GameCurrency.COINS) || 1;
-                    return events.getOddo(item.id) / price;
+        } catch {
+            catalog = {
+                success: false,
+                error: {
+                    code: "STORE_PACK_CATALOG_FAILED",
+                    issues: ["store.pack-catalog"]
                 }
-            ], ['desc', 'desc', 'desc', 'desc']);
-            showList = sorted;
+            };
+        }
+        let showList = e;
+        this._fsuPacks = {};
+        if (catalog.success) {
+            showList = catalog.data.articles;
+            this._fsuPacks = catalog.data.summaries;
+            catalog.data.articleStates.forEach(({ article, isNew }) => {
+                try {
+                    article.isNew = isNew;
+                } catch {
+                    // Frozen EA records still pass through to the original renderer.
+                }
+            });
+            if (catalog.data.warnings.length) {
+                debug.log("Store pack catalog", catalog.data.warnings);
+            }
+        } else {
+            debug.log("Store pack catalog", catalog);
         }
         call.other.store.setPacks.call(this, showList, t, i, o)
 
@@ -465,76 +748,139 @@ export function installStorePatches(deps) {
         }, 50)
     }
 
+    registerStorePackListLifecycleEvents({
+        call,
+        events,
+        patchLifecycle,
+        patchedMethod: fsuStorePackList
+    });
+    events.setStorePackListPatchEnabled(true);
+
     //开包动画
-    UTPackAnimationViewController.prototype.runAnimation = function() {
-        if (!this.running) {
-            this.running = !0;
-            var e = this.getView()
-            , t = services.Configuration.getItemRarity(this.presentedItem);
-            e.setPackTier(this.packTier),
-            e.generateItem(this.presentedItem);
+    function fsuStorePackAnimation() {
+        if (this.running) {
+            return;
+        }
+        this.running = true;
+        let timeout = 0;
+        try {
+            const view = this.getView();
+            const rarity = services.Configuration.getItemRarity(this.presentedItem);
+            view.setPackTier(this.packTier);
+            view.generateItem(this.presentedItem);
             if(!info.set.info_skipanimation){
-                e.runAnimation(this.presentedItem, t);
+                view.runAnimation(this.presentedItem, rarity);
             }
-            this.animationTimeout = window.setTimeout(this.runCallback.bind(this), info.set.info_skipanimation ? 0 : 4500)
-        }
-    }
-    //开包设置再次开包
-    const UTSVCEOP_CALL= UTStoreViewController.prototype.eOpenPack;
-    UTStoreViewController.prototype.eOpenPack = function(p, e, t) {
-        UTSVCEOP_CALL.call(this,p, e, t)
-        let i,d = null === (i = this.viewmodel) || void 0 === i ? void 0 : i.getPackById(t.articleId, e === UTStorePackDetailsView.Event.OPEN, JSUtils.isBoolean(t.tradable) ? t.tradable : void 0);
-        if(d.isMyPack){
-            if(repositories.Store.myPacks.values().filter(i => i.id == d.id).length > 1){
-                info.douagain.pack = d.id;
-            }else{
-                if(!repositories.Store.myPacks.values().filter(i => i.id == info.douagain.pack).length){
-                    info.douagain.pack = 0;
+            timeout = info.set.info_skipanimation ? 0 : 4500;
+        } catch {
+            debug.log("Store pack animation", {
+                success: false,
+                error: {
+                    code: "STORE_ANIMATION_ENHANCEMENT_FAILED",
+                    issues: ["store.pack-animation"]
                 }
-            }
+            });
+        }
+        if (typeof this.runCallback === "function") {
+            this.animationTimeout = window.setTimeout(
+                this.runCallback.bind(this),
+                timeout
+            );
         }
     }
+    const storeAnimationLifecycleDeps = {
+        patchLifecycle,
+        patchedMethod: fsuStorePackAnimation
+    };
+    events.setStorePackAnimationPatchEnabled = (enabled) =>
+        enabled
+            ? installStorePackAnimationPatch(storeAnimationLifecycleDeps)
+            : patchLifecycle.restore(STORE_PATCH_IDS.PACK_ANIMATION);
+    events.setStorePackAnimationPatchEnabled(true);
+
+    const storePackOpenAdapter = new StorePackOpenAdapter({
+        openEvent:
+            typeof UTStorePackDetailsView === "undefined"
+                ? undefined
+                : UTStorePackDetailsView.Event?.OPEN,
+        getMyPacks: () => repositories.Store.myPacks.values()
+    });
+    const storePackOpenTransactionService =
+        new StorePackOpenTransactionService({
+            adapter: storePackOpenAdapter
+        });
+    const storePackOpenLifecycleDeps = {
+        call,
+        events,
+        patchLifecycle,
+        transactionService: storePackOpenTransactionService,
+        onSuccess: (result) => commitStorePackOpenState(info, result),
+        onDiagnostic: (result) =>
+            debug.log("Store pack open transaction", result)
+    };
+    registerStorePackOpenLifecycleEvents(storePackOpenLifecycleDeps);
+    events.setStorePackOpenPatchEnabled(true);
 
     //商店页面设置标题
-    UTStoreViewController.prototype.setCategory = function(e) {
-        call.other.store.setCategory.call(this,e)
-        if(this.viewmodel !== void 0){
-            let conditions = ['UT_STORE_CAT_S_PFU', 'FUT_STORE_CAT_SPECIAL_NAME', 'FUT_STORE_CAT_PROVISIONS'];
-            let searchCategoryIds = _.map(
-                _.filter(this.viewmodel.categories, obj =>
-                    conditions.includes(obj.localizedName)
-                ),'categoryId'
-            );
+    function fsuStoreCategoryNavigation(e) {
+        const result = call.other.store.setCategory.call(this,e);
+        try {
+            if(this.viewmodel !== void 0){
+                let conditions = ['UT_STORE_CAT_S_PFU', 'FUT_STORE_CAT_SPECIAL_NAME', 'FUT_STORE_CAT_PROVISIONS'];
+                let searchCategoryIds = _.map(
+                    _.filter(this.viewmodel.categories, obj =>
+                        conditions.includes(obj.localizedName)
+                    ),'categoryId'
+                );
 
-            let classic = _.find(this.viewmodel.categories, c => c.localizedName == "FUT_STORE_CAT_CLASSIC_NAME")
+                let classic = _.find(this.viewmodel.categories, c => c.localizedName == "FUT_STORE_CAT_CLASSIC_NAME")
 
-            //24.18 修复无法展示纯金币包的问题
-            _.forEach(this.getView()._navigation.items,item => {
-                if(searchCategoryIds.includes(item.id)){
-                    let coinsPack = _.filter(this.viewmodel.getCategoryArticles(item.id), pack => _.isEqual(pack.state, 'active') && !pack.getPrice(GameCurrency.POINTS) && pack.getPrice(GameCurrency.COINS))
-                    if(coinsPack.length){
-                        item.addNotificationBubble(coinsPack.length);
+                //24.18 修复无法展示纯金币包的问题
+                _.forEach(this.getView()._navigation.items,item => {
+                    if(searchCategoryIds.includes(item.id)){
+                        let coinsPack = _.filter(this.viewmodel.getCategoryArticles(item.id), pack => _.isEqual(pack.state, 'active') && !pack.getPrice(GameCurrency.POINTS) && pack.getPrice(GameCurrency.COINS))
+                        if(coinsPack.length){
+                            item.addNotificationBubble(coinsPack.length);
+                        }
                     }
-                }
-                if(item.id == classic.categoryId){
-                    //25.04 查询预览包是否预览
-                    let xrayPack = _.filter(this.viewmodel.getCategoryArticles(classic.categoryId),pack => _.has(pack,"previewCreateTime") && pack.previewCreateTime == 0)
-                    if(xrayPack.length){
-                        item.addNotificationBubble(xrayPack.length);
+                    if(classic && item.id == classic.categoryId){
+                        //25.04 查询预览包是否预览
+                        let xrayPack = _.filter(this.viewmodel.getCategoryArticles(classic.categoryId),pack => _.has(pack,"previewCreateTime") && pack.previewCreateTime == 0)
+                        if(xrayPack.length){
+                            item.addNotificationBubble(xrayPack.length);
+                        }
                     }
+                })
+            }
+        } catch {
+            debug.log("Store category navigation", {
+                success: false,
+                error: {
+                    code: "STORE_CATEGORY_ENHANCEMENT_FAILED",
+                    issues: ["store.category-navigation"]
                 }
-            })
-
+            });
         }
+        return result;
     }
+    const storeCategoryLifecycleDeps = {
+        call,
+        patchLifecycle,
+        patchedMethod: fsuStoreCategoryNavigation
+    };
+    events.setStoreCategoryPatchEnabled = (enabled) =>
+        enabled
+            ? installStoreCategoryPatch(storeCategoryLifecycleDeps)
+            : patchLifecycle.restore(STORE_PATCH_IDS.CATEGORY_NAVIGATION);
+    events.setStoreCategoryPatchEnabled(true);
 
     //26.04 添加可开球员tile
     //26.04 添加特殊品质tile
-    const UTStoreHubViewController_onPackLoadComplete = UTStoreHubViewController.prototype.onPackLoadComplete;
-    UTStoreHubViewController.prototype.onPackLoadComplete = function(e, t) {
-        UTStoreHubViewController_onPackLoadComplete.call(this, e, t);
-        let view = this.getView();
-        if(info.inpacks.defIds.length && !("_fsuInPacksTile" in view)){
+    function fsuStoreHubTiles(e, t) {
+        const result = call.other.store.onPackLoadComplete.call(this, e, t);
+        try {
+            let view = this.getView();
+            if(info.inpacks.defIds.length && !("_fsuInPacksTile" in view)){
             let inPacksTile = new UTTileView();
             inPacksTile.getRootElement().classList.add("col-1-2", "fsu-showPlayerstile");
             inPacksTile.title = fy("inpacktile.title")
@@ -563,8 +909,8 @@ export function installStorePatches(deps) {
             },EventType.TAP);
             view._fsuInPacksTile.setInteractionState(true);
             view.__hubGrid.appendChild(view._fsuInPacksTile.getRootElement());
-        }
-        if(_.has(info, 'specialPlayers') && (_.size(_.get(info, 'specialPlayers.dynamic')) + _.size(_.get(info, 'specialPlayers.extraChem')) > 0) && !("_fsuSpecialTile" in view)){
+            }
+            if(_.has(info, 'specialPlayers') && (_.size(_.get(info, 'specialPlayers.dynamic')) + _.size(_.get(info, 'specialPlayers.extraChem')) > 0) && !("_fsuSpecialTile" in view)){
             let specialTile = new UTTileView();
             specialTile.getRootElement().classList.add("col-1-2", "fsu-showPlayerstile", "fsu-specialTile");
             specialTile.title = fy("specialtile.title")
@@ -595,65 +941,79 @@ export function installStorePatches(deps) {
             },EventType.TAP);
             view._fsuSpecialTile.setInteractionState(true);
             view.__hubGrid.appendChild(view._fsuSpecialTile.getRootElement());
+            }
+        } catch {
+            debug.log("Store hub tiles", {
+                success: false,
+                error: {
+                    code: "STORE_HUB_ENHANCEMENT_FAILED",
+                    issues: ["store.hub-tiles"]
+                }
+            });
         }
+        return result;
     }
+    const storeHubLifecycleDeps = {
+        call,
+        patchLifecycle,
+        patchedMethod: fsuStoreHubTiles
+    };
+    events.setStoreHubPatchEnabled = (enabled) =>
+        enabled
+            ? installStoreHubPatch(storeHubLifecycleDeps)
+            : patchLifecycle.restore(STORE_PATCH_IDS.HUB_TILES);
+    events.setStoreHubPatchEnabled(true);
+
+    events.cancelInPacksSearch = () => inPacksSearchService.cancel();
 
     //26.04 打开包内球员页面
     events.goToInPacks = async(nav) => {
-        if(nav){
-            if(info.inpacks.players.length === 0){
-                events.showLoader()
-                let allItems = [];
-                let offset = 0;
-                const limit = 200;
-                while (true) {
-                    let done = await new Promise(resolve => {
-                        let searchCriteria = new UTSearchCriteriaDTO;
-                        searchCriteria.count = limit;
-                        searchCriteria.offset = offset;
-                        searchCriteria.defId = info.inpacks.defIds;
-                        searchCriteria.rarities = info.inpacks.rarityIds;
-
-                        services.Item.searchConceptItems(searchCriteria)
-                            .observe(cntlr.current(), function (e, t) {
-                                e.unobserve(cntlr.current());
-                                if (!t.success) {
-                                    events.notice("读取球员数据失败！", 2);
-                                    return resolve(true); // 结束循环
-                                }
-
-                                const items = t.response.items || [];
-                                allItems.push(...items);
-
-                                // 若返回数量 < 200，则说明数据读取结束
-                                if (items.length < limit) {
-                                    resolve(true);
-                                } else {
-                                    offset += limit;
-                                    resolve(false);
-                                }
-                            });
-
-                    });
-                    if (done) break;
+        if(!nav) return false;
+        if(info.inpacks.players.length === 0){
+            const startingController = cntlr.current();
+            events.showLoader();
+            let result;
+            try {
+                result = await inPacksSearchService.search({
+                    definitionIds: info.inpacks.defIds,
+                    rarityIds: info.inpacks.rarityIds,
+                    observerContext: startingController || nav,
+                    isActive: () => cntlr.current() === startingController
+                });
+            } finally {
+                if (!inPacksSearchService.isRunning()) {
+                    events.hideLoader();
                 }
-
-                if(allItems.length){
-                    _.forEach(info.inpacks.defIds, defId => {
-                        let player = _.find(allItems, item => { return item.definitionId === defId })
-                        if(player){
-                            player.concept = false
-                            player.isInPacks = true
-                            info.inpacks.players.push(player)
-                        }
-                    })
-                }
-
-                events.hideLoader();
             }
-            var controller = new inPacksController();
-            nav.pushViewController(controller);
+            if (!result.success) {
+                debug.log("In-packs search", result);
+                if (
+                    result.error?.code !==
+                    IN_PACKS_SEARCH_ERROR_CODES.CANCELLED
+                ) {
+                    events.notice("读取球员数据失败！", 2);
+                }
+                return false;
+            }
+            const players = inPacksSearchService.selectConfiguredPlayers(
+                result.data.items,
+                info.inpacks.defIds
+            );
+            if (!commitInPacksPlayers(info, players)) {
+                debug.log("In-packs search", {
+                    success: false,
+                    error: {
+                        code: "IN_PACKS_SEARCH_COMMIT_FAILED",
+                        issues: ["info.inpacks.players"]
+                    }
+                });
+                events.notice("读取球员数据失败！", 2);
+                return false;
+            }
         }
+        const controller = new inPacksController();
+        nav.pushViewController(controller);
+        return true;
     }
 
     //26.04 包内球员界面创建

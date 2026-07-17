@@ -1,7 +1,8 @@
 export class SbcChemistryService {
-  constructor({ getTeamLink, getTeam }) {
+  constructor({ getTeamLink, getTeam, readChemistryContext }) {
     this.getTeamLink = getTeamLink;
     this.getTeam = getTeam;
+    this.readChemistryContext = readChemistryContext;
   }
 
   getChemistryPointsByThreshold(count, thresholds) {
@@ -216,10 +217,9 @@ export class SbcChemistryService {
   }
 
   getChemistryPlayers(controller, targetChemistry) {
-    const players = _.map(controller.squad.getFieldPlayers(), (slot) =>
-      slot.inPossiblePosition ? slot.item : { teamId: -1, leagueId: -1, nationId: -1 }
-    );
-    const index = controller.viewmodel.current().index;
+    const snapshot = this.readChemistryContext(controller);
+    if (!snapshot.success) return [];
+    const { players, index } = snapshot.data;
     const chemistry = this.calculateChemistry(players, index, true);
     return this.generateCandidateOptions(players, index, targetChemistry, chemistry.meta);
   }

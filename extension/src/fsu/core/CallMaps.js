@@ -44,7 +44,10 @@ export function createCallMaps() {
       uaTile: UTUnassignedTileView.prototype.setNumberOfItems,
       store: {
         setPacks: UTStoreView.prototype.setPacks,
-        setCategory: UTStoreViewController.prototype.setCategory
+        eOpenPack: UTStoreViewController.prototype.eOpenPack,
+        setCategory: UTStoreViewController.prototype.setCategory,
+        onPackLoadComplete:
+          UTStoreHubViewController.prototype.onPackLoadComplete
       },
       market: {
         eSearch: UTMarketSearchFiltersViewController.prototype.eSearchSelected,

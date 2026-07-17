@@ -122,6 +122,20 @@ sequenceDiagram
 
 使用者需 **F5** 讓 `content-bridge.boot()` 重新注入整套腳本。這是預期行為，不是 FSU 邏輯 bug。
 
+### 1c. MV3 Browser Smoke
+
+`extension/tests/browser-smoke.mjs` 以 Playwright persistent context 載入真實
+manifest、background、content bridge 與 page runtime。測試頁只建立 sanitized
+`UTMarketSearchView`、`UTStoreView` 與 `UTPackAnimationViewController` shell；
+test-only userscript bundle 直接使用
+production `PatchLifecycleRegistry`、`market.search-view-generate`、
+`store.pack-list`、`store.pack-open-transaction` 與
+`store.pack-animation` descriptor，驗證 install、
+duplicate、disable、reinstall、exact restore 及 diagnostics allowlist。
+
+fixture 不包含 EA 帳號、Cookie、session 或 `X-UT-SID`。browser smoke 同時保留
+storage handshake、偽造 request rejection 與 extension reload invalidation 測試。
+
 ### 2. Userscript 入口（`fsu/index.js`）
 
 ```js
@@ -168,7 +182,7 @@ sequenceDiagram
 | `registerSettingsScreen` | 設定頁；產出 `fsuSC` 寫回 `fsuCtx.fsuSC` |
 | `call` / `html` | 保存 EA prototype 原始方法，供 patch 呼叫鏈使用 |
 | `PatchInstaller.installAll` | 主要 EA hook 批次（見下節） |
-| `registerLateModules` | 市場、開包、AutoBuy、學院、FG 評分、詳情按鈕 |
+| `registerLateModules` | SBC 資料/評分、市場操作、學院、FG 評分、詳情按鈕 |
 
 ---
 
@@ -181,10 +195,11 @@ extension/src/fsu/
 │   ├── FsuContext.js      # futweb 執行期 deps 容器 + pick()
 │   ├── PatchInstaller.js  # 依 legacy 順序安裝 patches
 │   ├── ModuleRegistry.js  # registerEarly/LateModules
-│   ├── DomainHelpers.js   # market/pack/autoBuy 等 helper 工廠
+│   ├── DomainHelpers.js   # market/academy/FG/player-search helper 工廠
 │   ├── PatchRegistry.js   # call.view 原始方法對照
+│   ├── PatchLifecycleRegistry.js # descriptor install/verify/restore migration kernel
 │   └── TtlCache.js / PriceRequestQueue.js / …
-├── domain/                # 可測試業務邏輯，透過 helpers 取 deps
+├── domain/                # 業務邏輯；部分模組仍含待遷移的 page/EA runtime 依賴
 ├── ea/                    # EA runtime capability adapters 與 diagnostics
 ├── patches/               # EA prototype 修改 + events 註冊
 ├── legacy/futweb.js       # 僅編排，不堆業務
@@ -197,10 +212,13 @@ extension/src/fsu/
 
 | | patches/ | domain/ |
 |---|----------|---------|
-| 依賴 EA 類別 | 是（`UT*` prototype） | 否 |
-| 對外 API | 掛到 `events.*` | `createFacade` / 純函式 |
-| 測試 | 多為整合 / 手動 | 單元測試友好 |
-| deps 傳入 | **必須** | 透過 helpers 物件 |
+| 依賴 EA 類別 | 是（`UT*` prototype） | 部分仍直接依賴；屬遷移債務 |
+| 對外 API | 掛到 `events.*` | `createFacade`、具名 service 或純函式 |
+| 測試 | 目前多為 bundle check / 手動 | 純模組有單元測試；runtime-coupled 模組較少 |
+| deps 傳入 | **必須** | 目標為 helpers/adapter；現況仍有 ambient globals |
+
+`domain/` 是目標邊界，不代表其中所有檔案已經純化。現況分類、patch phase
+與 EA capability 對照見 [MIGRATION_INVENTORY.md](MIGRATION_INVENTORY.md)。
 
 ### call 物件
 
@@ -221,6 +239,50 @@ SomeEAClass.prototype.someMethod = function (...args) {
   return call.view.card.call(this, ...args);
 };
 ```
+
+### Patch lifecycle migration kernel
+
+`PatchRegistry` 目前仍負責建立 legacy `call.*` 原方法對照。
+`PatchLifecycleRegistry` 是獨立的遷移 kernel，提供：
+
+- 唯一 descriptor ID 與 phase diagnostics
+- target resolution、verify、duplicate install 防護
+- apply failure 時恢復原 property descriptor
+- reverse-order `restoreAll()` 與 optional restore hook
+- 只包含 member identifier 的 sanitized diagnostics
+
+目前 production descriptors 為 `home.academy-tile`、
+`market.search-view-generate`、`price.squad-value`、
+`details.quick-list-render`、`sbc.challenges-view`、
+`sbc.submit-transaction`、`store.pack-list` 與
+`store.pack-open-transaction`、`store.reveal-list`、
+`store.pack-animation`、`store.category-navigation` 與
+`store.hub-tiles`。它們保留原安裝位置與精確
+restore；支援 UI toggle 的 descriptor 可獨立 disable/reinstall，其餘 patch
+仍走直接 prototype assignment。`PatchInstaller` 的 6 個 phase 仍是正式相容路徑。
+
+`store.pack-list` 呼叫原 `UTStoreView.setPacks` 前，先由
+`StorePackCatalogAdapter` 將 EA article 轉成 validated snapshot，再由純
+`StorePackCatalogService` 執行 my-packs 去重、排序與 summary 建構。單一 article
+shape/getter/localization 失敗只產生 sanitized warning；原 article 仍傳給 EA
+renderer，不會因 FSU enhancement 失敗而清空商店。
+
+`store.pack-open-transaction` 以 validated pack selection、EA
+`isOpeningPack` 與 my-packs inventory 下降作為完成證據。只有 inventory-confirmed
+success 才更新 `info.douagain.pack`；duplicate 不呼叫 EA，rejection 釋放鎖，
+timeout 或 inventory capability drift 保持 fail-closed。無法建立 selection
+contract 時仍呼叫 EA 原方法，但不提交 FSU state。
+
+包內球員查詢由 `InPacksSearchAdapter` 建立 `UTSearchCriteriaDTO` 並透過 bounded
+`EaObservableAdapter` 讀取每頁，`InPacksSearchService` 負責 cancellation token、
+200 筆 page size、10 頁上限、100ms 頁間延遲與 partial failure result。新查詢或
+navigation drift 使舊 operation 失效；只有完整成功後才依 configured definition
+ID 順序一次替換 `info.inpacks.players`。
+
+Store UI lifecycle family 各自提供 feature toggle。Reveal、category 與 hub
+wrapper 保留 EA 原方法回傳值，並隔離 FSU 排序、badge、player info 或 tile
+augmentation 失敗；pack animation capability drift 會以零延遲 callback 收尾，
+避免 controller 停在 running 狀態。所有 diagnostics 只包含固定 feature label。
 
 ---
 
@@ -414,14 +476,10 @@ flowchart TD
 | `cardAddBuyErrorTips` / `getCardTipsHtml` | 購買錯誤提示 | `patches/sbc-fill-events.js` |
 | `conceptBuyBack` | 概念買回 | `patches/panel-patches.js` |
 
-### 開包 / 商店
+### 商店 / Pack UI
 
 | API | 說明 | 來源 |
 |-----|------|------|
-| `tryPack` / `tryPackPopup` / `getTryPackData` | 試開包 | `core/ModuleRegistry.js` |
-| `raelProbability` / `getRealProbability` | 機率 | `core/ModuleRegistry.js` |
-| `openPacks` / `openPacksConfirmPopup` / `openPacksResultPopup` | 開包流程 | `core/ModuleRegistry.js` |
-| `writePackReturns` | 記錄開包結果 | `core/ModuleRegistry.js` |
 | `truncateStrict` / `goToInPacks` | 商店 UI | `patches/store.js` |
 | `setPackTileText` | 包 tile 文案 | `patches/sbc-tile-events.js` |
 
@@ -437,6 +495,25 @@ flowchart TD
 | `saveOldSquad` / `getRatingPlayers` / `getFastSbcSubText` | 陣容資料 | 同上 |
 | `SBCSetMeetsPlayers` | 符合條件球員 | `core/PatchInstaller.js` |
 | `SBCDisplayPlayers` | 替補顯示 | `patches/sbc-substitution.js` |
+
+`requirementsToText` 透過 `ea/SbcReadAdapter.js` 讀取 EA requirement、
+set repository 與 localization capability。缺少 capability 或 shape 畸形時回傳
+空文字／略過對應 challenge enhancement，不直接讀取 raw EA service。
+
+遠端 squad 由 `domain/SbcSnapshotResults.js` 完整驗證後才交給 template
+流程；Futbin player mappings 與 prices 以單次 validated batch 提交。
+`ea/SbcSquadSnapshotAdapter.js` 將 controller slot shape 轉為純 chemistry
+snapshot，缺少 capability 時 chemistry candidate 流程回傳空陣列。
+
+Virtual challenge simulation 透過 `ea/SbcVirtualChallengeAdapter.js` 驗證 EA
+constructors、DAO 與 chemistry dependencies 後建立。Template cancellation 由
+`core/CancellableOperation.js` 擁有 token lifecycle；undo step 由
+`domain/SbcUndoHistoryService.js` 以 frozen snapshot 保存。
+
+SBC save 由 `ea/EaObservableAdapter.js` 將 EA observable 轉為一次性 bounded
+promise，並在 callback、timeout 或 failure 後解除 observer。
+`domain/SbcSquadSaveService.js` 依 challenge ID 共用 in-flight transaction；
+save 與 reload 全部成功後才提交 loaded squad，否則恢復原 player snapshot。
 
 ### SBC — UI / 流程
 
@@ -469,10 +546,6 @@ flowchart TD
 | `academyAddAttr` / `academyPreviewEvolutionAttr` / … | 學院計算 | `domain/AcademyCalcService.js` |
 | `fgCalc` / `fgPopup` / `fgCreateElment` / … | FG 評分 | `domain/FgRatingService.js` |
 | `getAcceleRate` / `accelePopup` / `getBoostedAttribute` | 加速風格 | `patches/club-select-events.js` |
-
-### AutoBuy（`Object.assign` 批次註冊）
-
-`goToAutoBuy`, `autoBuySearchPlayer`, `autoBuyRightRefresh`, `autoBuyCreateInfoView`, `autoBuyCreateLogView`, `autoBuyRightRenderInfo`, `autoBuyRightMinBuyChanged`, `autoBuyRightMaxBuyChanged`, `autoBuyRightRenderLog`, `autoBuyCreateItemController` — 來源 `domain/AutoBuyService.js`
 
 ### 導航 / Hub / 雜項
 
@@ -582,6 +655,7 @@ CI / `test:all` 會驗 bundle 含關鍵符號。
 - [AGENTS.md](./AGENTS.md) — AI 精簡導覽
 - [README.md](./README.md) — 使用者安裝與專案入口
 - [ROADMAP.md](./ROADMAP.md) — 分階段重構計畫
+- [MIGRATION_INVENTORY.md](./MIGRATION_INVENTORY.md) — domain、patch 與 EA capability 現況盤點
 - [SECURITY.md](./SECURITY.md) — 安全模型與回報流程
 - [extension/README.md](./extension/README.md) — Extension 開發指令
 - `extension/tests/` — 測試與 manifest 驗證

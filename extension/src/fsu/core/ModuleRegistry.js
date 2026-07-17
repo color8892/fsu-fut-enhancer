@@ -8,12 +8,17 @@ import { registerSbcRatingEvents } from "../domain/SbcRatingService.js";
 import { registerSbcDataEvents } from "../domain/SbcDataService.js";
 import { registerUiEvents } from "../ui/UiFactory.js";
 import { createDomainHelpers } from "./DomainHelpers.js";
+import { SbcReadAdapter } from "../ea/SbcReadAdapter.js";
 
 import { renderPlayerDetailsButtons } from "../patches/player-details.js";
 import { renderSbcSubstitutionPanel } from "../patches/sbc-substitution.js";
+import {
+  resolvePlayerDetailsItem,
+  resolvePlayerDetailsTarget
+} from "../ui/PlayerDetailsRenderer.js";
 
 export function registerEarlyModules(ctx) {
-  const { events, info, fy, SBCEligibilityKey } = ctx;
+  const { events, info, fy, services, SBCEligibilityKey } = ctx;
   const helpers = createDomainHelpers(ctx);
 
   registerUiEvents({ events, info, fy });
@@ -28,8 +33,20 @@ export function registerEarlyModules(ctx) {
   events.invalidatePlayerSearchCache = () => playerSearchService.invalidateCache();
 
   const sbcRequirementsService = new SbcRequirementsService();
+  const sbcReadAdapter = new SbcReadAdapter({
+    getSbcRepository: () => services.SBC?.repository,
+    getLocalization: () => services.Localization,
+    getLocalizationUtil: () =>
+      typeof UTLocalizationUtil === "undefined"
+        ? undefined
+        : UTLocalizationUtil
+  });
   events.requirementsToText = (requirement) =>
-    sbcRequirementsService.requirementsToText(requirement, SBCEligibilityKey, fy);
+    sbcRequirementsService.requirementsToText(requirement, SBCEligibilityKey, {
+      readRequirement: (value) => sbcReadAdapter.readRequirement(value),
+      getEntityName: (kind, id) => sbcReadAdapter.getEntityName(kind, id),
+      localize: fy
+    });
 }
 
 export function registerLateModules(ctx) {
@@ -44,6 +61,7 @@ export function registerLateModules(ctx) {
     isPhone,
     cntlr,
     services,
+    repositories,
     debug
   });
   registerSbcRatingEvents({ events, info, debug, fy });
@@ -70,17 +88,20 @@ export function registerLateModules(ctx) {
   Object.assign(events, new FgRatingService().createFacade(helpers.fg));
 
   events.detailsButtonSet = (e) => {
-    if (!isPhone() && !cntlr.current().rightController) return;
-    let controller = isPhone() ? cntlr.current() : cntlr.right();
-    if (!controller) return;
-    if (controller.hasOwnProperty("rootController")) controller = controller.rootController;
-    const panelView = controller.panelView || controller.panel;
-    if (!panelView) return;
+    const currentController = cntlr.current();
+    const target = resolvePlayerDetailsTarget({
+      isPhone: isPhone(),
+      currentController,
+      rightController: currentController?.rightController
+        ? cntlr.right()
+        : null
+    });
+    if (!target) return;
+    const { controller, panelView } = target;
 
-    const item = e.item;
-    if (!item?.isPlayer()) return;
-
-    const defId = item.definitionId;
+    const playerContext = resolvePlayerDetailsItem(e.item);
+    if (!playerContext) return;
+    const { item, definitionId: defId } = playerContext;
     renderPlayerDetailsButtons(
       { events, fy, info, repositories, services, pdb },
       { controller, panelView, item, defId, e }

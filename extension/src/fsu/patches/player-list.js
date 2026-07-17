@@ -1,5 +1,78 @@
+import { renderSquadPrice } from "../ui/PriceRenderer.js";
+
+export const PRICE_PATCH_IDS = Object.freeze({
+  SQUAD_VALUE: "price.squad-value"
+});
+
+export function installSquadPricePatch(deps) {
+  const {
+    call,
+    events,
+    patchLifecycle,
+    getSquadValueElement = () => document.getElementById("squadValue")
+  } = deps;
+  return patchLifecycle.install({
+    id: PRICE_PATCH_IDS.SQUAD_VALUE,
+    phase: "hub-and-lists",
+    targetLabel: "UTSquadEntity.prototype.getRating",
+    resolveTarget: () =>
+      typeof UTSquadEntity === "undefined"
+        ? null
+        : { owner: UTSquadEntity.prototype, key: "getRating" },
+    verify: ({ originalDescriptor, originalValue }) => ({
+      ok:
+        originalDescriptor !== undefined &&
+        "value" in originalDescriptor &&
+        originalDescriptor.writable === true &&
+        typeof originalValue === "function" &&
+        originalValue === call.plist.squadGR,
+      missing: ["UTSquadEntity.prototype.getRating.original-mismatch"]
+    }),
+    apply: ({ target, originalDescriptor, originalValue }) => {
+      Object.defineProperty(target.owner, target.key, {
+        ...originalDescriptor,
+        value: function fsuSquadPriceRating(...args) {
+          const result = originalValue.call(this, ...args);
+          const total = this.getFieldPlayers().reduce(
+            (sum, player) =>
+              sum + events.getCachePrice(player.item.definitionId, 1).num,
+            0
+          );
+          renderSquadPrice(getSquadValueElement(), total);
+          return result;
+        }
+      });
+    }
+  });
+}
+
+export function registerPriceLifecycleEvents(deps) {
+  const { call, events, patchLifecycle, getSquadValueElement } = deps;
+  events.setSquadPricePatchEnabled = (enabled) =>
+    enabled
+      ? installSquadPricePatch({
+          call,
+          events,
+          patchLifecycle,
+          getSquadValueElement
+        })
+      : patchLifecycle.restore(PRICE_PATCH_IDS.SQUAD_VALUE);
+}
+
 export function installPlayerListPatches(deps) {
-  const { call, events, info, cntlr, isPhone, debug, repositories, services, fy } = deps;
+  const {
+    call,
+    events,
+    info,
+    cntlr,
+    isPhone,
+    debug,
+    repositories,
+    services,
+    fy,
+    futbinId,
+    patchLifecycle
+  } = deps;
   //列表形式(右侧、拍卖行搜索结果、俱乐部)球员列表 读取球员列表查询价格
 UTPaginatedItemListView.prototype.renderItems = function(t) {
     call.plist.paginated.call(this,t);
@@ -124,14 +197,8 @@ UTClubRepository.prototype.removeClubItem = function(t) {
 }
 
 //阵容评分获取 每次球员变化都会获取 主要计算阵容整体价格
-UTSquadEntity.prototype.getRating = function() {
-    let r = call.plist.squadGR.call(this);
-    let totalElement = document.getElementById("squadValue");
-    if(totalElement){
-        totalElement.innerText = _.sumBy(this.getFieldPlayers(), i => events.getCachePrice(i.item.definitionId, 1).num).toLocaleString();
-    }
-    return r;
-}
+registerPriceLifecycleEvents({ call, events, patchLifecycle });
+events.setSquadPricePatchEnabled(true);
 
 //球员价格读取 需要传递球员ID列表(数组)
 events.loadPlayerInfo = async(items, el, type) => {
@@ -163,13 +230,13 @@ events.loadPlayerInfo = async(items, el, type) => {
                     );
                     debug.log(playerPrice);
                 }else{
-                    playerPrice = await events.getPriceForUrl(pu[k]);
+                    const priceResult = await events.getPriceForUrl(pu[k]);
+                    playerPrice = priceResult.data.prices;
                 }
             }catch {
                 continue;
             }
 
-            info.roster.data = Object.assign(info.roster.data,playerPrice);
             _.map(playerPrice,(v,k) => {
 
                 if(info.roster.element[k]){

@@ -1,10 +1,17 @@
 import { safeParseJson } from "../infra/JsonParsing.js";
 import { escapeHtml } from "../ui/HtmlSafety.js";
 import { SbcResponseAdapter } from "./SbcResponseAdapter.js";
+import { parseRemoteSbcSquad } from "./SbcSnapshotResults.js";
+import { SbcUndoHistoryService } from "./SbcUndoHistoryService.js";
+import { SbcVirtualChallengeAdapter } from "../ea/SbcVirtualChallengeAdapter.js";
 
 export class SbcDataService {
-  constructor({ responseAdapter = new SbcResponseAdapter() } = {}) {
+  constructor({
+    responseAdapter = new SbcResponseAdapter(),
+    undoHistoryService = new SbcUndoHistoryService()
+  } = {}) {
     this.responseAdapter = responseAdapter;
+    this.undoHistoryService = undoHistoryService;
   }
 
   async getFutbinSbcSquad(id, type, helpers) {
@@ -20,18 +27,15 @@ export class SbcDataService {
 
     try {
       const futBinResponse = await externalRequest("GET", url);
-      const parsedResponse = safeParseJson(futBinResponse, {}, { label: "futbin-sbc-squad" });
-      const data = parsedResponse[type == 2 ? "squad_data" : "data"];
-      if (data) {
-        if (type == 2) {
-          _.map(data, (i, k) => {
-            if (_.includes(k, "cardlid")) {
-              futbinId.set(i.Player_Resource, i.id);
-              futbinId.setPrice(i, i.Player_Resource);
-            }
-          });
+      const parsedResponse = safeParseJson(futBinResponse, null, {
+        label: "futbin-sbc-squad"
+      });
+      const result = parseRemoteSbcSquad(parsedResponse, Number(type));
+      if (result.success) {
+        if (result.mappings.length > 0) {
+          futbinId.commitSquadPlayers(result.mappings);
         }
-        return data;
+        return result.data;
       }
 
       notice("notice.squaderror", 2);
@@ -58,85 +62,23 @@ export class SbcDataService {
     return this.responseAdapter.adaptChallengeSquadResponse(response);
   }
 
-  createVirtualChallenge(c) {
-    const challengeInfo = {
-      assetId: "virtual",
-      description: "virtual",
-      eligibilityOperation: c.eligibilityOperation,
-      endTime: c.endTime,
-      formation: c.squad.getFormation().name,
-      id: 888888,
-      name: "virtual",
-      priority: c.priority,
-      repeatable: c.repeatable,
-      requirements: c.eligibilityRequirements,
-      rewards: [],
-      setId: 888888,
-      status: c.status,
-      timesCompleted: c.timesCompleted,
-      type: c.type
-    };
-    const newChallenge = new UTSBCChallengeEntity(challengeInfo);
-    const squadInfo = {
-      chemistry: 0,
-      id: 888888,
-      formation: c.squad.getFormation().name,
-      manager: [new UTNullItemEntity()],
-      players: [],
-      rating: 0
-    };
-
-    for (let i = 0; i < 23; i++) {
-      squadInfo.players.push({
-        index: i,
-        itemData: new UTItemEntity()
-      });
-    }
-
-    let brickIndices = undefined;
-    if (c.squad.simpleBrickIndices.length) {
-      brickIndices = [];
-      for (let i = 0; i < 11; i++) {
-        brickIndices.push({
-          index: i,
-          playerType: c.squad.simpleBrickIndices.includes(i) ? "BRICK" : "DEFAULT"
-        });
-      }
-    }
-
-    const newSquad = new UTSquadEntity(
-      factories.Squad.generateSBCSquadConstructorOptions(
-        squadInfo,
-        services.SBC.sbcDAO.factory,
-        brickIndices
-      ),
-      services.Squad.squadDao,
-      new UTSquadChemCalculatorUtils(services.Chemistry, repositories.TeamConfig)
-    );
-    newSquad.setPlayers(
-      c.squad.getPlayers().map((i) => i.getItem()),
-      true
-    );
-    newChallenge.squad = newSquad;
-    return newChallenge;
-  }
-
   saveOldSquad(s, t, helpers) {
     const { getInfo, isPhone, getCurrentController } = helpers;
     const info = getInfo();
 
     if (s.isSBC() && (!info.base.savesquad || !t)) {
       const fsu = (s._fsu ??= {});
-      fsu.oldSquad ??= [];
-      fsu.oldSquadCount ??= -1;
       const pl = s.getPlayers().map((i) => i.getItem());
-      if (
-        fsu.oldSquadCount == -1 ||
-        fsu.oldSquad[fsu.oldSquadCount].map((i) => i.id).join() !==
-          pl.map((i) => i.id).join()
-      ) {
-        fsu.oldSquadCount++;
-        fsu.oldSquad.push(pl);
+      const history = this.undoHistoryService.capture(
+        {
+          snapshots: fsu.oldSquad,
+          index: fsu.oldSquadCount
+        },
+        pl
+      );
+      fsu.oldSquad = history.snapshots;
+      fsu.oldSquadCount = history.index;
+      if (history.changed) {
         if (isPhone() && getCurrentController().className == "UTSquadItemDetailsNavigationController") {
           setTimeout(() => {
             getCurrentController().parentViewController._eBackButtonTapped();
@@ -152,6 +94,22 @@ export class SbcDataService {
         }
       }
     }
+  }
+
+  replaceOldSquadItem(squad, slotIndex, item) {
+    const fsu = squad?._fsu;
+    if (!fsu) return false;
+    const history = this.undoHistoryService.replaceCurrentItem(
+      {
+        snapshots: fsu.oldSquad,
+        index: fsu.oldSquadCount
+      },
+      slotIndex,
+      item
+    );
+    fsu.oldSquad = history.snapshots;
+    fsu.oldSquadCount = history.index;
+    return history.changed;
   }
 
   getRatingPlayers(squad, ratings, helpers) {
@@ -301,8 +259,44 @@ export class SbcDataService {
 }
 
 export function registerSbcDataEvents(deps) {
-  const { events, info, fy, futbinId, isPhone, cntlr, services } = deps;
+  const {
+    events,
+    info,
+    fy,
+    futbinId,
+    isPhone,
+    cntlr,
+    services,
+    repositories
+  } = deps;
   const service = new SbcDataService();
+  const virtualChallengeAdapter = new SbcVirtualChallengeAdapter({
+    getRuntime: () => ({
+      UTSBCChallengeEntity:
+        typeof UTSBCChallengeEntity === "undefined"
+          ? undefined
+          : UTSBCChallengeEntity,
+      UTNullItemEntity:
+        typeof UTNullItemEntity === "undefined" ? undefined : UTNullItemEntity,
+      UTItemEntity:
+        typeof UTItemEntity === "undefined" ? undefined : UTItemEntity,
+      UTSquadEntity:
+        typeof UTSquadEntity === "undefined" ? undefined : UTSquadEntity,
+      UTSquadChemCalculatorUtils:
+        typeof UTSquadChemCalculatorUtils === "undefined"
+          ? undefined
+          : UTSquadChemCalculatorUtils,
+      generateSbcSquadOptions:
+        typeof factories === "undefined"
+          ? undefined
+          : (...args) =>
+              factories.Squad.generateSBCSquadConstructorOptions(...args),
+      sbcFactory: services.SBC?.sbcDAO?.factory,
+      squadDao: services.Squad?.squadDao,
+      chemistryService: services.Chemistry,
+      teamConfig: repositories.TeamConfig
+    })
+  });
 
   const helpers = {
     getInfo: () => info,
@@ -320,8 +314,17 @@ export function registerSbcDataEvents(deps) {
   };
 
   events.getFutbinSbcSquad = (id, type) => service.getFutbinSbcSquad(id, type, helpers);
-  events.createVirtualChallenge = (c) => service.createVirtualChallenge(c);
+  events.createVirtualChallenge = (c) => {
+    const result = virtualChallengeAdapter.create(c);
+    if (!result.success) {
+      deps.debug.log("Virtual SBC challenge unavailable", result.error);
+      return null;
+    }
+    return result.data;
+  };
   events.saveOldSquad = (s, t) => service.saveOldSquad(s, t, helpers);
+  events.replaceOldSquadItem = (s, index, item) =>
+    service.replaceOldSquadItem(s, index, item);
   events.getRatingPlayers = (squad, ratings) => service.getRatingPlayers(squad, ratings, helpers);
   events.getFastSbcSubText = (j) => service.getFastSbcSubText(j, helpers);
   events.adaptSbcSetsResponse = (response) => service.adaptSbcSetsResponse(response);
