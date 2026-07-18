@@ -152,6 +152,15 @@ events.playerListFillSquad = (challenge, list, type) =>
 events.getTemplate = async (controller, type, sId) =>
     sbcTemplateService.loadTemplate(controller, type, sId, {
         showLoader: () => events.showLoader(),
+        hideLoader: () => {
+          // Scope-owned hide: only clear shield UI, do not re-enter cancel facades.
+          document.querySelector(".ut-click-shield")?.classList.remove("showing", "fsu-loading");
+          const loaderIcon = document.querySelector(".loaderIcon");
+          if (loaderIcon) loaderIcon.style.display = "none";
+          if (typeof events.changeLoadingText === "function") {
+            events.changeLoadingText("loadingclose.text");
+          }
+        },
         changeLoadingText: (...args) => events.changeLoadingText(...args),
         notice: (...args) => events.notice(...args),
         getFutbinSbcSquad: (...args) => events.getFutbinSbcSquad(...args),

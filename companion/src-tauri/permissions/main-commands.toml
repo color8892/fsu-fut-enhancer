@@ -1,0 +1,25 @@
+"$schema" = "schemas/schema.json"
+
+[[permission]]
+identifier = "allow-main-commands"
+description = "Allows the trusted local main window to use Companion settings, diagnostics, and Embedded lifecycle commands."
+commands.allow = [
+  "get_companion_status",
+  "get_settings",
+  "update_settings",
+  "reset_companion_settings",
+  "get_diagnostics",
+  "export_diagnostics_json",
+  "open_fut_web_app",
+  "open_fut_browser_fallback",
+  "show_embedded_fut",
+  "reload_embedded_fut",
+  "embedded_go_back",
+  "embedded_go_forward",
+  "embedded_go_home",
+  "hide_embedded_fut",
+  "get_embedded_status_cmd",
+  "clear_embedded_site_data_cmd",
+  "check_update_status",
+  "privileged_main_only_ping",
+]

@@ -278,11 +278,13 @@ export async function runMarketActionServiceTests() {
         price: 2000
       }
     ];
-    const bulkInfo = { run: {} };
-    await service.buyConceptPlayer([firstPlayer, secondPlayer], null, {
+    const bulkInfo = { run: { bulkbuy: false } };
+    let bulkShow = 0;
+    let bulkHide = 0;
+    const bulkSummary = await service.buyConceptPlayer([firstPlayer, secondPlayer], null, {
       getInfo: () => bulkInfo,
-      showLoader: () => {},
-      hideLoader: () => {},
+      showLoader: () => bulkShow++,
+      hideLoader: () => bulkHide++,
       notice: (...args) => bulkNotices.push(args),
       changeLoadingText: () => {},
       sendPinEvents: (event) => assert.strictEqual(event, "Item - Detail View"),
@@ -308,7 +310,13 @@ export async function runMarketActionServiceTests() {
         }
       }
     });
-    assert.strictEqual(bulkInfo.run.bulkbuy, true);
+    assert.strictEqual(bulkInfo.run.bulkbuy, false);
+    assert.strictEqual(bulkShow, 1);
+    assert.strictEqual(bulkHide, 1);
+    assert.strictEqual(bulkSummary.requested, 2);
+    assert.strictEqual(bulkSummary.purchased, 2);
+    assert.strictEqual(bulkSummary.moved, 1);
+    assert.strictEqual(bulkSummary.failed, 1);
     assert.deepStrictEqual(markedDefinitionIds, [202]);
     assert.deepStrictEqual(bulkNotices, [
       [["buyplayer.success", "First Player", 1000], 0],
@@ -317,6 +325,121 @@ export async function runMarketActionServiceTests() {
       [["buyplayer.sendclub.error", "Second Player"], 2],
       [["buyplayer.bibresults", 2, 0, 3000], 0]
     ]);
+
+    // Capacity unavailable must not leave bulkbuy flag set.
+    const unavailableInfo = { run: { bulkbuy: false } };
+    const unavailable = await service.buyConceptPlayer([firstPlayer], null, {
+      getInfo: () => unavailableInfo,
+      showLoader: () => assert.fail("loader must not start"),
+      hideLoader: () => assert.fail("loader must not hide"),
+      notice: () => {},
+      changeLoadingText: () => {},
+      sendPinEvents: () => {},
+      wait: async () => {},
+      cardAddBuyErrorTips: () => {},
+      fy: (key) => key,
+      debug: { log: () => {} },
+      isPhone: () => false,
+      getCurrentController: () => null,
+      ea: {
+        isPurchaseCapacityReached: () => ({ success: false, error: { code: "missing" } }),
+        getStaticItemData: () => ({ success: true, data: { name: "Unused" } }),
+        purchaseItemToClub: async () => assert.fail("must not purchase")
+      }
+    });
+    assert.strictEqual(unavailableInfo.run.bulkbuy, false);
+    assert.strictEqual(unavailable.reason, "capacity-unavailable");
+
+    // Capacity reached leaves no flag or loader.
+    const reachedInfo = { run: { bulkbuy: false } };
+    const reached = await service.buyConceptPlayer([firstPlayer], null, {
+      getInfo: () => reachedInfo,
+      showLoader: () => assert.fail("loader must not start"),
+      hideLoader: () => assert.fail("loader must not hide"),
+      notice: () => {},
+      changeLoadingText: () => {},
+      sendPinEvents: () => {},
+      wait: async () => {},
+      cardAddBuyErrorTips: () => {},
+      fy: (key) => key,
+      debug: { log: () => {} },
+      isPhone: () => false,
+      getCurrentController: () => null,
+      ea: {
+        isPurchaseCapacityReached: () => ({ success: true, reached: true }),
+        getStaticItemData: () => ({ success: true, data: { name: "Unused" } }),
+        purchaseItemToClub: async () => assert.fail("must not purchase")
+      }
+    });
+    assert.strictEqual(reachedInfo.run.bulkbuy, false);
+    assert.strictEqual(reached.reason, "capacity-reached");
+
+    // Cancel after first item breaks the loop.
+    const cancelInfo = { run: { bulkbuy: false } };
+    let cancelAttempts = 0;
+    service.readAuctionPrices = async (player) => {
+      cancelAttempts++;
+      if (cancelAttempts === 1) {
+        cancelInfo.run.bulkbuy = false;
+      }
+      return [marketItems.get(player)];
+    };
+    const cancelled = await service.buyConceptPlayer(
+      [firstPlayer, secondPlayer],
+      null,
+      {
+        getInfo: () => cancelInfo,
+        showLoader: () => {},
+        hideLoader: () => {},
+        notice: () => {},
+        changeLoadingText: () => {},
+        sendPinEvents: () => {},
+        wait: async () => {},
+        cardAddBuyErrorTips: () => {},
+        fy: (key) => key,
+        debug: { log: () => {} },
+        isPhone: () => false,
+        getCurrentController: () => null,
+        ea: {
+          isPurchaseCapacityReached: () => ({ success: true, reached: false }),
+          getStaticItemData: () => ({ success: true, data: { name: "Unused" } }),
+          purchaseItemToClub: async () => ({ success: true, price: 1000 })
+        }
+      }
+    );
+    assert.strictEqual(cancelAttempts, 1);
+    assert.strictEqual(cancelled.cancelled, true);
+    assert.strictEqual(cancelled.attempted, 1);
+    assert.strictEqual(cancelInfo.run.bulkbuy, false);
+
+    // Purchase helper throw is isolated and cleaned up.
+    service.readAuctionPrices = async () => [{ _auction: { buyNowPrice: 900 } }];
+    const throwInfo = { run: { bulkbuy: false } };
+    let throwHide = 0;
+    const thrown = await service.buyConceptPlayer([firstPlayer], null, {
+      getInfo: () => throwInfo,
+      showLoader: () => {},
+      hideLoader: () => throwHide++,
+      notice: () => {},
+      changeLoadingText: () => {},
+      sendPinEvents: () => {},
+      wait: async () => {},
+      cardAddBuyErrorTips: () => {},
+      fy: (key) => key,
+      debug: { log: () => {} },
+      isPhone: () => false,
+      getCurrentController: () => null,
+      ea: {
+        isPurchaseCapacityReached: () => ({ success: true, reached: false }),
+        getStaticItemData: () => ({ success: true, data: { name: "Unused" } }),
+        purchaseItemToClub: async () => {
+          throw new Error("purchase blew up");
+        }
+      }
+    });
+    assert.strictEqual(thrown.failed, 1);
+    assert.strictEqual(throwHide, 1);
+    assert.strictEqual(throwInfo.run.bulkbuy, false);
   } finally {
     service.readAuctionPrices = originalBulkReadAuctionPrices;
   }
@@ -408,8 +531,9 @@ export async function runMarketActionServiceTests() {
       unassignedActions.push("reload");
     }
   };
+  const emptyMassInfo = { run: { losauction: false } };
   await service.losAuctionSell(auctionView, 0, {
-    getInfo: () => ({ run: {} }),
+    getInfo: () => emptyMassInfo,
     showLoader: () => {},
     hideLoader: () => {},
     notice: () => {},
@@ -429,4 +553,94 @@ export async function runMarketActionServiceTests() {
   });
   assert.deepStrictEqual(unassignedActions, ["reset", "reload"]);
   assert.deepStrictEqual(auctionView.interactionStates, [0, 0]);
+  assert.strictEqual(emptyMassInfo.run.losauction, false);
+
+  // Single item failure continues; UI still restored.
+  const originalPlayerToAuction = service.playerToAuction;
+  try {
+    const failParent = {
+      _fsuAkbArray: {
+        a: { _pId: 1, _l: 0, _id: "a" },
+        b: { _pId: 2, _l: 1, _id: "b" }
+      },
+      _fsuAkbCurrent: 2
+    };
+    const failView = {
+      _parent: failParent,
+      interactionStates: [],
+      setInteractionState(value) {
+        this.interactionStates.push(value);
+      }
+    };
+    const massInfo = { run: { losauction: false } };
+    let hideCount = 0;
+    service.playerToAuction = async (id) => {
+      if (id === "a") return false;
+      return true;
+    };
+    const massResult = await service.losAuctionSell(failView, 0, {
+      getInfo: () => massInfo,
+      showLoader: () => {},
+      hideLoader: () => hideCount++,
+      notice: () => {},
+      changeLoadingText: () => {},
+      getCachePrice: () => ({ num: 1000 }),
+      wait: async () => {},
+      debug: { log: () => {} },
+      isPhone: () => false,
+      getCurrentController: () => null,
+      getLeftController: () => ({
+        className: "UTClubSearchResultsViewController",
+        refreshList() {}
+      }),
+      ea: {
+        resetUnassignedItems: async () => ({ success: true })
+      }
+    });
+    assert.strictEqual(massResult.attempted, 2);
+    assert.strictEqual(massResult.listed, 1);
+    assert.strictEqual(massResult.failed, 1);
+    assert.strictEqual(hideCount, 1);
+    assert.strictEqual(massInfo.run.losauction, false);
+    assert.deepStrictEqual(failView.interactionStates, [0, 2]);
+
+    // Reset failure still restores UI.
+    const resetView = {
+      _parent: { _fsuAkbArray: {}, _fsuAkbCurrent: 0 },
+      interactionStates: [],
+      setInteractionState(value) {
+        this.interactionStates.push(value);
+      }
+    };
+    const resetInfo = { run: { losauction: false } };
+    let resetHide = 0;
+    const resetResult = await service.losAuctionSell(resetView, 0, {
+      getInfo: () => resetInfo,
+      showLoader: () => {},
+      hideLoader: () => resetHide++,
+      notice: () => {},
+      changeLoadingText: () => {},
+      getCachePrice: () => ({ num: 0 }),
+      wait: async () => {},
+      debug: { log: () => {} },
+      isPhone: () => false,
+      getCurrentController: () => null,
+      getLeftController: () => ({
+        className: "UTUnassignedItemsViewController",
+        getUnassignedItems: async () => assert.fail("must not reload")
+      }),
+      ea: {
+        resetUnassignedItems: async () => ({
+          success: false,
+          error: { code: "EA_CAPABILITY_UNAVAILABLE" }
+        })
+      }
+    });
+    assert.strictEqual(resetResult.reason, "reset-failed");
+    assert.strictEqual(resetHide, 1);
+    assert.strictEqual(resetInfo.run.losauction, false);
+    assert.deepStrictEqual(resetView.interactionStates, [0, 0]);
+  } finally {
+    service.playerToAuction = originalPlayerToAuction;
+  }
 }

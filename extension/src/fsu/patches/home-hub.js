@@ -1,3 +1,4 @@
+import { createTrustedMarkup } from "../ui/HtmlSafety.js";
 import { FSU_BASE_STYLE } from "../ui/fsu-styles.js";
 
 function applyHomeTaskTiles(events, info, cntlr) {
@@ -14,7 +15,7 @@ function applyHomeTaskTiles(events, info, cntlr) {
         .current()
         .getView()
         ._objectivesTile.__tileContent.before(
-          events.createDF(`<div class="fsu-task">${info.task.obj.html}</div>`)
+          events.createDF(createTrustedMarkup(`<div class="fsu-task">${info.task.obj.html}</div>`))
         );
     }
     const objCountElement = cntlr
@@ -39,7 +40,7 @@ function applyHomeTaskTiles(events, info, cntlr) {
     cntlr
       .current()
       .getView()
-      ._sbcTile.__tileContent.before(events.createDF(`<div class="fsu-task">${info.task.sbc.html}</div>`));
+      ._sbcTile.__tileContent.before(events.createDF(createTrustedMarkup(`<div class="fsu-task">${info.task.sbc.html}</div>`)));
   }
 }
 
@@ -188,7 +189,7 @@ export function installHomeHubPatches(deps) {
   UTHomeHubView.prototype.getObjectivesTile = function () {
     if (info.task.obj.html && !this._objectivesTile.__root.querySelector(".fsu-task") && info.set.info_obj) {
       this._objectivesTile.__tileContent.before(
-        events.createDF(`<div class="fsu-task">${info.task.obj.html}</div>`)
+        events.createDF(createTrustedMarkup(`<div class="fsu-task">${info.task.obj.html}</div>`))
       );
     }
 
@@ -202,7 +203,7 @@ export function installHomeHubPatches(deps) {
   UTHomeHubView.prototype.getSBCTile = function () {
     if (info.set.info_sbc && info.task.sbc.html && !this._sbcTile.__root.querySelector(".fsu-task")) {
       this._sbcTile.__tileContent.before(
-        events.createDF(`<div class="fsu-task">${info.task.sbc.html}</div>`)
+        events.createDF(createTrustedMarkup(`<div class="fsu-task">${info.task.sbc.html}</div>`))
       );
     }
     return this._sbcTile;

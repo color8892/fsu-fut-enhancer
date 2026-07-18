@@ -1,0 +1,10 @@
+{
+  "protocolVersion": "1.0",
+  "requestId": "req_hello_01",
+  "type": "hello",
+  "payload": {
+    "client": "companion",
+    "clientVersion": "0.1.0"
+  },
+  "timestamp": 1700000000000
+}

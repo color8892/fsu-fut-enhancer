@@ -16,6 +16,8 @@ FSU runs across three trust boundaries:
 2. The EA FUT page world, including EA and third-party page scripts.
 3. Remote EA, pricing, SBC, and configuration services.
 
+FSU Companion adds a fourth boundary: its local `main` WebView is trusted, while the remote `fut` WebView is untrusted and receives no core, opener, filesystem, or shell permissions.
+
 Code running in the page world is not trusted merely because it is on an allowed EA origin. Messages arriving from `window.postMessage` must be treated as attacker-controlled.
 
 ### Required controls
@@ -26,6 +28,8 @@ Code running in the page world is not trusted merely because it is on an allowed
 - Executable JavaScript is packaged with the extension. Remote code fallbacks are not allowed.
 - Remote text must use `textContent` or escaping before entering a trusted HTML helper.
 - New host permissions require a documented feature need and rejection tests.
+- Companion's Embedded HTTP bridge is GET-only and independently validates the caller window, remote capability URL, endpoint path, headers, timeout, redirects, and 5 MB response limit.
+- Embedded runtime scripts execute only on the exact FUT host/path; EA authentication pages do not receive FSU globals or UI.
 
 See [ARCHITECTURE.md](ARCHITECTURE.md#extension-安全邊界) for the implementation flow.
 

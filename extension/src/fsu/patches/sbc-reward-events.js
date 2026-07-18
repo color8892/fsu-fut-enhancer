@@ -1,4 +1,4 @@
-import { setTrustedHtml } from "../ui/HtmlSafety.js";
+import {setTrustedHtml, createTrustedMarkup } from "../ui/HtmlSafety.js";
 
 export function registerSbcRewardEvents(deps) {
   const { events, info, cntlr, isPhone, repositories, debug, oneFillCriteriaService, SBCEligibilityKey } = deps;
@@ -43,7 +43,7 @@ events.showRewardsView = (set) => {
                 marginTop: ".5rem",
                 width: "100%"
             });
-            setTrustedHtml(tryAgainBtn.__currencyLabel, events.getFastSbcSubText(fastInfo));
+            setTrustedHtml(tryAgainBtn.__currencyLabel, createTrustedMarkup(events.getFastSbcSubText(fastInfo)));
             rewardsController.getView().getRootElement().querySelector("footer").appendChild(tryAgainBtn.getRootElement());
         }
     }

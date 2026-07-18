@@ -48,6 +48,24 @@ npm run test:ci
 
 完成後，在 `chrome://extensions` 載入 `extension/`。
 
+### FSU Companion（桌面程式）
+
+`companion/` 是 Tauri 2 跨平台控制面板（macOS `.app`、Windows `.exe`/`.msi`）。
+
+- **預設**：Extension fallback（系統瀏覽器 + MV3 擴充）
+- **可選**：Settings 開啟 **Embedded Mode** 後，在 App 內 WebView 開啟 FUT 並注入本機打包的 FSU runtime（不需安裝 Extension）
+- **未實作**：Native Messaging、正式程式碼簽章/公證
+
+架構見 [COMPANION_ARCHITECTURE.md](COMPANION_ARCHITECTURE.md)、[EMBEDDED_APP_PLAN.md](EMBEDDED_APP_PLAN.md)。
+
+```bash
+cd companion
+npm install
+npm run package:runtime   # 從 extension 複製 lodash + userscript
+npm test
+npm run tauri build
+```
+
 ## 開發
 
 主要原始碼位於 `extension/src/fsu/`。`extension/src/userscript.js` 是 esbuild 產物，不應手動修改。

@@ -1,4 +1,4 @@
-import { createTextElement, setTrustedHtml } from "../ui/HtmlSafety.js";
+import {createTextElement, setTrustedHtml, createTrustedMarkup } from "../ui/HtmlSafety.js";
 
 function navigationAddCount(events, e, c) {
   if (e.className == "EAFilterBarItemView") {
@@ -329,10 +329,7 @@ export function registerSbcInfoFillEvent(deps) {
             "call-to-action mini fsu-challengefastbtn"
           );
 
-          setTrustedHtml(
-            e._fsufastsbcbtn.__currencyLabel,
-            events.getFastSbcSubText(info.base.fastsbc[`${fastCid}#${fastSid}`])
-          );
+          setTrustedHtml(e._fsufastsbcbtn.__currencyLabel, createTrustedMarkup(events.getFastSbcSubText(info.base.fastsbc[`${fastCid}#${fastSid}`])));
 
           if (fastCount == 0) {
             e._fsufastsbcbtn.setInteractionState(0);
@@ -355,12 +352,10 @@ export function registerSbcInfoFillEvent(deps) {
     if (e._interactionState && !e.__root.querySelector(".fsu-sbc-info")) {
       let p = s[info.base.platform];
       e.__root.lastChild.before(
-        events.createDF(
-          fy(html.sbcInfo)
+        events.createDF(createTrustedMarkup(fy(html.sbcInfo)
             .replace("{price}", Number(p).toLocaleString())
             .replace("{up}", `${s.u}%`)
-            .replace("{down}", `${s.d}%`)
-        )
+            .replace("{down}", `${s.d}%`)))
       );
     }
     if ("data" in e && e.data.awards && e.data.awards.length == 1) {

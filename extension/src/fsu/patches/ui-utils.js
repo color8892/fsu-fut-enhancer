@@ -86,10 +86,64 @@ events.getBoostedAttribute = function (player, styleId, chem, attrId) {
 };
 }
 
-export function installUiUtilsPatches() {
-const UTItemEntityGetPlusPlayStyles = UTItemEntity.prototype.getPlusPlayStyles;
-UTItemEntity.prototype.getPlusPlayStyles = function () {
-    const result = UTItemEntityGetPlusPlayStyles.call(this);
-    return _.uniqWith(result, (a, b) => a.equals(b));
-};
+export const UI_UTILS_PATCH_IDS = Object.freeze({
+  PLUS_PLAYSTYLES: "item.plus-playstyles-normalize"
+});
+
+/**
+ * Single owner for UTItemEntity.prototype.getPlusPlayStyles.
+ * Dedupes play styles; fails closed to an empty array on malformed results.
+ */
+export function installPlusPlayStylesPatch(deps) {
+  const { patchLifecycle } = deps;
+  return patchLifecycle.install({
+    id: UI_UTILS_PATCH_IDS.PLUS_PLAYSTYLES,
+    phase: "club-and-ui",
+    targetLabel: "UTItemEntity.prototype.getPlusPlayStyles",
+    resolveTarget: () =>
+      typeof UTItemEntity === "undefined"
+        ? null
+        : { owner: UTItemEntity.prototype, key: "getPlusPlayStyles" },
+    verify: ({ originalDescriptor, originalValue }) => ({
+      ok:
+        originalDescriptor !== undefined &&
+        "value" in originalDescriptor &&
+        originalDescriptor.writable === true &&
+        typeof originalValue === "function",
+      missing: ["UTItemEntity.prototype.getPlusPlayStyles.original-missing"]
+    }),
+    apply: ({ target, originalDescriptor, originalValue }) => {
+      Object.defineProperty(target.owner, target.key, {
+        ...originalDescriptor,
+        value: function fsuGetPlusPlayStyles(...args) {
+          let result;
+          try {
+            result = originalValue.apply(this, args);
+          } catch {
+            return [];
+          }
+          if (!Array.isArray(result)) {
+            return [];
+          }
+          try {
+            return _.uniqWith(result, (a, b) => {
+              try {
+                return typeof a?.equals === "function" && a.equals(b);
+              } catch {
+                return false;
+              }
+            });
+          } catch {
+            return result;
+          }
+        }
+      });
+    }
+  });
+}
+
+export function installUiUtilsPatches(deps = {}) {
+  if (deps.patchLifecycle) {
+    installPlusPlayStylesPatch(deps);
+  }
 }

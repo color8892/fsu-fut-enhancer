@@ -4,6 +4,15 @@ node_modules/
 # Extension release artifacts
 extension/dist/
 
+# Companion / shared build outputs
+companion/dist/
+companion/dist-test/
+companion/src-tauri/target/
+shared/protocol/dist/
+# Packaged at build time from extension/ (do not hand-edit)
+companion/resources/fsu/lodash.min.js
+companion/resources/fsu/userscript.js
+
 # Local EA bundle snapshots (compiled_*.js from FUT Network; not committed)
 extension/data/ea-bundles/
 futwebapp/

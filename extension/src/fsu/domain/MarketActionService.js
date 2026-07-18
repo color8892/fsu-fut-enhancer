@@ -151,116 +151,170 @@ export class MarketActionService {
       maxNewItems = 100
     } = helpers;
     const info = getInfo();
+    const playersNumber = Array.isArray(players) ? players.length : 0;
+    /** @type {{
+     *   success: boolean,
+     *   requested: number,
+     *   attempted: number,
+     *   purchased: number,
+     *   moved: number,
+     *   failed: number,
+     *   cancelled: boolean,
+     *   cost: number,
+     *   reason?: string
+     * }} */
+    const summary = {
+      success: false,
+      requested: playersNumber,
+      attempted: 0,
+      purchased: 0,
+      moved: 0,
+      failed: 0,
+      cancelled: false,
+      cost: 0
+    };
 
-    info.run.bulkbuy = true;
     const purchaseCapacity = ea.isPurchaseCapacityReached(maxNewItems);
     if (!purchaseCapacity.success) {
       debug.log("EA purchase-capacity capability unavailable", purchaseCapacity.error);
       notice("notice.loaderror", 2);
-      return;
+      summary.reason = "capacity-unavailable";
+      return summary;
     }
     if (purchaseCapacity.reached) {
       notice(["buyplayer.error", "", fy("buyplayer.error.child5")], 2);
-      return;
-    }
-    showLoader();
-    let playersNumber = players.length,
-      quantity = 0,
-      cost = 0;
-    for (let index = 0; index < playersNumber; index++) {
-      if (!info.run.bulkbuy) {
-        continue;
-      }
-      const player = players[index];
-      let defId,
-        playerName,
-        buyStatus = false;
-      if (Number.isInteger(player)) {
-        defId = player;
-        const staticData = ea.getStaticItemData(defId);
-        if (!staticData.success || !staticData.data) {
-          debug.log("EA static-item capability unavailable", staticData.error);
-          notice("buyplayer.getinfo.error", 2);
-          continue;
-        }
-        playerName = staticData.data.name;
-      } else if (typeof player == "object" && player.isPlayer()) {
-        defId = player.definitionId;
-        playerName = player.getStaticData().name;
-      }
-      if (!defId) {
-        notice("buyplayer.getinfo.error", 2);
-        continue;
-      }
-      let loadingInfo =
-        playersNumber == 1 ? "" : ["readauction.progress", index + 1, playersNumber];
-      let priceList = await this.readAuctionPrices(player, false, loadingInfo, helpers);
-      priceList.sort((a, b) => b._auction.buyNowPrice - a._auction.buyNowPrice);
-      debug.log(priceList);
-      changeLoadingText("buyplayer.loadingclose", loadingInfo);
-      if (priceList.length == 0) {
-        notice(["buyplayer.error", playerName, fy("buyplayer.error.child3")], 2);
-      } else {
-        let currentPlayer = priceList[priceList.length - 1];
-        const purchasePrice = currentPlayer._auction.buyNowPrice;
-        const purchaseResult = normalizeMarketPurchaseResult(
-          await ea.purchaseItemToClub(
-            currentPlayer,
-            purchasePrice,
-            this,
-            () => sendPinEvents("Item - Detail View")
-          )
-        );
-        if (purchaseResult.success || purchaseResult.purchased) {
-          notice(["buyplayer.success", playerName, purchasePrice], 0);
-          quantity += 1;
-          cost += purchasePrice;
-        }
-        if (purchaseResult.success) {
-          notice(["buyplayer.sendclub.success", playerName], 0);
-          buyStatus = true;
-          if (isPhone() && playersNumber == 1) {
-            let controller = getCurrentController();
-            if (controller.className == "UTSquadItemDetailsNavigationController") {
-              controller.getParentViewController()._eBackButtonTapped();
-            }
-          }
-        } else if (purchaseResult.reason === "insufficient-funds") {
-          notice(["buyplayer.error", playerName, fy("buyplayer.error.child2")], 2);
-        } else if (purchaseResult.reason === "expired") {
-          notice(["buyplayer.error", playerName, fy("buyplayer.error.child4")], 2);
-        } else if (purchaseResult.reason === "bid-failed") {
-          notice(
-            [
-              "buyplayer.error",
-              playerName,
-              `${purchaseResult.permissionDenied ? fy("buyplayer.error.child1") : ""}`
-            ],
-            2
-          );
-        } else if (purchaseResult.reason === "move-failed") {
-          notice(["buyplayer.sendclub.error", playerName], 2);
-        } else {
-          debug.log("Bulk purchase unavailable", purchaseResult.error);
-          notice("notice.loaderror", 2);
-        }
-      }
-      if (!buyStatus) {
-        cardAddBuyErrorTips(defId);
-      }
-      // if (view && playersNumber == 1) {
-      //     view.getSuperview().items._collection[view.getSuperview().items._index].render(player)
-      // }
-      if (playerName !== index) {
-        await wait(0.5, 1);
-      }
+      summary.reason = "capacity-reached";
+      return summary;
     }
 
-    hideLoader();
-    notice(
-      ["buyplayer.bibresults", quantity, playersNumber - quantity, cost],
-      quantity !== playersNumber ? 2 : 0
-    );
+    info.run.bulkbuy = true;
+    showLoader();
+    try {
+      for (let index = 0; index < playersNumber; index++) {
+        if (!info.run.bulkbuy) {
+          summary.cancelled = true;
+          break;
+        }
+        const player = players[index];
+        summary.attempted += 1;
+        let defId,
+          playerName,
+          buyStatus = false;
+        if (Number.isInteger(player)) {
+          defId = player;
+          const staticData = ea.getStaticItemData(defId);
+          if (!staticData.success || !staticData.data) {
+            debug.log("EA static-item capability unavailable", staticData.error);
+            notice("buyplayer.getinfo.error", 2);
+            summary.failed += 1;
+            continue;
+          }
+          playerName = staticData.data.name;
+        } else if (typeof player == "object" && player.isPlayer()) {
+          defId = player.definitionId;
+          playerName = player.getStaticData().name;
+        }
+        if (!defId) {
+          notice("buyplayer.getinfo.error", 2);
+          summary.failed += 1;
+          continue;
+        }
+        let loadingInfo =
+          playersNumber == 1 ? "" : ["readauction.progress", index + 1, playersNumber];
+        let priceList;
+        try {
+          priceList = await this.readAuctionPrices(player, false, loadingInfo, helpers);
+        } catch (error) {
+          debug.log("Bulk buy price lookup failed", error);
+          notice("notice.loaderror", 2);
+          summary.failed += 1;
+          if (defId) cardAddBuyErrorTips(defId);
+          continue;
+        }
+        priceList.sort((a, b) => b._auction.buyNowPrice - a._auction.buyNowPrice);
+        debug.log(priceList);
+        changeLoadingText("buyplayer.loadingclose", loadingInfo);
+        if (priceList.length == 0) {
+          notice(["buyplayer.error", playerName, fy("buyplayer.error.child3")], 2);
+          summary.failed += 1;
+        } else {
+          let currentPlayer = priceList[priceList.length - 1];
+          const purchasePrice = currentPlayer._auction.buyNowPrice;
+          let purchaseResult;
+          try {
+            purchaseResult = normalizeMarketPurchaseResult(
+              await ea.purchaseItemToClub(
+                currentPlayer,
+                purchasePrice,
+                this,
+                () => sendPinEvents("Item - Detail View")
+              )
+            );
+          } catch (error) {
+            debug.log("Bulk purchase helper threw", error);
+            notice("notice.loaderror", 2);
+            summary.failed += 1;
+            cardAddBuyErrorTips(defId);
+            continue;
+          }
+          if (purchaseResult.success || purchaseResult.purchased) {
+            notice(["buyplayer.success", playerName, purchasePrice], 0);
+            summary.purchased += 1;
+            summary.cost += purchasePrice;
+          }
+          if (purchaseResult.success) {
+            notice(["buyplayer.sendclub.success", playerName], 0);
+            summary.moved += 1;
+            buyStatus = true;
+            if (isPhone() && playersNumber == 1) {
+              let controller = getCurrentController();
+              if (controller.className == "UTSquadItemDetailsNavigationController") {
+                controller.getParentViewController()._eBackButtonTapped();
+              }
+            }
+          } else if (purchaseResult.reason === "insufficient-funds") {
+            notice(["buyplayer.error", playerName, fy("buyplayer.error.child2")], 2);
+            summary.failed += 1;
+          } else if (purchaseResult.reason === "expired") {
+            notice(["buyplayer.error", playerName, fy("buyplayer.error.child4")], 2);
+            summary.failed += 1;
+          } else if (purchaseResult.reason === "bid-failed") {
+            notice(
+              [
+                "buyplayer.error",
+                playerName,
+                `${purchaseResult.permissionDenied ? fy("buyplayer.error.child1") : ""}`
+              ],
+              2
+            );
+            summary.failed += 1;
+          } else if (purchaseResult.reason === "move-failed") {
+            notice(["buyplayer.sendclub.error", playerName], 2);
+            summary.failed += 1;
+          } else if (!(purchaseResult.success || purchaseResult.purchased)) {
+            debug.log("Bulk purchase unavailable", purchaseResult.error);
+            notice("notice.loaderror", 2);
+            summary.failed += 1;
+          }
+        }
+        if (!buyStatus) {
+          cardAddBuyErrorTips(defId);
+        }
+        if (playerName !== index) {
+          await wait(0.5, 1);
+        }
+      }
+
+      notice(
+        ["buyplayer.bibresults", summary.purchased, playersNumber - summary.purchased, summary.cost],
+        summary.purchased !== playersNumber ? 2 : 0
+      );
+      summary.success = !summary.cancelled && summary.failed === 0 && summary.purchased === playersNumber;
+      return summary;
+    } finally {
+      info.run.bulkbuy = false;
+      hideLoader();
+    }
   }
 
   async buyPlayer(player, view, helpers) {
@@ -584,47 +638,108 @@ export class MarketActionService {
       ea
     } = helpers;
     const info = getInfo();
+    /** @type {{
+     *   success: boolean,
+     *   attempted: number,
+     *   listed: number,
+     *   failed: number,
+     *   cancelled: boolean,
+     *   items: Array<{ id: string, success: boolean, reason?: string }>,
+     *   reason?: string
+     * }} */
+    const summary = {
+      success: false,
+      attempted: 0,
+      listed: 0,
+      failed: 0,
+      cancelled: false,
+      items: []
+    };
 
     e.setInteractionState(0);
     info.run.losauction = true;
     showLoader();
-    let a = e._parent._fsuAkbArray,
-      b = e._parent._fsuAkbCurrent,
-      pn = 0,
-      time = t == 0 ? 1 : t;
-    notice(["loas.start", `${b}`, `${b * 5}`], 1);
-    for (let n in a) {
-      if (!info.run.losauction) {
-        break;
+    try {
+      let a = e._parent._fsuAkbArray,
+        b = e._parent._fsuAkbCurrent,
+        pn = 0,
+        time = t == 0 ? 1 : t;
+      notice(["loas.start", `${b}`, `${b * 5}`], 1);
+      for (let n in a) {
+        if (!info.run.losauction) {
+          summary.cancelled = true;
+          break;
+        }
+        pn++;
+        summary.attempted += 1;
+        changeLoadingText(["loadingclose.loas", `${pn}`, `${b - pn}`]);
+        try {
+          const listed = await this.playerToAuction(
+            n,
+            getCachePrice(a[n]._pId, 1).num,
+            time,
+            helpers
+          );
+          if (!listed) {
+            summary.failed += 1;
+            summary.items.push({ id: String(n), success: false, reason: "list-failed" });
+            // Continue remaining items (documented fail-continue policy).
+            continue;
+          }
+          summary.listed += 1;
+          summary.items.push({ id: String(n), success: true });
+          debug.log(a[n]._l);
+          if (isPhone()) {
+            a[n].toggle(false);
+            e._parent.listRows[a[n]._l].hide();
+            e._parent._fsuAkbCurrent--;
+            e._parent._fsuAkbNumber--;
+            delete e._parent._fsuAkbArray[a[n]._id];
+            this.losAuctionCount(e._parent, undefined, helpers);
+          }
+        } catch (error) {
+          debug.log("Mass listing item failed", error);
+          summary.failed += 1;
+          summary.items.push({ id: String(n), success: false, reason: "error" });
+          continue;
+        }
+        await wait(2, 4);
       }
-      pn++;
-      changeLoadingText(["loadingclose.loas", `${pn}`, `${b - pn}`]);
-      await this.playerToAuction(n, getCachePrice(a[n]._pId, 1).num, time, helpers);
-      debug.log(a[n]._l);
-      if (isPhone()) {
-        a[n].toggle(false);
-        e._parent.listRows[a[n]._l].hide();
-        e._parent._fsuAkbCurrent--;
-        e._parent._fsuAkbNumber--;
-        delete e._parent._fsuAkbArray[a[n]._id];
-        this.losAuctionCount(e._parent, undefined, helpers);
+
+      let currentController = isPhone() ? getCurrentController() : getLeftController();
+      if (currentController.className == "UTUnassignedItemsViewController") {
+        const resetResult = await ea.resetUnassignedItems();
+        if (!resetResult.success) {
+          debug.log("EA unassigned reset capability unavailable", resetResult.error);
+          notice("notice.loaderror", 2);
+          summary.reason = "reset-failed";
+          summary.success = false;
+          return summary;
+        }
+        try {
+          await currentController.getUnassignedItems();
+        } catch (error) {
+          debug.log("Unassigned refresh failed", error);
+          notice("notice.loaderror", 2);
+          summary.reason = "refresh-failed";
+          return summary;
+        }
+      } else {
+        try {
+          currentController.refreshList();
+        } catch (error) {
+          debug.log("List refresh failed", error);
+          notice("notice.loaderror", 2);
+          summary.reason = "refresh-failed";
+          return summary;
+        }
       }
-      await wait(2, 4);
-    }
-    hideLoader();
-    info.run.losauction = false;
-    e.setInteractionState(e._parent._fsuAkbCurrent);
-    let currentController = isPhone() ? getCurrentController() : getLeftController();
-    if (currentController.className == "UTUnassignedItemsViewController") {
-      const resetResult = await ea.resetUnassignedItems();
-      if (!resetResult.success) {
-        debug.log("EA unassigned reset capability unavailable", resetResult.error);
-        notice("notice.loaderror", 2);
-        return;
-      }
-      await currentController.getUnassignedItems();
-    } else {
-      currentController.refreshList();
+      summary.success = !summary.cancelled && summary.failed === 0 && !summary.reason;
+      return summary;
+    } finally {
+      info.run.losauction = false;
+      hideLoader();
+      e.setInteractionState(e._parent._fsuAkbCurrent);
     }
   }
 

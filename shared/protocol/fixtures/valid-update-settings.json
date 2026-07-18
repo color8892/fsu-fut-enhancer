@@ -1,0 +1,12 @@
+{
+  "protocolVersion": "1.0",
+  "requestId": "req_settings_01",
+  "type": "update_settings",
+  "payload": {
+    "settings": {
+      "theme": "dark",
+      "openFutOnLaunch": true
+    }
+  },
+  "timestamp": 1700000000000
+}

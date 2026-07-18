@@ -1,0 +1,326 @@
+{
+  "version": 1,
+  "description": "Sanitized shared allow/deny corpus and production endpoint inventory for Extension RequestPolicy and Companion HTTP bridge. No session values, cookies, or real SIDs. productionEndpoints is the drift source of truth for allowed origins/hosts; urlCases must cover allow+deny examples for those endpoints.",
+  "urlCases": [
+    {
+      "id": "allow-api-fut-to-updata",
+      "url": "https://api.fut.to/26/updata.json",
+      "method": "GET",
+      "expect": "allow",
+      "endpoint": "public"
+    },
+    {
+      "id": "allow-api-fut-to-meta-query",
+      "url": "https://api.fut.to/26/meta.json?revision=1",
+      "method": "GET",
+      "expect": "allow",
+      "endpoint": "public"
+    },
+    {
+      "id": "allow-api-fut-to-fast",
+      "url": "https://api.fut.to/26/fast.json",
+      "method": "GET",
+      "expect": "allow",
+      "endpoint": "public"
+    },
+    {
+      "id": "allow-api-fut-to-lowprice",
+      "url": "https://api.fut.to/26/lowprice.json",
+      "method": "GET",
+      "expect": "allow",
+      "endpoint": "public"
+    },
+    {
+      "id": "deny-api-fut-to-unknown-file",
+      "url": "https://api.fut.to/26/not-allowed.json",
+      "method": "GET",
+      "expect": "deny"
+    },
+    {
+      "id": "deny-api-fut-to-post",
+      "url": "https://api.fut.to/26/meta.json",
+      "method": "POST",
+      "expect": "deny"
+    },
+    {
+      "id": "deny-api-fut-to-http",
+      "url": "http://api.fut.to/26/updata.json",
+      "method": "GET",
+      "expect": "deny"
+    },
+    {
+      "id": "allow-fut-gg-prices",
+      "url": "https://www.fut.gg/api/fut/player-prices/26/?ids=1%2C2",
+      "method": "GET",
+      "expect": "allow",
+      "endpoint": "public"
+    },
+    {
+      "id": "allow-fut-gg-squad",
+      "url": "https://www.fut.gg/api/squads/12345",
+      "method": "GET",
+      "expect": "allow",
+      "endpoint": "public"
+    },
+    {
+      "id": "deny-fut-gg-other-path",
+      "url": "https://www.fut.gg/api/other",
+      "method": "GET",
+      "expect": "deny"
+    },
+    {
+      "id": "allow-futbin-price",
+      "url": "https://www.futbin.org/futbin/api/26/fetchPriceInformation",
+      "method": "GET",
+      "expect": "allow",
+      "endpoint": "public"
+    },
+    {
+      "id": "deny-futbin-unknown-action",
+      "url": "https://www.futbin.org/futbin/api/26/notARealAction",
+      "method": "GET",
+      "expect": "deny"
+    },
+    {
+      "id": "allow-futnext-prices",
+      "url": "https://enhancer-api.futnext.com/players/prices",
+      "method": "GET",
+      "expect": "allow",
+      "endpoint": "public"
+    },
+    {
+      "id": "deny-futnext-other",
+      "url": "https://enhancer-api.futnext.com/players/other",
+      "method": "GET",
+      "expect": "deny"
+    },
+    {
+      "id": "deny-www-futnext-broad",
+      "url": "https://www.futnext.com/anything",
+      "method": "GET",
+      "expect": "deny",
+      "note": "www.futnext.com is unused; only enhancer-api.futnext.com/players/prices is allowed"
+    },
+    {
+      "id": "allow-ea-transfermarket",
+      "url": "https://utas.mob.v5.prd.futc-ext.gcp.ea.com/ut/game/fc26/transfermarket?num=21",
+      "method": "GET",
+      "expect": "allow",
+      "endpoint": "ea_transfer_market"
+    },
+    {
+      "id": "deny-ea-transfermarket-post",
+      "url": "https://utas.mob.v5.prd.futc-ext.gcp.ea.com/ut/game/fc26/transfermarket",
+      "method": "POST",
+      "expect": "deny"
+    },
+    {
+      "id": "deny-ea-other-path",
+      "url": "https://utas.mob.v5.prd.futc-ext.gcp.ea.com/ut/game/fc26/user/credits",
+      "method": "GET",
+      "expect": "deny"
+    },
+    {
+      "id": "deny-evil-origin",
+      "url": "https://evil.example/26/updata.json",
+      "method": "GET",
+      "expect": "deny"
+    },
+    {
+      "id": "deny-path-spoof-host",
+      "url": "https://www.ea.com/26/updata.json",
+      "method": "GET",
+      "expect": "deny"
+    },
+    {
+      "id": "deny-unknown-origin",
+      "url": "https://example.com/collect",
+      "method": "GET",
+      "expect": "deny"
+    }
+  ],
+  "headerCases": [
+    {
+      "id": "drop-user-agent-public",
+      "endpoint": "public",
+      "headers": {
+        "User-Agent": "page-supplied-ua"
+      },
+      "expect": "accept",
+      "note": "User-Agent must be dropped safely; request still allowed"
+    },
+    {
+      "id": "accept-content-type-public",
+      "endpoint": "public",
+      "headers": {
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+      },
+      "expect": "accept"
+    },
+    {
+      "id": "deny-cookie-public",
+      "endpoint": "public",
+      "headers": {
+        "Cookie": "session=never"
+      },
+      "expect": "reject_or_drop"
+    },
+    {
+      "id": "deny-authorization-public",
+      "endpoint": "public",
+      "headers": {
+        "Authorization": "Bearer never"
+      },
+      "expect": "reject_or_drop"
+    },
+    {
+      "id": "deny-origin-referer",
+      "endpoint": "public",
+      "headers": {
+        "Origin": "https://evil.example",
+        "Referer": "https://evil.example/"
+      },
+      "expect": "reject_or_drop"
+    },
+    {
+      "id": "deny-x-ut-sid-on-public",
+      "endpoint": "public",
+      "headers": {
+        "X-UT-SID": "redacted-test-value"
+      },
+      "expect": "reject_or_drop"
+    },
+    {
+      "id": "allow-x-ut-sid-on-ea-market",
+      "endpoint": "ea_transfer_market",
+      "headers": {
+        "X-UT-SID": "redacted-test-value"
+      },
+      "expect": "accept",
+      "note": "SID only in memory for EA transfer-market; never logged"
+    },
+    {
+      "id": "deny-cookie-on-ea-market",
+      "endpoint": "ea_transfer_market",
+      "headers": {
+        "Cookie": "session=never"
+      },
+      "expect": "reject_or_drop"
+    },
+    {
+      "id": "deny-proxy-header",
+      "endpoint": "public",
+      "headers": {
+        "Proxy-Authorization": "never"
+      },
+      "expect": "reject_or_drop"
+    },
+    {
+      "id": "deny-sec-header",
+      "endpoint": "public",
+      "headers": {
+        "Sec-Fetch-Site": "cross-site"
+      },
+      "expect": "reject_or_drop"
+    }
+  ],
+  "invariants": {
+    "methods": [
+      "GET"
+    ],
+    "maxResponseBytes": 5242880,
+    "redirect": "fail_closed",
+    "credentialsDefault": "omit",
+    "noSessionInFixtures": true
+  },
+  "productionEndpoints": [
+    {
+      "id": "api-fut-to",
+      "origin": "https://api.fut.to",
+      "host": "api.fut.to",
+      "paths": [
+        "/26/updata.json",
+        "/26/meta.json",
+        "/26/fast.json",
+        "/26/pack.json",
+        "/26/sbc.json",
+        "/26/ggrating.json",
+        "/26/evolutions.json",
+        "/26/inpacks.json",
+        "/26/other.json",
+        "/26/fgconfig.json",
+        "/26/playermeta.json",
+        "/26/lowprice.json"
+      ],
+      "endpoint": "public",
+      "credentials": "omit",
+      "sides": [
+        "extension",
+        "companion"
+      ]
+    },
+    {
+      "id": "fut-gg",
+      "origin": "https://www.fut.gg",
+      "host": "www.fut.gg",
+      "paths": [
+        "/api/fut/player-prices/26/",
+        "/api/squads/12345"
+      ],
+      "endpoint": "public",
+      "credentials": "omit",
+      "sides": [
+        "extension",
+        "companion"
+      ]
+    },
+    {
+      "id": "futbin",
+      "origin": "https://www.futbin.org",
+      "host": "www.futbin.org",
+      "paths": [
+        "/futbin/api/26/getChallengeTopSquads",
+        "/futbin/api/26/getSquadByID",
+        "/futbin/api/26/getChallengesBySetId",
+        "/futbin/api/26/fetchPriceInformation",
+        "/futbin/api/26/getFilteredPlayers",
+        "/futbin/api/26/fetchPlayerInformationMinimal"
+      ],
+      "endpoint": "public",
+      "credentials": "omit",
+      "sides": [
+        "extension",
+        "companion"
+      ]
+    },
+    {
+      "id": "futnext-enhancer-api",
+      "origin": "https://enhancer-api.futnext.com",
+      "host": "enhancer-api.futnext.com",
+      "paths": [
+        "/players/prices"
+      ],
+      "endpoint": "public",
+      "credentials": "omit",
+      "sides": [
+        "extension",
+        "companion"
+      ]
+    },
+    {
+      "id": "ea-transfer-market",
+      "origin": "https://utas.mob.v5.prd.futc-ext.gcp.ea.com",
+      "host": "utas.mob.v5.prd.futc-ext.gcp.ea.com",
+      "paths": [
+        "/ut/game/fc26/transfermarket"
+      ],
+      "endpoint": "ea_transfer_market",
+      "credentials": "omit",
+      "sides": [
+        "extension",
+        "companion"
+      ]
+    }
+  ]
+}

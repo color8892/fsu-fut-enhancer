@@ -47,17 +47,19 @@
 
 ### 已知缺口
 
-- 45 個 patch 檔案中仍有 94 個直接 prototype assignment；其中 10 個是
-  extension-owned Store controller 方法，真正的直接 EA assignment 為 84 個。
-  另有 12 個 production patch 已由 lifecycle descriptor 管理。
+- 多數 patch 仍為直接 prototype assignment；lifecycle descriptor 已覆蓋 pilot
+  與 PR21 的 `rewards.choice-set-render` / `item.plus-playstyles-normalize` 等。
+  精確數量見 `MIGRATION_INVENTORY.md`（以可重現掃描為準，勿手抄）。
 - `PatchRegistry` 仍保存 legacy 原方法；`PatchLifecycleRegistry` 已提供 descriptor、verify、idempotence、restore 與 sanitized diagnostics。
 - `events.*` 仍同時是 facade、service locator 和可變註冊表；`info` 仍是寬鬆共享狀態。
 - 部分 `domain/` 模組仍直接使用 `UT*`、Lodash `_`、`services` 或 `repositories`，不能視為純 domain。
-- strict `checkJs` island 目前包含 29 個檔案。
+- strict `checkJs` island 檔案數以 `extension/tsconfig.json` 的 `files` 為準（目前 33）。
 - MV3 browser smoke 已載入 unpacked extension，覆蓋 handshake、forgery rejection、
   reload invalidation，以及 sanitized EA shell 中 production descriptor 的
   install/disable/reinstall/restore。
 - Domain、patch phase 與 EA capability 現況已記錄於 `MIGRATION_INVENTORY.md`；後續 PR 必須同步更新。
+- 下一階段優化（cleanup / HTML / owners / remote schema / release gates）見
+  [NEXT_OPTIMIZATION_PLAN.md](NEXT_OPTIMIZATION_PLAN.md)（PR19–PR23 已完成）。
 
 以下數字只用來觀察趨勢，不是完成 KPI。更新基線時使用可重現命令，並在 PR 描述記錄差異：
 

@@ -3,10 +3,13 @@ import {
   appendText,
   createExternalLink,
   createTextElement,
+  createTrustedMarkup,
   escapeHtml,
+  isTrustedMarkup,
   normalizeExternalUrl,
   setTrustedHtml
 } from "../src/fsu/ui/HtmlSafety.js";
+import { createElementWithConfig } from "../src/fsu/ui/UiFactory.js";
 
 function createFakeDocument() {
   return {
@@ -81,8 +84,76 @@ export function runHtmlSafetyTests() {
     { nodeType: 3, textContent: "<script>alert(1)</script>" }
   ]);
 
-  setTrustedHtml(badge, "<span>trusted</span>", documentRef);
+  const trusted = createTrustedMarkup("<span>trusted</span>");
+  assert.equal(isTrustedMarkup(trusted), true);
+  assert.equal(isTrustedMarkup("<span>trusted</span>"), false);
+  assert.equal(isTrustedMarkup({ html: "<span>nope</span>" }), false);
+
+  setTrustedHtml(badge, trusted, documentRef);
   assert.deepStrictEqual(badge.children, [
     { nodeType: 11, html: "<span>trusted</span>" }
   ]);
+
+  assert.throws(
+    () => setTrustedHtml(badge, "<img onerror=1>", documentRef),
+    /Trusted HTML APIs only accept/
+  );
+
+  // createElementWithConfig rejects HTML sinks and event handlers.
+  const originalDocument = globalThis.document;
+  globalThis.document = {
+    createElement(tag) {
+      return {
+        tagName: tag.toUpperCase(),
+        classList: { add() {} },
+        style: { setProperty() {} },
+        setAttribute() {},
+        children: []
+      };
+    },
+    location: { href: "https://www.ea.com/" }
+  };
+  try {
+    assert.throws(
+      () => createElementWithConfig("div", { innerHTML: "<img onerror=1>" }),
+      /forbids HTML\/event sinks/
+    );
+    assert.throws(
+      () => createElementWithConfig("div", { outerHTML: "<x>" }),
+      /forbids HTML\/event sinks/
+    );
+    assert.throws(
+      () => createElementWithConfig("div", { srcdoc: "<x>" }),
+      /forbids HTML\/event sinks/
+    );
+    assert.throws(
+      () => createElementWithConfig("div", { onclick: () => {} }),
+      /forbids HTML\/event sinks/
+    );
+    assert.throws(
+      () =>
+        createElementWithConfig("div", {
+          attributes: { onerror: "alert(1)" }
+        }),
+      /forbids event attributes/
+    );
+
+    const textOnly = createElementWithConfig("div", {
+      textContent: "<img onerror=1>",
+      classList: ["safe"]
+    });
+    assert.strictEqual(textOnly.textContent, "<img onerror=1>");
+  } finally {
+    if (originalDocument) {
+      globalThis.document = originalDocument;
+    } else {
+      delete globalThis.document;
+    }
+  }
+
+  // Localization-like strings stay text.
+  const loc = createTextElement("div", "Price < 1000 & safe", {
+    documentRef: createFakeDocument()
+  });
+  assert.strictEqual(loc.textContent, "Price < 1000 & safe");
 }

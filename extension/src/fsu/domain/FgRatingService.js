@@ -282,7 +282,6 @@ export class FgRatingService {
       showLoader,
       hideLoader,
       createElementWithConfig,
-      createDF,
       fy,
       eafy,
       notice,
@@ -367,11 +366,29 @@ export class FgRatingService {
             })
           );
         });
-        tr.appendChild(
-          createDF(
-            `<td style="padding: 0.5rem;"><div class="item" style="display: flex; align-items: center; padding: 0.5rem;"><div class="playStyle chemstyle${player.playStyle}" style="font-size: 18px; margin-right: 6px;"></div><div>${eafy(`playstyles.playstyle${player.playStyle}`)}</div></div></td>`
-          )
-        );
+        const playStyleCell = createElementWithConfig("td", {
+          style: { padding: "0.5rem" }
+        });
+        const playStyleItem = createElementWithConfig("div", {
+          classList: "item",
+          style: {
+            display: "flex",
+            alignItems: "center",
+            padding: "0.5rem"
+          }
+        });
+        playStyleItem.appendChild(createElementWithConfig("div", {
+          classList: ["playStyle", `chemstyle${Number(player.playStyle)}`],
+          style: {
+            fontSize: "18px",
+            marginRight: "6px"
+          }
+        }));
+        playStyleItem.appendChild(createElementWithConfig("div", {
+          textContent: eafy(`playstyles.playstyle${Number(player.playStyle)}`)
+        }));
+        playStyleCell.appendChild(playStyleItem);
+        tr.appendChild(playStyleCell);
         tbody.appendChild(tr);
       });
       table.appendChild(tbody);

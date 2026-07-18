@@ -203,12 +203,7 @@ events.waitForClickShieldToHide = (callback, timeout = 5000) => {
     }, 100); // 每 100ms 检查一次
 }
 
-// 25.22 移除进化重复图标问题
-const UTItemEntityGetPlusPlayStyles = UTItemEntity.prototype.getPlusPlayStyles;
-UTItemEntity.prototype.getPlusPlayStyles = function () {
-    const result = UTItemEntityGetPlusPlayStyles.call(this);
-    return _.uniqWith(result, (a, b) => a.equals(b));
-};
+// getPlusPlayStyles is owned solely by item.plus-playstyles-normalize (installUiUtilsPatches).
 // 25.22 加速类型计算
 events.getAcceleRate = (player, chem = 3, styleId = player.playStyle) => {
     const height = player.getMetaData()?.height ?? 0;

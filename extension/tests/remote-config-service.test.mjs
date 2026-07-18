@@ -109,11 +109,14 @@ export function runRemoteConfigServiceTests() {
 
   requests[2].onload({
     response: JSON.stringify({
-      "1#2": { t: 200, g: [{ c: 1 }] },
-      expired: { t: 10, g: [{ c: 2 }] }
+      "1#2": { t: 200, g: [{ c: 1, t: { rating: 84 } }] },
+      expired: { t: 10, g: [{ c: 2, t: { gs: 1 } }] }
     })
   });
-  assert.deepStrictEqual(info.base.fastsbc, { "1#2": [{ c: 1 }] });
+  assert.deepStrictEqual(
+    JSON.parse(JSON.stringify(info.base.fastsbc)),
+    { "1#2": [{ c: 1, t: { rating: 84 } }] }
+  );
 
   requests[3].onload({
     response: JSON.stringify({ reward: [1, 2], new: [7, 8] })
@@ -125,7 +128,9 @@ export function runRemoteConfigServiceTests() {
   assert.deepStrictEqual(info.evolutions.new, [99]);
 
   requests[5].onload({ response: JSON.stringify({ pc: { 84: 1200 } }) });
-  assert.deepStrictEqual(info.lowpriceApplied, { pc: { 84: 1200 } });
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(info.lowpriceApplied)), {
+    pc: { "84": 1200 }
+  });
 
   info.playermeta = { 5: { badytype: 1, weight: 70, realface: 0 } };
   assert.strictEqual(service.applyPlayerMeta([[6, 2, "invalid", 1]]), false);
@@ -136,4 +141,22 @@ export function runRemoteConfigServiceTests() {
   assert.deepStrictEqual(info.playermeta, {
     6: { badytype: 2, weight: 80, realface: 1 }
   });
+
+  // Malformed refresh retains previous good state.
+  info.base.fastsbc = { keep: [{ c: 9 }] };
+  assert.strictEqual(service.applyFastSbc({ bad: true }), false);
+  assert.deepStrictEqual(info.base.fastsbc, { keep: [{ c: 9 }] });
+
+  info.base.oddo = { "1": 10 };
+  assert.strictEqual(service.applyPack(null), false);
+  assert.deepStrictEqual(info.base.oddo, { "1": 10 });
+
+  info.task.sbc.stat = { reward: [1], new: [2] };
+  assert.strictEqual(service.applySbc({ reward: "nope" }), false);
+  assert.deepStrictEqual(info.task.sbc.stat, { reward: [1], new: [2] });
+
+  // Endpoint failure isolation: pack fail does not block sbc apply.
+  assert.strictEqual(service.applyPack({ x: Number.NaN }), false);
+  assert.strictEqual(service.applySbc({ reward: [2], new: [3] }), true);
+  assert.deepStrictEqual(info.task.sbc.stat, { reward: [2], new: [3] });
 }

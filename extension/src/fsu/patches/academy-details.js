@@ -37,26 +37,32 @@ export function installAcademyDetailsPatches(deps) {
             return i.__title?.innerText == titleText && !i.__deltaValue.hasAttribute("data-up");
           });
           if (sub) {
-            const subText = state === AcademySlotLevelState.COMPLETED
-              ? "√"
-              : (() => {
+            let addValue = events.createElementWithConfig("div", {
+              classList: "fsu-academyAttribute"
+            });
+            {
+              const increase = events.createElementWithConfig("span", {
+                classList: "fsu-academyAttributeIncrease"
+              });
+              increase.appendChild(document.createTextNode("("));
+              if (state === AcademySlotLevelState.COMPLETED) {
+                increase.appendChild(document.createTextNode("√"));
+              } else {
                 const boostValue = UTAcademyUtils.getPlayerFinalStatValue(boost, a);
                 const plusValue = value - boostValue;
                 if (plusValue > 0) {
                   plusValue > 0 && (addedText = "added") && a.type <= AcademyStatEnum.PHYSICALITY && (addedText += "Main");
-                  return `${boostValue}+<span>${plusValue}</span>`;
+                  increase.appendChild(document.createTextNode(`${boostValue}+`));
+                  const plus = document.createElement("span");
+                  plus.textContent = String(plusValue);
+                  increase.appendChild(plus);
+                } else {
+                  increase.appendChild(document.createTextNode("+0"));
                 }
-                return "+0";
-              })();
-            let addValue = events.createElementWithConfig("div", {
-              classList: "fsu-academyAttribute"
-            });
-            addValue.appendChild(
-              events.createElementWithConfig("span", {
-                innerHTML: `(${subText})`,
-                classList: "fsu-academyAttributeIncrease"
-              })
-            );
+              }
+              increase.appendChild(document.createTextNode(")"));
+              addValue.appendChild(increase);
+            }
             addValue.appendChild(
               events.createElementWithConfig("span", {
                 textContent: value,

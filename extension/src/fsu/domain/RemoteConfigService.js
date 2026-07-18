@@ -6,6 +6,16 @@ import {
   parsePlayerMetaConfig,
   parsePlayerMetadataRows
 } from "./PlayerMetadataResults.js";
+import {
+  parseFastSbcConfig,
+  parseFgConfig,
+  parseInpacksConfig,
+  parseLowpriceConfig,
+  parseOtherConfig,
+  parsePackConfig,
+  parseSbcConfig,
+  parseUpdataConfig
+} from "./RemoteConfigResults.js";
 
 const API_BASE_URL = "https://api.fut.to/26";
 const README_URL = "https://mfrasi851i.feishu.cn/wiki/wikcng1Ih7fFRidBfMdNS9SrucR";
@@ -64,18 +74,24 @@ export class RemoteConfigService {
     if (res.status == 404) {
       this.notice("notice.upgradefailed", 2);
     } else {
-      const data = this.parseResponse(res, {}, "updata.json");
-      const myVersion = Number(this.scriptVersion) || 0;
+      const raw = this.parseResponse(res, {}, "updata.json");
+      const parsed = parseUpdataConfig(raw);
+      if (!parsed.success) {
+        this.debug.log("updata response rejected", parsed.error);
+      } else {
+        const data = parsed.data;
+        const myVersion = Number(this.scriptVersion) || 0;
 
-      if (data.version > myVersion) {
-        urlText = this.fy("top.upgrade");
-        urlLink = data.updateURL;
-        this.notice("notice.upgradeconfirm", 1);
-      }
+        if (data.version > myVersion) {
+          urlText = this.fy("top.upgrade");
+          urlLink = data.updateURL || urlLink;
+          this.notice("notice.upgradeconfirm", 1);
+        }
 
-      if (_.size(data.api)) {
-        this.info.api = data.api;
-        this.loadApiData();
+        if (_.size(data.api)) {
+          this.info.api = { ...data.api };
+          this.loadApiData();
+        }
       }
     }
 
@@ -86,9 +102,7 @@ export class RemoteConfigService {
     const api = this.info.api;
     this.loadEndpoint(api, "meta", "meta.json", {}, (data) => this.applyMeta(data));
     this.loadEndpoint(api, "fastsbc", "fast.json", {}, (data) => this.applyFastSbc(data));
-    this.loadEndpoint(api, "pack", "pack.json", {}, (data) => {
-      this.info.base.oddo = data;
-    });
+    this.loadEndpoint(api, "pack", "pack.json", {}, (data) => this.applyPack(data));
     this.loadEndpoint(api, "sbc", "sbc.json", { reward: [], new: [] }, (data) => this.applySbc(data));
     this.loadEndpoint(api, "ggrating", "ggrating.json", {}, (data) => {
       const result = parseGgRatingConfig(data);
@@ -110,15 +124,9 @@ export class RemoteConfigService {
     });
     this.loadEndpoint(api, "inpacks", "inpacks.json", {}, (data) => this.applyInpacks(data));
     this.loadEndpoint(api, "other", "other.json", {}, (data) => this.applyOther(data));
-    this.loadEndpoint(api, "fgconfig", "fgconfig.json", {}, (data) => {
-      this.info.fgconfig = data;
-      this.debug.log(`fgconfig加载完毕！`);
-    });
+    this.loadEndpoint(api, "fgconfig", "fgconfig.json", {}, (data) => this.applyFgConfig(data));
     this.loadEndpoint(api, "playermeta", "playermeta.json", [], (data) => this.applyPlayerMeta(data));
-    this.loadEndpoint(api, "lowprice", "lowprice.json", {}, (data) => {
-      this.applyLowprice(this.info, data);
-      this.debug.log(`lowprice加载完毕！`);
-    });
+    this.loadEndpoint(api, "lowprice", "lowprice.json", {}, (data) => this.applyLowpriceEndpoint(data));
   }
 
   loadEndpoint(api, apiKey, fileName, fallback, applyData) {
@@ -151,39 +159,92 @@ export class RemoteConfigService {
   }
 
   applyFastSbc(fastSbcJson) {
-    _.forEach(fastSbcJson, (item, key) => {
-      if (item.t > this.nowSeconds()) {
-        this.info.base.fastsbc[key] = item.g;
-      }
-    });
+    const result = parseFastSbcConfig(fastSbcJson, this.nowSeconds());
+    if (!result.success) {
+      this.debug.log("fastsbc response rejected", result.error);
+      return false;
+    }
+    // Atomic commit of the active subset only after full validation.
+    this.info.base.fastsbc = { ...result.data };
+    return true;
+  }
+
+  applyPack(packJson) {
+    const result = parsePackConfig(packJson);
+    if (!result.success) {
+      this.debug.log("pack response rejected", result.error);
+      return false;
+    }
+    this.info.base.oddo = result.data;
+    return true;
   }
 
   applySbc(sbcJson) {
-    this.info.task.sbc.stat = sbcJson;
-    const rewardText = _.map(sbcJson.reward || [], (item) =>
+    const result = parseSbcConfig(sbcJson);
+    if (!result.success) {
+      this.debug.log("sbc response rejected", result.error);
+      return false;
+    }
+    this.info.task.sbc.stat = result.data;
+    const rewardText = _.map(result.data.reward || [], (item) =>
       item == 1 ? this.fy("task.player") : item == 2 ? this.fy("task.pack") : ""
     );
-    this.info.task.sbc.html = this.taskHtml((sbcJson.new || []).length, rewardText.join("、"));
+    this.info.task.sbc.html = this.taskHtml((result.data.new || []).length, rewardText.join("、"));
+    return true;
   }
 
   applyInpacks(data) {
-    const { defIds = [], rarityIds = [] } = data;
-    this.info.inpacks.defIds = defIds;
-    this.info.inpacks.rarityIds = rarityIds;
+    const result = parseInpacksConfig(data);
+    if (!result.success) {
+      this.debug.log("inpacks response rejected", result.error);
+      return false;
+    }
+    this.info.inpacks.defIds = result.data.defIds;
+    this.info.inpacks.rarityIds = result.data.rarityIds;
     this.debug.log(`inpacks加载完毕！`);
+    return true;
   }
 
   applyOther(data) {
-    const { dynamic = {}, chem = {} } = data;
+    const result = parseOtherConfig(data);
+    if (!result.success) {
+      this.debug.log("other response rejected", result.error);
+      return false;
+    }
+    const { dynamic, chem } = result.data;
+    const now = Date.now() / 1000;
     this.info.specialPlayers = {
       dynamic,
       DList: Object.entries(dynamic)
-        .filter(([_key, value]) => value.exp && value.exp > Date.now() / 1000)
-        .map(([key, _value]) => Number(key)),
+        .filter(([_key, value]) => value.exp && value.exp > now)
+        .map(([key]) => Number(key)),
       extraChem: chem,
       ECList: Object.keys(chem).map((key) => Number(key))
     };
     this.debug.log(`other加载完毕！`);
+    return true;
+  }
+
+  applyFgConfig(data) {
+    const result = parseFgConfig(data);
+    if (!result.success) {
+      this.debug.log("fgconfig response rejected", result.error);
+      return false;
+    }
+    this.info.fgconfig = result.data;
+    this.debug.log(`fgconfig加载完毕！`);
+    return true;
+  }
+
+  applyLowpriceEndpoint(data) {
+    const result = parseLowpriceConfig(data);
+    if (!result.success) {
+      this.debug.log("lowprice response rejected", result.error);
+      return false;
+    }
+    this.applyLowprice(this.info, result.data);
+    this.debug.log(`lowprice加载完毕！`);
+    return true;
   }
 
   applyPlayerMeta(data) {

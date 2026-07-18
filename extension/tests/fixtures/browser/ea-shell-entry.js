@@ -9,6 +9,10 @@ import {
   registerStorePackOpenLifecycleEvents,
   registerStorePackListLifecycleEvents
 } from "../../../src/fsu/patches/store.js";
+import {
+  createTextElement,
+  setTrustedHtml
+} from "../../../src/fsu/ui/HtmlSafety.js";
 
 const MarketSearchView = globalThis.UTMarketSearchView;
 const originalGenerate = MarketSearchView?.prototype?._generate;
@@ -77,6 +81,25 @@ globalThis.__FSU_USERSCRIPT_SMOKE__ = true;
 globalThis.__FSU_EA_SHELL__ = Object.freeze({
   patchId: MARKET_PATCH_IDS.SEARCH_VIEW_GENERATE,
   initialInstall,
+  htmlSafety: Object.freeze({
+    renderText(value) {
+      const element = createTextElement("div", value);
+      globalThis.document.body.appendChild(element);
+      return {
+        childElementCount: element.childElementCount,
+        textContent: element.textContent
+      };
+    },
+    rejectsPlainMarkup(value) {
+      const element = globalThis.document.createElement("div");
+      try {
+        setTrustedHtml(element, value);
+        return false;
+      } catch (error) {
+        return error instanceof TypeError;
+      }
+    }
+  }),
   setEnabled(enabled) {
     return events.setMarketSearchGenerateEnabled(enabled);
   },

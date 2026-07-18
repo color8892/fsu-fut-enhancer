@@ -219,6 +219,22 @@ async function run() {
       lifecycleResult.finalState.diagnostics,
     );
 
+    const injectionPayload = `<img src=x onerror="window.__pwned=1">`;
+    const htmlSafetyResult = await page.evaluate((payload) => {
+      const htmlSafety = window.__FSU_EA_SHELL__.htmlSafety;
+      return {
+        rendered: htmlSafety.renderText(payload),
+        rejected: htmlSafety.rejectsPlainMarkup(payload),
+        pwned: window.__pwned === 1
+      };
+    }, injectionPayload);
+    assert.deepEqual(htmlSafetyResult.rendered, {
+      childElementCount: 0,
+      textContent: injectionPayload
+    });
+    assert.equal(htmlSafetyResult.rejected, true);
+    assert.equal(htmlSafetyResult.pwned, false);
+
     const storeLifecycleResult = await page.evaluate(() => {
       const store = window.__FSU_EA_SHELL__.store;
       const initialState = store.state();
@@ -462,7 +478,7 @@ async function run() {
     assert.match(await invalidatedBanner.innerText(), /F5|refresh/i);
 
     console.log(
-      "MV3 browser smoke passed: handshake, lifecycle shell, storage, request policy, reload invalidation",
+      "MV3 browser smoke passed: handshake, lifecycle shell, HTML safety, storage, request policy, reload invalidation",
     );
   } finally {
     await context?.close().catch(() => {});

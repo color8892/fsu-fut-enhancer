@@ -9,11 +9,59 @@ const HTML_ESCAPES = {
   '"': "&quot;"
 };
 
+/** Brand for extension-owned markup. Not exposed on window. */
+const TRUSTED_MARKUP_BRAND = Symbol("fsu.trustedMarkup");
+
+/**
+ * @typedef {{ readonly [TRUSTED_MARKUP_BRAND]: true, readonly html: string }} TrustedMarkup
+ */
+
 /** @param {unknown} value */
 export function escapeHtml(value) {
   return String(value ?? "").replace(
     HTML_ESCAPE_PATTERN,
     (character) => HTML_ESCAPES[character] ?? character
+  );
+}
+
+/**
+ * Create branded markup from extension-owned constants (and escaped dynamics).
+ * The brand constructor is not attached to window / unsafeWindow.
+ * @param {unknown} html
+ * @returns {TrustedMarkup}
+ */
+export function createTrustedMarkup(html) {
+  /** @type {TrustedMarkup} */
+  const markup = Object.freeze({
+    [TRUSTED_MARKUP_BRAND]: /** @type {const} */ (true),
+    html: String(html ?? "")
+  });
+  return markup;
+}
+
+/**
+ * @param {unknown} value
+ * @returns {value is TrustedMarkup}
+ */
+export function isTrustedMarkup(value) {
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    /** @type {{ [key: symbol]: unknown }} */ (value)[TRUSTED_MARKUP_BRAND] === true &&
+    typeof /** @type {{ html?: unknown }} */ (value).html === "string"
+  );
+}
+
+/**
+ * @param {unknown} value
+ * @returns {string}
+ */
+function requireTrustedHtml(value) {
+  if (isTrustedMarkup(value)) {
+    return value.html;
+  }
+  throw new TypeError(
+    "Trusted HTML APIs only accept createTrustedMarkup() values, not plain strings"
   );
 }
 
@@ -77,19 +125,26 @@ export function createTextElement(tagName, text, { className, documentRef = docu
 }
 
 /**
- * Only use with markup assembled entirely from extension-owned constants.
- * @param {unknown} html
+ * Only use with markup assembled entirely from extension-owned constants
+ * via {@link createTrustedMarkup}.
+ * @param {TrustedMarkup} markup
  * @param {Document} [documentRef]
  */
-export function createTrustedHtmlFragment(html, documentRef = document) {
-  return documentRef.createRange().createContextualFragment(String(html ?? ""));
+export function createTrustedHtmlFragment(markup, documentRef = document) {
+  return documentRef.createRange().createContextualFragment(requireTrustedHtml(markup));
 }
 
 /**
  * @param {Element} element
- * @param {unknown} html
+ * @param {TrustedMarkup} markup
  * @param {Document} [documentRef]
  */
-export function setTrustedHtml(element, html, documentRef = document) {
-  element.replaceChildren(createTrustedHtmlFragment(html, documentRef));
+export function setTrustedHtml(element, markup, documentRef = document) {
+  element.replaceChildren(createTrustedHtmlFragment(markup, documentRef));
 }
+
+export const HTML_CONFIG_FORBIDDEN_KEYS = Object.freeze([
+  "innerHTML",
+  "outerHTML",
+  "srcdoc"
+]);

@@ -1,0 +1,6 @@
+"$schema" = "schemas/schema.json"
+
+[[permission]]
+identifier = "allow-embedded-http-request"
+description = "Allows the FUT WebView to call the fixed allowlisted GET-only HTTP bridge."
+commands.allow = ["embedded_http_request"]

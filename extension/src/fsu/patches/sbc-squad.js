@@ -1,4 +1,4 @@
-import { setTrustedHtml } from "../ui/HtmlSafety.js";
+import {setTrustedHtml, createTrustedMarkup } from "../ui/HtmlSafety.js";
 import { EaObservableAdapter } from "../ea/EaObservableAdapter.js";
 import {
   parseSbcCompletionResponse,
@@ -105,7 +105,7 @@ export function registerSbcSubPriceEvent(deps) {
                 },
                 "call-to-action mini fsu-challengefastbtn"
               );
-              setTrustedHtml(i._fsu.fastBtn.__currencyLabel, events.getFastSbcSubText(fast));
+              setTrustedHtml(i._fsu.fastBtn.__currencyLabel, createTrustedMarkup(events.getFastSbcSubText(fast)));
               if (i._fsu.subSet.isCompleted()) {
                 i._fsu.fastBtn.setInteractionState(0);
               }
@@ -352,7 +352,7 @@ export function installSbcRequirementsPatch(deps) {
       fastSbcBtn.setId = e.setId;
       fastSbcBtn.id = e.id;
       fastSbcBtn.setTitle = fy(["fastsbc.sbcbtntext", fastCount]);
-      setTrustedHtml(fastSbcBtn.__currencyLabel, events.getFastSbcSubText(fastInfo));
+      setTrustedHtml(fastSbcBtn.__currencyLabel, createTrustedMarkup(events.getFastSbcSubText(fastInfo)));
       if (e.isCompleted() || fastCount === 0) {
         fastSbcBtn.setInteractionState(0);
       }

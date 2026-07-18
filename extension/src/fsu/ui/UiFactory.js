@@ -1,4 +1,36 @@
-import { createTrustedHtmlFragment, setTrustedHtml } from "./HtmlSafety.js";
+import {
+  appendText,
+  createTrustedHtmlFragment,
+  isTrustedMarkup,
+  normalizeExternalUrl,
+  setTrustedHtml,
+  HTML_CONFIG_FORBIDDEN_KEYS
+} from "./HtmlSafety.js";
+
+const FORBIDDEN_CONFIG_KEYS = new Set(HTML_CONFIG_FORBIDDEN_KEYS);
+const URL_PROPERTY_KEYS = new Set(["href", "src"]);
+
+/**
+ * @param {string} key
+ */
+function assertSafeConfigKey(key) {
+  if (FORBIDDEN_CONFIG_KEYS.has(key) || /^on/i.test(key)) {
+    throw new TypeError(
+      `createElementWithConfig forbids HTML/event sinks: "${key}"`
+    );
+  }
+}
+
+/**
+ * @param {string} attr
+ */
+function assertSafeAttributeName(attr) {
+  if (/^on/i.test(attr)) {
+    throw new TypeError(
+      `createElementWithConfig forbids event attributes: "${attr}"`
+    );
+  }
+}
 
 export function createButton(s, t, b, c, style) {
   const btn = s;
@@ -37,35 +69,70 @@ export function createTile(a, b, c) {
   return t;
 }
 
-export function createElementWithConfig(tag, config) {
+/**
+ * Build a DOM element from a constrained config bag.
+ * Rejects innerHTML/outerHTML/srcdoc and on* event sinks.
+ * @param {string} tag
+ * @param {Record<string, unknown>} [config]
+ */
+export function createElementWithConfig(tag, config = {}) {
   const element = document.createElement(tag);
   Object.keys(config).forEach((key) => {
+    assertSafeConfigKey(key);
     if (key === "classList") {
-      const classes = [].concat(config[key]);
-      classes.forEach((c) => element.classList.add(c));
+      const classes = [].concat(/** @type {unknown} */ (config[key]));
+      classes.forEach((c) => element.classList.add(/** @type {string} */ (c)));
     } else if (key === "style") {
-      Object.keys(config.style).forEach((styleName) => {
-        element.style[styleName] = config.style[styleName];
+      const style = /** @type {Record<string, string>} */ (config.style);
+      Object.keys(style).forEach((styleName) => {
+        element.style[styleName] = style[styleName];
       });
     } else if (key === "attributes") {
-      Object.entries(config.attributes).forEach(([attr, value]) => {
-        element.setAttribute(attr, value);
-      });
+      Object.entries(/** @type {Record<string, unknown>} */ (config.attributes)).forEach(
+        ([attr, value]) => {
+          assertSafeAttributeName(attr);
+          if (attr === "href" || attr === "src") {
+            const safe = normalizeExternalUrl(value);
+            if (safe) element.setAttribute(attr, safe);
+            return;
+          }
+          element.setAttribute(attr, String(value ?? ""));
+        }
+      );
     } else if (key === "var") {
-      Object.keys(config.var).forEach((styleName) => {
-        element.style.setProperty(styleName, config.var[styleName]);
+      const vars = /** @type {Record<string, string>} */ (config.var);
+      Object.keys(vars).forEach((styleName) => {
+        element.style.setProperty(styleName, vars[styleName]);
       });
+    } else if (URL_PROPERTY_KEYS.has(key)) {
+      const safe = normalizeExternalUrl(config[key]);
+      /** @type {Record<string, string>} */ (/** @type {unknown} */ (element))[key] =
+        safe || "#";
     } else {
-      element[key] = config[key];
+      /** @type {Record<string, unknown>} */ (/** @type {unknown} */ (element))[key] =
+        config[key];
     }
   });
   return element;
 }
 
-export function createDF(t) {
-  return createTrustedHtmlFragment(t);
+/**
+ * @param {import("./HtmlSafety.js").TrustedMarkup} markup
+ */
+export function createDF(markup) {
+  return createTrustedHtmlFragment(markup);
 }
 
+/**
+ * @param {object} deps
+ * @param {unknown} t
+ * @param {unknown} m
+ * @param {Function} c
+ * @param {unknown} o
+ * @param {unknown} i
+ * @param {unknown} n
+ * @param {unknown} s
+ */
 export function popup(deps, t, m, c, o, i, n, s) {
   const { info, fy, createDF } = deps;
 
@@ -79,7 +146,12 @@ export function popup(deps, t, m, c, o, i, n, s) {
   let message = m;
   if (info.isEnhancer) {
     message = document.createElement("div");
-    setTrustedHtml(message, m);
+    if (isTrustedMarkup(m)) {
+      setTrustedHtml(message, m);
+    } else {
+      // Default text mode — remote/localization strings never enter the HTML parser.
+      message.textContent = m == null ? "" : String(m);
+    }
   }
 
   const mp = new EADialogViewController({
@@ -100,6 +172,7 @@ export function popup(deps, t, m, c, o, i, n, s) {
   });
   gPopupClickShield.setActivePopup(mp);
   _.flatMap(mp.getView().dialogOptions, (v, index) => {
+    // Read-only probe of EA control placeholder text — not an HTML sink.
     if (v.__text.innerHTML == "*") {
       v.setText(fy(`popupButtonsText.${mp.options[index].labelEnum}`));
     }
@@ -126,7 +199,11 @@ export function popup(deps, t, m, c, o, i, n, s) {
     mp._fsuInput = pt;
     mp.getView().__msg.appendChild(mp._fsuInput.__root);
     if (s) {
-      mp.getView().__msg.appendChild(createDF(s));
+      if (isTrustedMarkup(s)) {
+        mp.getView().__msg.appendChild(createDF(s));
+      } else {
+        appendText(mp.getView().__msg, s);
+      }
     }
   }
 }

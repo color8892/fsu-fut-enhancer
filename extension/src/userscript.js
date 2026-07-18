@@ -1977,10 +1977,34 @@
     "'": "&#39;",
     '"': "&quot;"
   };
+  var TRUSTED_MARKUP_BRAND = /* @__PURE__ */ Symbol("fsu.trustedMarkup");
   function escapeHtml(value) {
     return String(value ?? "").replace(
       HTML_ESCAPE_PATTERN,
       (character) => HTML_ESCAPES[character] ?? character
+    );
+  }
+  function createTrustedMarkup(html) {
+    const markup = Object.freeze({
+      [TRUSTED_MARKUP_BRAND]: (
+        /** @type {const} */
+        true
+      ),
+      html: String(html ?? "")
+    });
+    return markup;
+  }
+  function isTrustedMarkup(value) {
+    return value !== null && typeof value === "object" && /** @type {{ [key: symbol]: unknown }} */
+    value[TRUSTED_MARKUP_BRAND] === true && typeof /** @type {{ html?: unknown }} */
+    value.html === "string";
+  }
+  function requireTrustedHtml(value) {
+    if (isTrustedMarkup(value)) {
+      return value.html;
+    }
+    throw new TypeError(
+      "Trusted HTML APIs only accept createTrustedMarkup() values, not plain strings"
     );
   }
   function normalizeExternalUrl(url, baseUrl) {
@@ -2018,12 +2042,17 @@
     element.textContent = String(text ?? "");
     return element;
   }
-  function createTrustedHtmlFragment(html, documentRef = document) {
-    return documentRef.createRange().createContextualFragment(String(html ?? ""));
+  function createTrustedHtmlFragment(markup, documentRef = document) {
+    return documentRef.createRange().createContextualFragment(requireTrustedHtml(markup));
   }
-  function setTrustedHtml(element, html, documentRef = document) {
-    element.replaceChildren(createTrustedHtmlFragment(html, documentRef));
+  function setTrustedHtml(element, markup, documentRef = document) {
+    element.replaceChildren(createTrustedHtmlFragment(markup, documentRef));
   }
+  var HTML_CONFIG_FORBIDDEN_KEYS = Object.freeze([
+    "innerHTML",
+    "outerHTML",
+    "srcdoc"
+  ]);
 
   // src/fsu/patches/unassigned.js
   function installUnassignedPatches(deps) {
@@ -2333,7 +2362,7 @@
                 let fastBtnText = events.createElementWithConfig("div", {
                   classList: "fsu-unassigned-fastsbctsub"
                 });
-                setTrustedHtml(fastBtnText, events.getFastSbcSubText(info.base.fastsbc[i2.n]));
+                setTrustedHtml(fastBtnText, createTrustedMarkup(events.getFastSbcSubText(info.base.fastsbc[i2.n])));
                 fastBtnBox.appendChild(fastBtnText);
                 let fastBtnTips = events.createElementWithConfig("div", {
                   textContent: i2.c,
@@ -2659,7 +2688,21 @@
               "fsu-bodytype"
             );
             bodytype.getRootElement().style.cursor = `pointer`;
-            bodytype.getRootElement().innerHTML = _.replace(info.bodytypetext[bodyTypeId], "&", `<span style='font-size:80%'>&</span>`);
+            {
+              const bodyRoot = bodytype.getRootElement();
+              bodyRoot.replaceChildren();
+              const bodyText = String(info.bodytypetext[bodyTypeId] ?? "");
+              const ampParts = bodyText.split("&");
+              ampParts.forEach((part, index) => {
+                if (part) bodyRoot.appendChild(document.createTextNode(part));
+                if (index < ampParts.length - 1) {
+                  const amp = document.createElement("span");
+                  amp.style.fontSize = "80%";
+                  amp.textContent = "&";
+                  bodyRoot.appendChild(amp);
+                }
+              });
+            }
             this._fsu.bodytype = bodytype;
             extraElement.appendChild(bodytype.getRootElement());
           }
@@ -2787,9 +2830,6 @@
             info.roster.element[p.definitionId].push(priceItemElement);
             info.roster.element[p.definitionId].push(priceBoxItemElement);
           }
-          let plow = info.base.price.hasOwnProperty(p.rating) && p.rating > info.base.price.low && p.rating < info.base.price.high ? `<div class="fsu-other-low currency-coins">${p.rating} Min: ${Number(info.base.price[p.rating]).toLocaleString()}</div>` : `<span class="fsu-other-low"></span>`;
-          let pOtherPos = otherPos.length ? `<div class="fsu-other-pos">${otherPos.join(" / ")}</div>` : `<span class="fsu-other-pos"></span>`;
-          let pd;
           let pe = -1, sp = events.getItemBy(2, { "definitionId": p.definitionId });
           if (sp.length == 1) {
             pe = sp[0].untradeableCount ? 0 : 1;
@@ -2803,21 +2843,41 @@
               pe = info.roster.thousand[p.definitionId].untradeableCount ? 0 : 1;
             }
           }
-          if (pe == -1) {
-            if (p.duplicateId !== 0) {
-              pd = `<div class="fsu-other-dup">${fy2("duplicate.nodata")}</div>`;
-            } else {
-              pd = `<div class="fsu-other-dup swap">${fy2("duplicate.swap")}</div>`;
-            }
-          } else if (pe == 0) {
-            pd = `<div class="fsu-other-dup not">${fy2("duplicate.not")}</div>`;
-          } else {
-            pd = `<div class="fsu-other-dup yes">${fy2("duplicate.yes")}</div>`;
-          }
           let otherElement = events.createElementWithConfig("div", {
-            innerHTML: `${pd}${pOtherPos}${plow}`,
             classList: ["fsu-player-other", "fsu-cards"]
           });
+          const dup = document.createElement("div");
+          if (pe == -1) {
+            dup.className = p.duplicateId !== 0 ? "fsu-other-dup" : "fsu-other-dup swap";
+            dup.textContent = p.duplicateId !== 0 ? fy2("duplicate.nodata") : fy2("duplicate.swap");
+          } else if (pe == 0) {
+            dup.className = "fsu-other-dup not";
+            dup.textContent = fy2("duplicate.not");
+          } else {
+            dup.className = "fsu-other-dup yes";
+            dup.textContent = fy2("duplicate.yes");
+          }
+          otherElement.appendChild(dup);
+          if (otherPos.length) {
+            const posEl = document.createElement("div");
+            posEl.className = "fsu-other-pos";
+            posEl.textContent = otherPos.join(" / ");
+            otherElement.appendChild(posEl);
+          } else {
+            const posEl = document.createElement("span");
+            posEl.className = "fsu-other-pos";
+            otherElement.appendChild(posEl);
+          }
+          if (info.base.price.hasOwnProperty(p.rating) && p.rating > info.base.price.low && p.rating < info.base.price.high) {
+            const low = document.createElement("div");
+            low.className = "fsu-other-low currency-coins";
+            low.textContent = `${p.rating} Min: ${Number(info.base.price[p.rating]).toLocaleString()}`;
+            otherElement.appendChild(low);
+          } else {
+            const low = document.createElement("span");
+            low.className = "fsu-other-low";
+            otherElement.appendChild(low);
+          }
           this._fsu.other = otherElement;
           if (info.set.card_meta) {
             let playerFG = events.fgCalc(p);
@@ -2855,7 +2915,13 @@
               },
               "fsu-specialPlayer"
             );
-            this._fsu.special.getRootElement().innerHTML = `<i class="fut_icon icon_chevron"></i>`;
+            {
+              const specialRoot = this._fsu.special.getRootElement();
+              specialRoot.replaceChildren();
+              const chevron = document.createElement("i");
+              chevron.className = "fut_icon icon_chevron";
+              specialRoot.appendChild(chevron);
+            }
             if (isSmall) {
               this._fsu.special.setInteractionState(0);
             } else {
@@ -3043,18 +3109,18 @@
                 }
               }
               if (cs === 3 && _.has(p, "storeLoc")) {
-                const dup = otherElement.querySelector(".fsu-other-dup");
-                if (dup) {
-                  dup.className = "fsu-other-dup";
+                const dup2 = otherElement.querySelector(".fsu-other-dup");
+                if (dup2) {
+                  dup2.className = "fsu-other-dup";
                   if (p.pile == ItemPile.TRANSFER) {
-                    dup.classList.add("yes");
-                    dup.innerText = info.base.localization[`navbar.label.tradepile`];
+                    dup2.classList.add("yes");
+                    dup2.innerText = info.base.localization[`navbar.label.tradepile`];
                   } else if (p.pile == ItemPile.STORAGE) {
-                    dup.classList.add("storage");
-                    dup.innerText = fy2(`storage.tile`);
+                    dup2.classList.add("storage");
+                    dup2.innerText = fy2(`storage.tile`);
                   } else {
-                    dup.classList.add("swap");
-                    dup.innerText = info.base.localization[`nav.label.club`];
+                    dup2.classList.add("swap");
+                    dup2.innerText = info.base.localization[`nav.label.club`];
                   }
                 }
               }
@@ -3453,7 +3519,7 @@
                 },
                 "im"
               );
-              setTrustedHtml(leftRatingPlusBtn.getRootElement(), `<span> >= </span>${ratPlus}`);
+              setTrustedHtml(leftRatingPlusBtn.getRootElement(), createTrustedMarkup(`<span> >= </span>${ratPlus}`));
               this._fsu.leftRatingPlusBtn = leftRatingPlusBtn;
               quickLeft.append(leftRatingPlusBtn.getRootElement());
             }
@@ -3471,7 +3537,7 @@
                 },
                 "im"
               );
-              setTrustedHtml(leftRatingMinusBtn.getRootElement(), `<span> <= </span>${ratMinus}`);
+              setTrustedHtml(leftRatingMinusBtn.getRootElement(), createTrustedMarkup(`<span> <= </span>${ratMinus}`));
               this._fsu.leftRatingMinusBtn = leftRatingMinusBtn;
               quickLeft.append(leftRatingMinusBtn.getRootElement());
             }
@@ -3488,7 +3554,7 @@
               },
               "im"
             );
-            setTrustedHtml(leftQalityBtn.getRootElement(), `${ratingStart}<span>-</span>${maxRating}`);
+            setTrustedHtml(leftQalityBtn.getRootElement(), createTrustedMarkup(`${ratingStart}<span>-</span>${maxRating}`));
             this._fsu.leftQalityBtn = leftQalityBtn;
             quickLeft.append(leftQalityBtn.getRootElement());
           }
@@ -4119,7 +4185,7 @@
               }
             }).filter(Boolean);
             if (!s2.length) {
-              this.__itemList.prepend(events.createDF(`<div class="ut-no-results-view"><div class="contents"><span class="no-results-icon"></span><h2>${fy2("emptylist.t")}</h2><p>${fy2("emptylist.c")}</p></div></div>`));
+              this.__itemList.prepend(events.createDF(createTrustedMarkup(`<div class="ut-no-results-view"><div class="contents"><span class="no-results-icon"></span><h2>${escapeHtml(fy2("emptylist.t"))}</h2><p>${escapeHtml(fy2("emptylist.c"))}</p></div></div>`)));
             } else {
               if (this.__itemList.querySelector(".ut-no-results-view")) {
                 this.__itemList.querySelector(".ut-no-results-view").remove();
@@ -4531,10 +4597,7 @@
               },
               "call-to-action mini fsu-challengefastbtn"
             );
-            setTrustedHtml(
-              e2._fsufastsbcbtn.__currencyLabel,
-              events.getFastSbcSubText(info.base.fastsbc[`${fastCid}#${fastSid}`])
-            );
+            setTrustedHtml(e2._fsufastsbcbtn.__currencyLabel, createTrustedMarkup(events.getFastSbcSubText(info.base.fastsbc[`${fastCid}#${fastSid}`])));
             if (fastCount == 0) {
               e2._fsufastsbcbtn.setInteractionState(0);
             }
@@ -4555,9 +4618,7 @@
       if (e2._interactionState && !e2.__root.querySelector(".fsu-sbc-info")) {
         let p = s2[info.base.platform];
         e2.__root.lastChild.before(
-          events.createDF(
-            fy2(html.sbcInfo).replace("{price}", Number(p).toLocaleString()).replace("{up}", `${s2.u}%`).replace("{down}", `${s2.d}%`)
-          )
+          events.createDF(createTrustedMarkup(fy2(html.sbcInfo).replace("{price}", Number(p).toLocaleString()).replace("{up}", `${s2.u}%`).replace("{down}", `${s2.d}%`)))
         );
       }
       if ("data" in e2 && e2.data.awards && e2.data.awards.length == 1) {
@@ -4985,7 +5046,7 @@
                   },
                   "call-to-action mini fsu-challengefastbtn"
                 );
-                setTrustedHtml(i._fsu.fastBtn.__currencyLabel, events.getFastSbcSubText(fast));
+                setTrustedHtml(i._fsu.fastBtn.__currencyLabel, createTrustedMarkup(events.getFastSbcSubText(fast)));
                 if (i._fsu.subSet.isCompleted()) {
                   i._fsu.fastBtn.setInteractionState(0);
                 }
@@ -5211,7 +5272,7 @@
         fastSbcBtn.setId = e2.setId;
         fastSbcBtn.id = e2.id;
         fastSbcBtn.setTitle = fy2(["fastsbc.sbcbtntext", fastCount]);
-        setTrustedHtml(fastSbcBtn.__currencyLabel, events.getFastSbcSubText(fastInfo));
+        setTrustedHtml(fastSbcBtn.__currencyLabel, createTrustedMarkup(events.getFastSbcSubText(fastInfo)));
         if (e2.isCompleted() || fastCount === 0) {
           fastSbcBtn.setInteractionState(0);
         }
@@ -5981,7 +6042,7 @@
     if (cntlr2.current().className == "UTHomeHubViewController" && info.task.obj.html && cntlr2.current().getView()._objectivesTile.__tileContent.querySelector(".ut-tile-view--subtitle")) {
       if (!cntlr2.current().getView()._objectivesTile.__root.querySelector(".fsu-task")) {
         cntlr2.current().getView()._objectivesTile.__tileContent.before(
-          events.createDF(`<div class="fsu-task">${info.task.obj.html}</div>`)
+          events.createDF(createTrustedMarkup(`<div class="fsu-task">${info.task.obj.html}</div>`))
         );
       }
       const objCountElement = cntlr2.current().getView()._objectivesTile.getRootElement().querySelector(".fsu-obj-count");
@@ -5991,7 +6052,7 @@
       }
     }
     if (cntlr2.current().className == "UTHomeHubViewController" && info.task.sbc.html && !cntlr2.current().getView()._sbcTile.__root.querySelector(".fsu-task") && cntlr2.current().getView()._sbcTile.__tileContent.querySelector(".ut-tile-content-graphic-info")) {
-      cntlr2.current().getView()._sbcTile.__tileContent.before(events.createDF(`<div class="fsu-task">${info.task.sbc.html}</div>`));
+      cntlr2.current().getView()._sbcTile.__tileContent.before(events.createDF(createTrustedMarkup(`<div class="fsu-task">${info.task.sbc.html}</div>`)));
     }
   }
   function searchClubPage(services2, stat, pageIndex, playersCount) {
@@ -6123,7 +6184,7 @@
     UTHomeHubView.prototype.getObjectivesTile = function() {
       if (info.task.obj.html && !this._objectivesTile.__root.querySelector(".fsu-task") && info.set.info_obj) {
         this._objectivesTile.__tileContent.before(
-          events.createDF(`<div class="fsu-task">${info.task.obj.html}</div>`)
+          events.createDF(createTrustedMarkup(`<div class="fsu-task">${info.task.obj.html}</div>`))
         );
       }
       debug2.log(services2.Configuration.checkFeatureEnabled(UTServerSettingsRepository.KEY.META_FCAS_ENABLED));
@@ -6135,7 +6196,7 @@
     UTHomeHubView.prototype.getSBCTile = function() {
       if (info.set.info_sbc && info.task.sbc.html && !this._sbcTile.__root.querySelector(".fsu-task")) {
         this._sbcTile.__tileContent.before(
-          events.createDF(`<div class="fsu-task">${info.task.sbc.html}</div>`)
+          events.createDF(createTrustedMarkup(`<div class="fsu-task">${info.task.sbc.html}</div>`))
         );
       }
       return this._sbcTile;
@@ -6753,7 +6814,7 @@
         };
       }
       const valid = [];
-      const invalid4 = [];
+      const invalid5 = [];
       articles.forEach((article, index) => {
         let result;
         try {
@@ -6763,7 +6824,7 @@
             isMyPacks
           });
         } catch {
-          invalid4.push({
+          invalid5.push({
             article,
             index,
             code: "STORE_PACK_ARTICLE_ADAPTER_FAILED"
@@ -6773,7 +6834,7 @@
         if (result.success) {
           valid.push({ snapshot: result.data, index });
         } else {
-          invalid4.push({ article, index, code: result.error.code });
+          invalid5.push({ article, index, code: result.error.code });
         }
       });
       const summaries = {};
@@ -6813,14 +6874,14 @@
         data: {
           articles: [
             ...enhanced.map((entry) => entry.snapshot.article),
-            ...invalid4.sort((left, right) => left.index - right.index).map((entry) => entry.article)
+            ...invalid5.sort((left, right) => left.index - right.index).map((entry) => entry.article)
           ],
           summaries,
           articleStates: valid.map((entry) => ({
             article: entry.snapshot.article,
             isNew: entry.snapshot.isNew
           })),
-          warnings: invalid4.map(({ index, code }) => ({ index, code }))
+          warnings: invalid5.map(({ index, code }) => ({ index, code }))
         }
       };
     }
@@ -8397,7 +8458,12 @@
             let expiry = events.createElementWithConfig("div", {
               classList: "fsu-showRarityExpiry"
             });
-            expiry.innerHTML = `<i class="fut_icon icon_timer_expiry"></i><div>${SL.localize("academy.itemdetails.header.enrollment", [daysText])}</div>`;
+            const expiryIcon = document.createElement("i");
+            expiryIcon.className = "fut_icon icon_timer_expiry";
+            const expiryText = document.createElement("div");
+            expiryText.textContent = SL.localize("academy.itemdetails.header.enrollment", [daysText]);
+            expiry.appendChild(expiryIcon);
+            expiry.appendChild(expiryText);
             infos.appendChild(expiry);
             let attrs = events.createElementWithConfig("div", {
               classList: "fsu-showRarityAttrs"
@@ -9090,6 +9156,14 @@
     });
     events.getTemplate = async (controller, type, sId) => sbcTemplateService.loadTemplate(controller, type, sId, {
       showLoader: () => events.showLoader(),
+      hideLoader: () => {
+        document.querySelector(".ut-click-shield")?.classList.remove("showing", "fsu-loading");
+        const loaderIcon = document.querySelector(".loaderIcon");
+        if (loaderIcon) loaderIcon.style.display = "none";
+        if (typeof events.changeLoadingText === "function") {
+          events.changeLoadingText("loadingclose.text");
+        }
+      },
       changeLoadingText: (...args) => events.changeLoadingText(...args),
       notice: (...args) => events.notice(...args),
       getFutbinSbcSquad: (...args) => events.getFutbinSbcSquad(...args),
@@ -9525,7 +9599,7 @@
             marginTop: ".5rem",
             width: "100%"
           });
-          setTrustedHtml(tryAgainBtn.__currencyLabel, events.getFastSbcSubText(fastInfo));
+          setTrustedHtml(tryAgainBtn.__currencyLabel, createTrustedMarkup(events.getFastSbcSubText(fastInfo)));
           rewardsController.getView().getRootElement().querySelector("footer").appendChild(tryAgainBtn.getRootElement());
         }
       }
@@ -10453,11 +10527,6 @@
         }
       }, 100);
     };
-    const UTItemEntityGetPlusPlayStyles = UTItemEntity.prototype.getPlusPlayStyles;
-    UTItemEntity.prototype.getPlusPlayStyles = function() {
-      const result = UTItemEntityGetPlusPlayStyles.call(this);
-      return _.uniqWith(result, (a, b) => a.equals(b));
-    };
     events.getAcceleRate = (player, chem = 3, styleId = player.playStyle) => {
       const height = player.getMetaData()?.height ?? 0;
       const gender = player.gender;
@@ -10671,9 +10740,89 @@
       return results;
     };
   }
+  var REWARD_PATCH_IDS = Object.freeze({
+    CHOICE_SET_RENDER: "rewards.choice-set-render"
+  });
+  function installRewardChoiceSetPatch(deps) {
+    const { events, info, fy: fy2, isPhone: isPhone2, patchLifecycle } = deps;
+    return patchLifecycle.install({
+      id: REWARD_PATCH_IDS.CHOICE_SET_RENDER,
+      phase: "club-and-ui",
+      targetLabel: "UTRewardSelectionChoiceView.prototype.expandRewardSet",
+      resolveTarget: () => typeof UTRewardSelectionChoiceView === "undefined" ? null : {
+        owner: UTRewardSelectionChoiceView.prototype,
+        key: "expandRewardSet"
+      },
+      verify: ({ originalDescriptor, originalValue }) => ({
+        ok: originalDescriptor !== void 0 && "value" in originalDescriptor && originalDescriptor.writable === true && typeof originalValue === "function",
+        missing: [
+          "UTRewardSelectionChoiceView.prototype.expandRewardSet.original-missing"
+        ]
+      }),
+      apply: ({ target, originalDescriptor, originalValue }) => {
+        Object.defineProperty(target.owner, target.key, {
+          ...originalDescriptor,
+          value: function fsuExpandRewardSet(e2, t) {
+            const result = originalValue.call(this, e2, t);
+            try {
+              const rewardTargets = this.__expandedReward?.querySelectorAll?.(".reward");
+              if (rewardTargets) {
+                let sum = 0;
+                _.map(t.rewards, (r, i) => {
+                  sum += events.setRewardOddo(rewardTargets[i], r, 2);
+                });
+                if (t.rewards.length > 1) {
+                  let sumBox = events.createElementWithConfig("span", {
+                    textContent: "(",
+                    style: {
+                      marginLeft: ".5rem",
+                      fontSize: "1.2rem",
+                      color: "#666"
+                    }
+                  });
+                  let sumText = events.createElementWithConfig("span", {
+                    textContent: sum.toLocaleString(),
+                    classList: ["currency-coins"]
+                  });
+                  sumBox.appendChild(sumText);
+                  sumBox.appendChild(document.createTextNode(")"));
+                  this.__title.appendChild(sumBox);
+                }
+              }
+            } catch {
+            }
+            try {
+              let reward = t.rewards.find((i) => i.count);
+              let tn = this._rewardsCarousel?._tnsCarousel?.__root;
+              if (reward?.isItem && reward.item?.isPlayer?.() && info.set.player_futbin && tn && tn.classList.length === 2 && tn.classList.contains("slider") && tn.classList.contains("rewards-slider-container")) {
+                let player = reward.item;
+                this._fsuPlayer = events.createButton(
+                  new UTStandardButtonControl(),
+                  fy2("quicklist.gotofutbin"),
+                  (ev) => {
+                    events.openFutbinPlayerUrl(ev, player);
+                  },
+                  "call-to-action mini fsu-reward-but"
+                );
+                if (!isPhone2()) {
+                  this._fsuPlayer.__root.classList.add("pcr");
+                }
+                tn.querySelector(".reward")?.appendChild(this._fsuPlayer.__root);
+              }
+            } catch {
+            }
+            return result;
+          }
+        });
+      }
+    });
+  }
   function installRewardPatches(deps) {
-    const { call, events, info, fy: fy2, cntlr: cntlr2, repositories: repositories2, debug: debug2 } = deps;
+    const { call, events, info, fy: fy2, cntlr: cntlr2, repositories: repositories2, debug: debug2, patchLifecycle, isPhone: isPhone2 } = deps;
     registerRewardEvents({ events, fy: fy2 });
+    if (patchLifecycle) {
+      installRewardChoiceSetPatch({ events, info, fy: fy2, isPhone: isPhone2, patchLifecycle });
+    }
     FCObjectiveDetailsView.prototype.render = function(e2) {
       call.other.rewards.objectiveDetail.call(this, e2);
       let sum = 0;
@@ -10737,31 +10886,6 @@
           target[i].querySelector(".selection-title-landscape").appendChild(sumBox);
         }
       });
-    };
-    UTRewardSelectionChoiceView.prototype.expandRewardSet = function(e2, t) {
-      call.other.rewards.choiceSet.call(this, e2, t);
-      let target = this.__expandedReward.querySelectorAll(".reward");
-      let sum = 0;
-      _.map(t.rewards, (r, i) => {
-        sum += events.setRewardOddo(target[i], r, 2);
-      });
-      if (t.rewards.length > 1) {
-        let sumBox = events.createElementWithConfig("span", {
-          textContent: "(",
-          style: {
-            marginLeft: ".5rem",
-            fontSize: "1.2rem",
-            color: "#666"
-          }
-        });
-        let sumText = events.createElementWithConfig("span", {
-          textContent: sum.toLocaleString(),
-          classList: ["currency-coins"]
-        });
-        sumBox.appendChild(sumText);
-        sumBox.appendChild(document.createTextNode(")"));
-        this.__title.appendChild(sumBox);
-      }
     };
     UTGameRewardsViewController.prototype.onButtonTapped = function(e2, t, i) {
       call.other.rewards.popupTapped.call(this, e2, t, i);
@@ -11091,12 +11215,53 @@
       return Math.min(99, player.getSubAttribute(attrId).rating + bonus);
     };
   }
-  function installUiUtilsPatches() {
-    const UTItemEntityGetPlusPlayStyles = UTItemEntity.prototype.getPlusPlayStyles;
-    UTItemEntity.prototype.getPlusPlayStyles = function() {
-      const result = UTItemEntityGetPlusPlayStyles.call(this);
-      return _.uniqWith(result, (a, b) => a.equals(b));
-    };
+  var UI_UTILS_PATCH_IDS = Object.freeze({
+    PLUS_PLAYSTYLES: "item.plus-playstyles-normalize"
+  });
+  function installPlusPlayStylesPatch(deps) {
+    const { patchLifecycle } = deps;
+    return patchLifecycle.install({
+      id: UI_UTILS_PATCH_IDS.PLUS_PLAYSTYLES,
+      phase: "club-and-ui",
+      targetLabel: "UTItemEntity.prototype.getPlusPlayStyles",
+      resolveTarget: () => typeof UTItemEntity === "undefined" ? null : { owner: UTItemEntity.prototype, key: "getPlusPlayStyles" },
+      verify: ({ originalDescriptor, originalValue }) => ({
+        ok: originalDescriptor !== void 0 && "value" in originalDescriptor && originalDescriptor.writable === true && typeof originalValue === "function",
+        missing: ["UTItemEntity.prototype.getPlusPlayStyles.original-missing"]
+      }),
+      apply: ({ target, originalDescriptor, originalValue }) => {
+        Object.defineProperty(target.owner, target.key, {
+          ...originalDescriptor,
+          value: function fsuGetPlusPlayStyles(...args) {
+            let result;
+            try {
+              result = originalValue.apply(this, args);
+            } catch {
+              return [];
+            }
+            if (!Array.isArray(result)) {
+              return [];
+            }
+            try {
+              return _.uniqWith(result, (a, b) => {
+                try {
+                  return typeof a?.equals === "function" && a.equals(b);
+                } catch {
+                  return false;
+                }
+              });
+            } catch {
+              return result;
+            }
+          }
+        });
+      }
+    });
+  }
+  function installUiUtilsPatches(deps = {}) {
+    if (deps.patchLifecycle) {
+      installPlusPlayStylesPatch(deps);
+    }
   }
 
   // src/fsu/patches/player-meta.js
@@ -11706,24 +11871,32 @@
               return i.__title?.innerText == titleText && !i.__deltaValue.hasAttribute("data-up");
             });
             if (sub) {
-              const subText = state === AcademySlotLevelState.COMPLETED ? "√" : (() => {
-                const boostValue = UTAcademyUtils.getPlayerFinalStatValue(boost, a);
-                const plusValue = value - boostValue;
-                if (plusValue > 0) {
-                  plusValue > 0 && (addedText = "added") && a.type <= AcademyStatEnum.PHYSICALITY && (addedText += "Main");
-                  return `${boostValue}+<span>${plusValue}</span>`;
-                }
-                return "+0";
-              })();
               let addValue = events.createElementWithConfig("div", {
                 classList: "fsu-academyAttribute"
               });
-              addValue.appendChild(
-                events.createElementWithConfig("span", {
-                  innerHTML: `(${subText})`,
+              {
+                const increase = events.createElementWithConfig("span", {
                   classList: "fsu-academyAttributeIncrease"
-                })
-              );
+                });
+                increase.appendChild(document.createTextNode("("));
+                if (state === AcademySlotLevelState.COMPLETED) {
+                  increase.appendChild(document.createTextNode("√"));
+                } else {
+                  const boostValue = UTAcademyUtils.getPlayerFinalStatValue(boost, a);
+                  const plusValue = value - boostValue;
+                  if (plusValue > 0) {
+                    plusValue > 0 && (addedText = "added") && a.type <= AcademyStatEnum.PHYSICALITY && (addedText += "Main");
+                    increase.appendChild(document.createTextNode(`${boostValue}+`));
+                    const plus = document.createElement("span");
+                    plus.textContent = String(plusValue);
+                    increase.appendChild(plus);
+                  } else {
+                    increase.appendChild(document.createTextNode("+0"));
+                  }
+                }
+                increase.appendChild(document.createTextNode(")"));
+                addValue.appendChild(increase);
+              }
               addValue.appendChild(
                 events.createElementWithConfig("span", {
                   textContent: value,
@@ -12523,28 +12696,9 @@
     events.setPlayerDetailsPatchEnabled = (enabled) => enabled ? installPlayerDetailsEntryPatch({ call, events, patchLifecycle }) : patchLifecycle.restore(PLAYER_DETAILS_PATCH_IDS.QUICK_LIST_RENDER);
   }
   function installPanelPatches(deps) {
-    const { call, events, info, fy: fy2, cntlr: cntlr2, isPhone: isPhone2, patchLifecycle } = deps;
+    const { call, events, cntlr: cntlr2, isPhone: isPhone2, patchLifecycle } = deps;
     registerPlayerDetailsLifecycleEvents({ call, events, patchLifecycle });
     events.setPlayerDetailsPatchEnabled(true);
-    UTRewardSelectionChoiceView.prototype.expandRewardSet = function(e2, t) {
-      call.panel.reward.call(this, e2, t);
-      let reward = t.rewards.find((i) => i.count), tn = this._rewardsCarousel._tnsCarousel.__root;
-      if (reward.isItem && reward.item.isPlayer() && info.set.player_futbin && tn.classList.length === 2 && tn.classList.contains("slider") && tn.classList.contains("rewards-slider-container")) {
-        let player = reward.item;
-        this._fsuPlayer = events.createButton(
-          new UTStandardButtonControl(),
-          fy2("quicklist.gotofutbin"),
-          (e3) => {
-            events.openFutbinPlayerUrl(e3, player);
-          },
-          "call-to-action mini fsu-reward-but"
-        );
-        if (!isPhone2()) {
-          this._fsuPlayer.__root.classList.add("pcr");
-        }
-        tn.querySelector(".reward").appendChild(this._fsuPlayer.__root);
-      }
-    };
     events.conceptBuyBack = (w) => {
       let a = w.panelView || w.panel;
       a._sendClubButton._tapDetected(this);
@@ -12798,11 +12952,23 @@
       installClubSelectPatches(c.pick("call", "events", "info", "fy", "cntlr", "isPhone", "repositories", "services", "debug"));
       registerClubSelectEvents(c.pick("events", "info", "cntlr", "isPhone", "services", "repositories", "debug", "fy"));
       installClubSelectSearchPatches(c.pick("call", "events", "info", "fy", "cntlr", "repositories", "services"));
-      installRewardPatches(c.pick("call", "events", "info", "fy", "cntlr", "repositories", "debug"));
+      installRewardPatches(
+        c.pick(
+          "call",
+          "events",
+          "info",
+          "fy",
+          "cntlr",
+          "repositories",
+          "debug",
+          "patchLifecycle",
+          "isPhone"
+        )
+      );
       installClubHubPatches(c.pick("call", "events", "info", "fy", "cntlr", "isPhone", "repositories", "services"));
       registerListFilterEvents(c.pick("events", "repositories"));
       registerUiUtilsEvents(c.pick("events", "info", "cntlr", "debug", "fy", "services"));
-      installUiUtilsPatches();
+      installUiUtilsPatches(c.pick("patchLifecycle"));
       installLocalizationPatch(c.pick("call"));
       registerPlayerMetaEvents(c.pick("events", "info", "fy", "services"));
     }
@@ -14485,106 +14651,153 @@
         maxNewItems = 100
       } = helpers;
       const info = getInfo();
-      info.run.bulkbuy = true;
+      const playersNumber = Array.isArray(players) ? players.length : 0;
+      const summary = {
+        success: false,
+        requested: playersNumber,
+        attempted: 0,
+        purchased: 0,
+        moved: 0,
+        failed: 0,
+        cancelled: false,
+        cost: 0
+      };
       const purchaseCapacity = ea.isPurchaseCapacityReached(maxNewItems);
       if (!purchaseCapacity.success) {
         debug2.log("EA purchase-capacity capability unavailable", purchaseCapacity.error);
         notice("notice.loaderror", 2);
-        return;
+        summary.reason = "capacity-unavailable";
+        return summary;
       }
       if (purchaseCapacity.reached) {
         notice(["buyplayer.error", "", fy2("buyplayer.error.child5")], 2);
-        return;
+        summary.reason = "capacity-reached";
+        return summary;
       }
+      info.run.bulkbuy = true;
       showLoader();
-      let playersNumber = players.length, quantity = 0, cost = 0;
-      for (let index = 0; index < playersNumber; index++) {
-        if (!info.run.bulkbuy) {
-          continue;
-        }
-        const player = players[index];
-        let defId, playerName, buyStatus = false;
-        if (Number.isInteger(player)) {
-          defId = player;
-          const staticData = ea.getStaticItemData(defId);
-          if (!staticData.success || !staticData.data) {
-            debug2.log("EA static-item capability unavailable", staticData.error);
+      try {
+        for (let index = 0; index < playersNumber; index++) {
+          if (!info.run.bulkbuy) {
+            summary.cancelled = true;
+            break;
+          }
+          const player = players[index];
+          summary.attempted += 1;
+          let defId, playerName, buyStatus = false;
+          if (Number.isInteger(player)) {
+            defId = player;
+            const staticData = ea.getStaticItemData(defId);
+            if (!staticData.success || !staticData.data) {
+              debug2.log("EA static-item capability unavailable", staticData.error);
+              notice("buyplayer.getinfo.error", 2);
+              summary.failed += 1;
+              continue;
+            }
+            playerName = staticData.data.name;
+          } else if (typeof player == "object" && player.isPlayer()) {
+            defId = player.definitionId;
+            playerName = player.getStaticData().name;
+          }
+          if (!defId) {
             notice("buyplayer.getinfo.error", 2);
+            summary.failed += 1;
             continue;
           }
-          playerName = staticData.data.name;
-        } else if (typeof player == "object" && player.isPlayer()) {
-          defId = player.definitionId;
-          playerName = player.getStaticData().name;
-        }
-        if (!defId) {
-          notice("buyplayer.getinfo.error", 2);
-          continue;
-        }
-        let loadingInfo = playersNumber == 1 ? "" : ["readauction.progress", index + 1, playersNumber];
-        let priceList = await this.readAuctionPrices(player, false, loadingInfo, helpers);
-        priceList.sort((a, b) => b._auction.buyNowPrice - a._auction.buyNowPrice);
-        debug2.log(priceList);
-        changeLoadingText("buyplayer.loadingclose", loadingInfo);
-        if (priceList.length == 0) {
-          notice(["buyplayer.error", playerName, fy2("buyplayer.error.child3")], 2);
-        } else {
-          let currentPlayer = priceList[priceList.length - 1];
-          const purchasePrice = currentPlayer._auction.buyNowPrice;
-          const purchaseResult = normalizeMarketPurchaseResult(
-            await ea.purchaseItemToClub(
-              currentPlayer,
-              purchasePrice,
-              this,
-              () => sendPinEvents("Item - Detail View")
-            )
-          );
-          if (purchaseResult.success || purchaseResult.purchased) {
-            notice(["buyplayer.success", playerName, purchasePrice], 0);
-            quantity += 1;
-            cost += purchasePrice;
-          }
-          if (purchaseResult.success) {
-            notice(["buyplayer.sendclub.success", playerName], 0);
-            buyStatus = true;
-            if (isPhone2() && playersNumber == 1) {
-              let controller = getCurrentController();
-              if (controller.className == "UTSquadItemDetailsNavigationController") {
-                controller.getParentViewController()._eBackButtonTapped();
-              }
-            }
-          } else if (purchaseResult.reason === "insufficient-funds") {
-            notice(["buyplayer.error", playerName, fy2("buyplayer.error.child2")], 2);
-          } else if (purchaseResult.reason === "expired") {
-            notice(["buyplayer.error", playerName, fy2("buyplayer.error.child4")], 2);
-          } else if (purchaseResult.reason === "bid-failed") {
-            notice(
-              [
-                "buyplayer.error",
-                playerName,
-                `${purchaseResult.permissionDenied ? fy2("buyplayer.error.child1") : ""}`
-              ],
-              2
-            );
-          } else if (purchaseResult.reason === "move-failed") {
-            notice(["buyplayer.sendclub.error", playerName], 2);
-          } else {
-            debug2.log("Bulk purchase unavailable", purchaseResult.error);
+          let loadingInfo = playersNumber == 1 ? "" : ["readauction.progress", index + 1, playersNumber];
+          let priceList;
+          try {
+            priceList = await this.readAuctionPrices(player, false, loadingInfo, helpers);
+          } catch (error) {
+            debug2.log("Bulk buy price lookup failed", error);
             notice("notice.loaderror", 2);
+            summary.failed += 1;
+            if (defId) cardAddBuyErrorTips(defId);
+            continue;
+          }
+          priceList.sort((a, b) => b._auction.buyNowPrice - a._auction.buyNowPrice);
+          debug2.log(priceList);
+          changeLoadingText("buyplayer.loadingclose", loadingInfo);
+          if (priceList.length == 0) {
+            notice(["buyplayer.error", playerName, fy2("buyplayer.error.child3")], 2);
+            summary.failed += 1;
+          } else {
+            let currentPlayer = priceList[priceList.length - 1];
+            const purchasePrice = currentPlayer._auction.buyNowPrice;
+            let purchaseResult;
+            try {
+              purchaseResult = normalizeMarketPurchaseResult(
+                await ea.purchaseItemToClub(
+                  currentPlayer,
+                  purchasePrice,
+                  this,
+                  () => sendPinEvents("Item - Detail View")
+                )
+              );
+            } catch (error) {
+              debug2.log("Bulk purchase helper threw", error);
+              notice("notice.loaderror", 2);
+              summary.failed += 1;
+              cardAddBuyErrorTips(defId);
+              continue;
+            }
+            if (purchaseResult.success || purchaseResult.purchased) {
+              notice(["buyplayer.success", playerName, purchasePrice], 0);
+              summary.purchased += 1;
+              summary.cost += purchasePrice;
+            }
+            if (purchaseResult.success) {
+              notice(["buyplayer.sendclub.success", playerName], 0);
+              summary.moved += 1;
+              buyStatus = true;
+              if (isPhone2() && playersNumber == 1) {
+                let controller = getCurrentController();
+                if (controller.className == "UTSquadItemDetailsNavigationController") {
+                  controller.getParentViewController()._eBackButtonTapped();
+                }
+              }
+            } else if (purchaseResult.reason === "insufficient-funds") {
+              notice(["buyplayer.error", playerName, fy2("buyplayer.error.child2")], 2);
+              summary.failed += 1;
+            } else if (purchaseResult.reason === "expired") {
+              notice(["buyplayer.error", playerName, fy2("buyplayer.error.child4")], 2);
+              summary.failed += 1;
+            } else if (purchaseResult.reason === "bid-failed") {
+              notice(
+                [
+                  "buyplayer.error",
+                  playerName,
+                  `${purchaseResult.permissionDenied ? fy2("buyplayer.error.child1") : ""}`
+                ],
+                2
+              );
+              summary.failed += 1;
+            } else if (purchaseResult.reason === "move-failed") {
+              notice(["buyplayer.sendclub.error", playerName], 2);
+              summary.failed += 1;
+            } else if (!(purchaseResult.success || purchaseResult.purchased)) {
+              debug2.log("Bulk purchase unavailable", purchaseResult.error);
+              notice("notice.loaderror", 2);
+              summary.failed += 1;
+            }
+          }
+          if (!buyStatus) {
+            cardAddBuyErrorTips(defId);
+          }
+          if (playerName !== index) {
+            await wait(0.5, 1);
           }
         }
-        if (!buyStatus) {
-          cardAddBuyErrorTips(defId);
-        }
-        if (playerName !== index) {
-          await wait(0.5, 1);
-        }
+        notice(
+          ["buyplayer.bibresults", summary.purchased, playersNumber - summary.purchased, summary.cost],
+          summary.purchased !== playersNumber ? 2 : 0
+        );
+        summary.success = !summary.cancelled && summary.failed === 0 && summary.purchased === playersNumber;
+        return summary;
+      } finally {
+        info.run.bulkbuy = false;
+        hideLoader();
       }
-      hideLoader();
-      notice(
-        ["buyplayer.bibresults", quantity, playersNumber - quantity, cost],
-        quantity !== playersNumber ? 2 : 0
-      );
     }
     async buyPlayer(player, view, helpers) {
       const {
@@ -14892,43 +15105,93 @@
         ea
       } = helpers;
       const info = getInfo();
+      const summary = {
+        success: false,
+        attempted: 0,
+        listed: 0,
+        failed: 0,
+        cancelled: false,
+        items: []
+      };
       e2.setInteractionState(0);
       info.run.losauction = true;
       showLoader();
-      let a = e2._parent._fsuAkbArray, b = e2._parent._fsuAkbCurrent, pn = 0, time = t == 0 ? 1 : t;
-      notice(["loas.start", `${b}`, `${b * 5}`], 1);
-      for (let n in a) {
-        if (!info.run.losauction) {
-          break;
+      try {
+        let a = e2._parent._fsuAkbArray, b = e2._parent._fsuAkbCurrent, pn = 0, time = t == 0 ? 1 : t;
+        notice(["loas.start", `${b}`, `${b * 5}`], 1);
+        for (let n in a) {
+          if (!info.run.losauction) {
+            summary.cancelled = true;
+            break;
+          }
+          pn++;
+          summary.attempted += 1;
+          changeLoadingText(["loadingclose.loas", `${pn}`, `${b - pn}`]);
+          try {
+            const listed = await this.playerToAuction(
+              n,
+              getCachePrice(a[n]._pId, 1).num,
+              time,
+              helpers
+            );
+            if (!listed) {
+              summary.failed += 1;
+              summary.items.push({ id: String(n), success: false, reason: "list-failed" });
+              continue;
+            }
+            summary.listed += 1;
+            summary.items.push({ id: String(n), success: true });
+            debug2.log(a[n]._l);
+            if (isPhone2()) {
+              a[n].toggle(false);
+              e2._parent.listRows[a[n]._l].hide();
+              e2._parent._fsuAkbCurrent--;
+              e2._parent._fsuAkbNumber--;
+              delete e2._parent._fsuAkbArray[a[n]._id];
+              this.losAuctionCount(e2._parent, void 0, helpers);
+            }
+          } catch (error) {
+            debug2.log("Mass listing item failed", error);
+            summary.failed += 1;
+            summary.items.push({ id: String(n), success: false, reason: "error" });
+            continue;
+          }
+          await wait(2, 4);
         }
-        pn++;
-        changeLoadingText(["loadingclose.loas", `${pn}`, `${b - pn}`]);
-        await this.playerToAuction(n, getCachePrice(a[n]._pId, 1).num, time, helpers);
-        debug2.log(a[n]._l);
-        if (isPhone2()) {
-          a[n].toggle(false);
-          e2._parent.listRows[a[n]._l].hide();
-          e2._parent._fsuAkbCurrent--;
-          e2._parent._fsuAkbNumber--;
-          delete e2._parent._fsuAkbArray[a[n]._id];
-          this.losAuctionCount(e2._parent, void 0, helpers);
+        let currentController = isPhone2() ? getCurrentController() : getLeftController();
+        if (currentController.className == "UTUnassignedItemsViewController") {
+          const resetResult = await ea.resetUnassignedItems();
+          if (!resetResult.success) {
+            debug2.log("EA unassigned reset capability unavailable", resetResult.error);
+            notice("notice.loaderror", 2);
+            summary.reason = "reset-failed";
+            summary.success = false;
+            return summary;
+          }
+          try {
+            await currentController.getUnassignedItems();
+          } catch (error) {
+            debug2.log("Unassigned refresh failed", error);
+            notice("notice.loaderror", 2);
+            summary.reason = "refresh-failed";
+            return summary;
+          }
+        } else {
+          try {
+            currentController.refreshList();
+          } catch (error) {
+            debug2.log("List refresh failed", error);
+            notice("notice.loaderror", 2);
+            summary.reason = "refresh-failed";
+            return summary;
+          }
         }
-        await wait(2, 4);
-      }
-      hideLoader();
-      info.run.losauction = false;
-      e2.setInteractionState(e2._parent._fsuAkbCurrent);
-      let currentController = isPhone2() ? getCurrentController() : getLeftController();
-      if (currentController.className == "UTUnassignedItemsViewController") {
-        const resetResult = await ea.resetUnassignedItems();
-        if (!resetResult.success) {
-          debug2.log("EA unassigned reset capability unavailable", resetResult.error);
-          notice("notice.loaderror", 2);
-          return;
-        }
-        await currentController.getUnassignedItems();
-      } else {
-        currentController.refreshList();
+        summary.success = !summary.cancelled && summary.failed === 0 && !summary.reason;
+        return summary;
+      } finally {
+        info.run.losauction = false;
+        hideLoader();
+        e2.setInteractionState(e2._parent._fsuAkbCurrent);
       }
     }
     losAuctionCount(e2, t, helpers) {
@@ -15163,16 +15426,26 @@
         let hasMain = false;
         for (const [key, value] of attrMap) {
           let keyText = key;
-          let textSuffix = notShowNumber.includes(key) ? "" : `<span>${value}</span>`;
+          let showNumber = !notShowNumber.includes(key);
+          let mainMark = false;
           if (key.endsWith("*")) {
             keyText = key.slice(0, -1);
             hasMain = true;
-            textSuffix = "*" + textSuffix;
+            mainMark = true;
           }
-          box.appendChild(createElementWithConfig2("div", {
-            innerHTML: `${fy2(`academy.attr.${keyText}`)}${textSuffix}`,
+          const item = createElementWithConfig2("div", {
             className: "academyBoostsItem"
-          }));
+          });
+          item.appendChild(document.createTextNode(String(fy2(`academy.attr.${keyText}`) ?? "")));
+          if (mainMark) {
+            item.appendChild(document.createTextNode("*"));
+          }
+          if (showNumber) {
+            const number = document.createElement("span");
+            number.textContent = String(value);
+            item.appendChild(number);
+          }
+          box.appendChild(item);
         }
         if (hasMain) {
           box.appendChild(createElementWithConfig2("div", {
@@ -15557,7 +15830,6 @@
         showLoader,
         hideLoader,
         createElementWithConfig: createElementWithConfig2,
-        createDF: createDF2,
         fy: fy2,
         eafy,
         notice
@@ -15637,11 +15909,29 @@
               })
             );
           });
-          tr.appendChild(
-            createDF2(
-              `<td style="padding: 0.5rem;"><div class="item" style="display: flex; align-items: center; padding: 0.5rem;"><div class="playStyle chemstyle${player2.playStyle}" style="font-size: 18px; margin-right: 6px;"></div><div>${eafy(`playstyles.playstyle${player2.playStyle}`)}</div></div></td>`
-            )
-          );
+          const playStyleCell = createElementWithConfig2("td", {
+            style: { padding: "0.5rem" }
+          });
+          const playStyleItem = createElementWithConfig2("div", {
+            classList: "item",
+            style: {
+              display: "flex",
+              alignItems: "center",
+              padding: "0.5rem"
+            }
+          });
+          playStyleItem.appendChild(createElementWithConfig2("div", {
+            classList: ["playStyle", `chemstyle${Number(player2.playStyle)}`],
+            style: {
+              fontSize: "18px",
+              marginRight: "6px"
+            }
+          }));
+          playStyleItem.appendChild(createElementWithConfig2("div", {
+            textContent: eafy(`playstyles.playstyle${Number(player2.playStyle)}`)
+          }));
+          playStyleCell.appendChild(playStyleItem);
+          tr.appendChild(playStyleCell);
           tbody.appendChild(tr);
         });
         table.appendChild(tbody);
@@ -16767,6 +17057,22 @@
   }
 
   // src/fsu/ui/UiFactory.js
+  var FORBIDDEN_CONFIG_KEYS = new Set(HTML_CONFIG_FORBIDDEN_KEYS);
+  var URL_PROPERTY_KEYS = /* @__PURE__ */ new Set(["href", "src"]);
+  function assertSafeConfigKey(key) {
+    if (FORBIDDEN_CONFIG_KEYS.has(key) || /^on/i.test(key)) {
+      throw new TypeError(
+        `createElementWithConfig forbids HTML/event sinks: "${key}"`
+      );
+    }
+  }
+  function assertSafeAttributeName(attr) {
+    if (/^on/i.test(attr)) {
+      throw new TypeError(
+        `createElementWithConfig forbids event attributes: "${attr}"`
+      );
+    }
+  }
   function createButton(s2, t, b, c, style) {
     const btn = s2;
     btn.init();
@@ -16801,32 +17107,63 @@
     t.setDescription(b);
     return t;
   }
-  function createElementWithConfig(tag, config) {
+  function createElementWithConfig(tag, config = {}) {
     const element = document.createElement(tag);
     Object.keys(config).forEach((key) => {
+      assertSafeConfigKey(key);
       if (key === "classList") {
-        const classes = [].concat(config[key]);
-        classes.forEach((c) => element.classList.add(c));
+        const classes = [].concat(
+          /** @type {unknown} */
+          config[key]
+        );
+        classes.forEach((c) => element.classList.add(
+          /** @type {string} */
+          c
+        ));
       } else if (key === "style") {
-        Object.keys(config.style).forEach((styleName) => {
-          element.style[styleName] = config.style[styleName];
+        const style = (
+          /** @type {Record<string, string>} */
+          config.style
+        );
+        Object.keys(style).forEach((styleName) => {
+          element.style[styleName] = style[styleName];
         });
       } else if (key === "attributes") {
-        Object.entries(config.attributes).forEach(([attr, value]) => {
-          element.setAttribute(attr, value);
-        });
+        Object.entries(
+          /** @type {Record<string, unknown>} */
+          config.attributes
+        ).forEach(
+          ([attr, value]) => {
+            assertSafeAttributeName(attr);
+            if (attr === "href" || attr === "src") {
+              const safe = normalizeExternalUrl(value);
+              if (safe) element.setAttribute(attr, safe);
+              return;
+            }
+            element.setAttribute(attr, String(value ?? ""));
+          }
+        );
       } else if (key === "var") {
-        Object.keys(config.var).forEach((styleName) => {
-          element.style.setProperty(styleName, config.var[styleName]);
+        const vars = (
+          /** @type {Record<string, string>} */
+          config.var
+        );
+        Object.keys(vars).forEach((styleName) => {
+          element.style.setProperty(styleName, vars[styleName]);
         });
+      } else if (URL_PROPERTY_KEYS.has(key)) {
+        const safe = normalizeExternalUrl(config[key]);
+        /** @type {unknown} */
+        element[key] = safe || "#";
       } else {
+        /** @type {unknown} */
         element[key] = config[key];
       }
     });
     return element;
   }
-  function createDF(t) {
-    return createTrustedHtmlFragment(t);
+  function createDF(markup) {
+    return createTrustedHtmlFragment(markup);
   }
   function popup(deps, t, m, c, o, i, n, s2) {
     const { info, fy: fy2, createDF: createDF2 } = deps;
@@ -16839,7 +17176,11 @@
     let message = m;
     if (info.isEnhancer) {
       message = document.createElement("div");
-      setTrustedHtml(message, m);
+      if (isTrustedMarkup(m)) {
+        setTrustedHtml(message, m);
+      } else {
+        message.textContent = m == null ? "" : String(m);
+      }
     }
     const mp = new EADialogViewController({
       dialogOptions: o,
@@ -16885,7 +17226,11 @@
       mp._fsuInput = pt;
       mp.getView().__msg.appendChild(mp._fsuInput.__root);
       if (s2) {
-        mp.getView().__msg.appendChild(createDF2(s2));
+        if (isTrustedMarkup(s2)) {
+          mp.getView().__msg.appendChild(createDF2(s2));
+        } else {
+          appendText(mp.getView().__msg, s2);
+        }
       }
     }
   }
@@ -17721,6 +18066,436 @@
     return { success: true, data: players };
   }
 
+  // src/fsu/domain/RemoteConfigResults.js
+  var REMOTE_CONFIG_INVALID = "REMOTE_CONFIG_INVALID";
+  var FORBIDDEN_KEYS = /* @__PURE__ */ new Set(["__proto__", "prototype", "constructor"]);
+  var MAX_OBJECT_KEYS = 5e3;
+  var MAX_ARRAY_LENGTH = 5e3;
+  var MAX_API_TOKEN_LENGTH = 128;
+  var API_TOKEN_PATTERN = /^[A-Za-z0-9._-]{1,128}$/;
+  var FUTBIN_PATH_PATTERN = /^[A-Za-z0-9/_?&=.%#:+-]{1,512}$/;
+  var EXTRA_CHEM_KEYS = Object.freeze([
+    "full",
+    "nation",
+    "league",
+    "club",
+    "allNation",
+    "allLeague"
+  ]);
+  var KNOWN_API_KEYS = /* @__PURE__ */ new Set([
+    "meta",
+    "fastsbc",
+    "pack",
+    "sbc",
+    "ggrating",
+    "evolutions",
+    "inpacks",
+    "other",
+    "fgconfig",
+    "playermeta",
+    "lowprice"
+  ]);
+  function isRecord19(value) {
+    return value !== null && typeof value === "object" && !Array.isArray(value);
+  }
+  function invalid4(provider, issues) {
+    return {
+      success: false,
+      error: {
+        code: REMOTE_CONFIG_INVALID,
+        provider,
+        issues: issues.slice(0, 20)
+      }
+    };
+  }
+  function isForbiddenKey(key) {
+    return FORBIDDEN_KEYS.has(key);
+  }
+  function isFiniteInRange(value, min = Number.NEGATIVE_INFINITY, max = Number.POSITIVE_INFINITY) {
+    return typeof value === "number" && Number.isFinite(value) && value >= min && value <= max;
+  }
+  function isPositiveInt(value, min = 1, max = Number.MAX_SAFE_INTEGER) {
+    return typeof value === "number" && Number.isInteger(value) && value >= min && value <= max;
+  }
+  function isSafeFutbinPath(value) {
+    return typeof value === "string" && FUTBIN_PATH_PATTERN.test(value) && !value.startsWith("/") && !value.includes("://") && !value.includes("\\");
+  }
+  function cloneSafeConfigValue(value, issuePath, issues, depth = 0) {
+    if (depth > 12) {
+      issues.push(`${issuePath}.depth`);
+      return void 0;
+    }
+    if (value === null || typeof value === "boolean" || typeof value === "string") {
+      if (typeof value === "string" && value.length > 2048) {
+        issues.push(`${issuePath}.string`);
+        return void 0;
+      }
+      return value;
+    }
+    if (typeof value === "number") {
+      if (!Number.isFinite(value)) {
+        issues.push(`${issuePath}.number`);
+        return void 0;
+      }
+      return value;
+    }
+    if (Array.isArray(value)) {
+      if (value.length > MAX_ARRAY_LENGTH) {
+        issues.push(`${issuePath}.size`);
+        return void 0;
+      }
+      return value.map(
+        (item, index) => cloneSafeConfigValue(item, `${issuePath}.${index}`, issues, depth + 1)
+      );
+    }
+    if (isRecord19(value)) {
+      const entries = Object.entries(value);
+      if (entries.length > MAX_OBJECT_KEYS) {
+        issues.push(`${issuePath}.size`);
+        return void 0;
+      }
+      const copy = /* @__PURE__ */ Object.create(null);
+      for (const [key, item] of entries) {
+        if (isForbiddenKey(key)) {
+          issues.push(`${issuePath}.${key}`);
+          return void 0;
+        }
+        copy[key] = cloneSafeConfigValue(
+          item,
+          `${issuePath}.${key}`,
+          issues,
+          depth + 1
+        );
+      }
+      return copy;
+    }
+    issues.push(`${issuePath}.type`);
+    return void 0;
+  }
+  function parseUpdataConfig(value) {
+    if (!isRecord19(value)) {
+      return invalid4("updata", ["response must be an object"]);
+    }
+    const version = value.version;
+    if (version !== void 0 && !isFiniteInRange(version, 0, 1e9)) {
+      return invalid4("updata", ["version"]);
+    }
+    let updateURL = "";
+    if (value.updateURL !== void 0) {
+      if (typeof value.updateURL !== "string" || value.updateURL.length > 2048) {
+        return invalid4("updata", ["updateURL"]);
+      }
+      try {
+        const parsed = new URL(value.updateURL);
+        if (parsed.protocol !== "https:") {
+          return invalid4("updata", ["updateURL must be https"]);
+        }
+        updateURL = parsed.href;
+      } catch {
+        return invalid4("updata", ["updateURL"]);
+      }
+    }
+    const api = /* @__PURE__ */ Object.create(null);
+    if (value.api !== void 0) {
+      if (!isRecord19(value.api)) {
+        return invalid4("updata", ["api must be an object"]);
+      }
+      const entries = Object.entries(value.api);
+      if (entries.length > 32) {
+        return invalid4("updata", ["api too large"]);
+      }
+      for (const [key, token] of entries) {
+        if (isForbiddenKey(key) || !KNOWN_API_KEYS.has(key)) {
+          return invalid4("updata", [`api.${key}`]);
+        }
+        if (typeof token !== "string" || token.length > MAX_API_TOKEN_LENGTH) {
+          return invalid4("updata", [`api.${key}.token`]);
+        }
+        if (!API_TOKEN_PATTERN.test(token)) {
+          return invalid4("updata", [`api.${key}.charset`]);
+        }
+        api[key] = token;
+      }
+    }
+    return {
+      success: true,
+      data: Object.freeze({
+        version: version === void 0 ? 0 : Number(version),
+        updateURL,
+        api: Object.freeze({ ...api })
+      })
+    };
+  }
+  function parseFastSbcConfig(value, nowSeconds) {
+    if (!isRecord19(value)) {
+      return invalid4("fastsbc", ["response must be an object"]);
+    }
+    const entries = Object.entries(value);
+    if (entries.length > MAX_OBJECT_KEYS) {
+      return invalid4("fastsbc", ["too many keys"]);
+    }
+    const active = /* @__PURE__ */ Object.create(null);
+    for (const [key, item] of entries) {
+      if (isForbiddenKey(key)) {
+        return invalid4("fastsbc", [`forbidden key ${key}`]);
+      }
+      if (!isRecord19(item)) {
+        return invalid4("fastsbc", [`${key} must be object`]);
+      }
+      if (!isFiniteInRange(item.t, 0, 1e12)) {
+        return invalid4("fastsbc", [`${key}.t`]);
+      }
+      if (!Array.isArray(item.g) || item.g.length > 100) {
+        return invalid4("fastsbc", [`${key}.g`]);
+      }
+      const plan = [];
+      for (let index = 0; index < item.g.length; index++) {
+        const group = item.g[index];
+        if (!isRecord19(group) || !isPositiveInt(group.c, 1, 100) || !isRecord19(group.t)) {
+          return invalid4("fastsbc", [`${key}.g.${index}`]);
+        }
+        const target = /* @__PURE__ */ Object.create(null);
+        if (group.t.rating !== void 0) {
+          if (!isPositiveInt(group.t.rating, 0, 99)) {
+            return invalid4("fastsbc", [`${key}.g.${index}.t.rating`]);
+          }
+          target.rating = group.t.rating;
+        } else {
+          if (group.t.gs !== void 0 && !isPositiveInt(group.t.gs, 0, 1)) {
+            return invalid4("fastsbc", [`${key}.g.${index}.t.gs`]);
+          }
+          if (group.t.rs !== void 0 && !isPositiveInt(group.t.rs, 0, 20)) {
+            return invalid4("fastsbc", [`${key}.g.${index}.t.rs`]);
+          }
+          if (group.t.gs === void 0 && group.t.rs === void 0) {
+            return invalid4("fastsbc", [`${key}.g.${index}.t`]);
+          }
+          if (group.t.gs !== void 0) target.gs = group.t.gs;
+          if (group.t.rs !== void 0) target.rs = group.t.rs;
+        }
+        plan.push({ c: group.c, t: target });
+      }
+      if (Number(item.t) > nowSeconds) {
+        active[key] = plan;
+      }
+    }
+    return { success: true, data: active };
+  }
+  function parsePackConfig(value) {
+    if (!isRecord19(value)) {
+      return invalid4("pack", ["response must be an object"]);
+    }
+    const entries = Object.entries(value);
+    if (entries.length > MAX_OBJECT_KEYS) {
+      return invalid4("pack", ["too many keys"]);
+    }
+    const oddo = /* @__PURE__ */ Object.create(null);
+    for (const [key, price] of entries) {
+      if (isForbiddenKey(key)) {
+        return invalid4("pack", ["forbidden key"]);
+      }
+      if (!isFiniteInRange(price, 0, 1e12)) {
+        return invalid4("pack", [`${key}.price`]);
+      }
+      oddo[key] = Number(price);
+    }
+    return { success: true, data: oddo };
+  }
+  function parseSbcConfig(value) {
+    if (!isRecord19(value)) {
+      return invalid4("sbc", ["response must be an object"]);
+    }
+    const reward = value.reward;
+    const newest = value.new;
+    if (reward !== void 0) {
+      if (!Array.isArray(reward) || reward.length > 100 || !reward.every((item) => isPositiveInt(item, 0, 10))) {
+        return invalid4("sbc", ["reward"]);
+      }
+    }
+    if (newest !== void 0) {
+      if (!Array.isArray(newest) || newest.length > MAX_ARRAY_LENGTH || !newest.every((item) => isPositiveInt(item))) {
+        return invalid4("sbc", ["new"]);
+      }
+    }
+    return {
+      success: true,
+      data: {
+        reward: Array.isArray(reward) ? [...reward] : [],
+        new: Array.isArray(newest) ? [...newest] : []
+      }
+    };
+  }
+  function parseInpacksConfig(value) {
+    if (!isRecord19(value)) {
+      return invalid4("inpacks", ["response must be an object"]);
+    }
+    const defIds = value.defIds;
+    const rarityIds = value.rarityIds;
+    if (defIds !== void 0) {
+      if (!Array.isArray(defIds) || defIds.length > MAX_ARRAY_LENGTH || !defIds.every((id) => isPositiveInt(id))) {
+        return invalid4("inpacks", ["defIds"]);
+      }
+    }
+    if (rarityIds !== void 0) {
+      if (!Array.isArray(rarityIds) || rarityIds.length > MAX_ARRAY_LENGTH || !rarityIds.every((id) => isPositiveInt(id, 0))) {
+        return invalid4("inpacks", ["rarityIds"]);
+      }
+    }
+    return {
+      success: true,
+      data: {
+        defIds: Array.isArray(defIds) ? [...defIds] : [],
+        rarityIds: Array.isArray(rarityIds) ? [...rarityIds] : []
+      }
+    };
+  }
+  function parseOtherConfig(value) {
+    if (!isRecord19(value)) {
+      return invalid4("other", ["response must be an object"]);
+    }
+    const dynamic = value.dynamic ?? {};
+    const chem = value.chem ?? {};
+    if (!isRecord19(dynamic) || !isRecord19(chem)) {
+      return invalid4("other", ["dynamic/chem must be objects"]);
+    }
+    const dynamicEntries = Object.entries(dynamic);
+    const chemEntries = Object.entries(chem);
+    if (dynamicEntries.length > MAX_OBJECT_KEYS || chemEntries.length > MAX_OBJECT_KEYS) {
+      return invalid4("other", ["too many keys"]);
+    }
+    const normalizedDynamic = /* @__PURE__ */ Object.create(null);
+    for (const [key, entry] of dynamicEntries) {
+      if (isForbiddenKey(key) || !isPositiveInt(Number(key), 0)) {
+        return invalid4("other", [`dynamic.${key}`]);
+      }
+      if (!isRecord19(entry)) {
+        return invalid4("other", [`dynamic.${key}.shape`]);
+      }
+      if (!isFiniteInRange(entry.exp, 0, 1e12)) {
+        return invalid4("other", [`dynamic.${key}.exp`]);
+      }
+      if (!Array.isArray(entry.change) || entry.change.length > 20 || !entry.change.every((id) => isPositiveInt(id, 1, 100))) {
+        return invalid4("other", [`dynamic.${key}.change`]);
+      }
+      if (!isSafeFutbinPath(entry.url)) {
+        return invalid4("other", [`dynamic.${key}.url`]);
+      }
+      normalizedDynamic[key] = {
+        exp: Number(entry.exp),
+        change: [...entry.change],
+        url: entry.url
+      };
+    }
+    const normalizedChem = /* @__PURE__ */ Object.create(null);
+    for (const [key, entry] of chemEntries) {
+      if (isForbiddenKey(key) || !isPositiveInt(Number(key), 0)) {
+        return invalid4("other", [`chem.${key}`]);
+      }
+      if (!isRecord19(entry)) {
+        return invalid4("other", [`chem.${key}.shape`]);
+      }
+      const normalizedEntry = /* @__PURE__ */ Object.create(null);
+      for (const chemKey of EXTRA_CHEM_KEYS) {
+        const amount = entry[chemKey] ?? 0;
+        if (!isPositiveInt(amount, 0, 100)) {
+          return invalid4("other", [`chem.${key}.${chemKey}`]);
+        }
+        normalizedEntry[chemKey] = amount;
+      }
+      if (!isSafeFutbinPath(entry.url)) {
+        return invalid4("other", [`chem.${key}.url`]);
+      }
+      normalizedEntry.url = entry.url;
+      normalizedChem[key] = normalizedEntry;
+    }
+    return {
+      success: true,
+      data: {
+        dynamic: normalizedDynamic,
+        chem: normalizedChem
+      }
+    };
+  }
+  function parseFgConfig(value) {
+    if (!isRecord19(value)) {
+      return invalid4("fgconfig", ["response must be an object"]);
+    }
+    const attribute = value.attribute;
+    const roles = value.roles;
+    const height = value.height;
+    const weight = value.weight;
+    if (!isRecord19(attribute) || !Array.isArray(roles) || !isRecord19(value.weakFoot) || !isRecord19(value.skillMoves) || !isRecord19(value.foot) || !isRecord19(value.playStyle) || !isRecord19(value.plusPlayStyle) || !isRecord19(height) || !isRecord19(weight)) {
+      return invalid4("fgconfig", ["attribute/roles"]);
+    }
+    if (Object.keys(attribute).length > MAX_OBJECT_KEYS || roles.length > 200 || !roles.every(
+      (role) => isRecord19(role) && isPositiveInt(role.posId, 0, 100) && isPositiveInt(role.role, 0, 100) && isRecord19(role.factors) && isFiniteInRange(role.multiplier, 0, 100)
+    )) {
+      return invalid4("fgconfig", ["size"]);
+    }
+    for (const key of [
+      "minExpectedScore",
+      "maxExpectedScore",
+      "targetMin",
+      "targetMax",
+      "smoothnessFactor",
+      "special1",
+      "special2"
+    ]) {
+      if (!isFiniteInRange(value[key], -1e9, 1e9)) {
+        return invalid4("fgconfig", [key]);
+      }
+    }
+    const ranges = [["height", height], ["weight", weight]];
+    for (const [rangeKey, range] of ranges) {
+      if (!isRecord19(range) || !isRecord19(range.min) || !isRecord19(range.max) || !isFiniteInRange(range.min.value, 0, 1e3) || !isFiniteInRange(range.max.value, 0, 1e3) || !isFiniteInRange(range.min.id, -1e6, 1e6) || !isFiniteInRange(range.max.id, -1e6, 1e6)) {
+        return invalid4("fgconfig", [rangeKey]);
+      }
+    }
+    const issues = [];
+    const cloned = cloneSafeConfigValue(value, "fgconfig", issues);
+    if (issues.length || !isRecord19(cloned)) {
+      return invalid4("fgconfig", issues.length ? issues : ["clone"]);
+    }
+    return {
+      success: true,
+      data: Object.freeze(cloned)
+    };
+  }
+  function parseLowpriceConfig(value) {
+    if (!isRecord19(value)) {
+      return invalid4("lowprice", ["response must be an object"]);
+    }
+    const platforms = /* @__PURE__ */ Object.create(null);
+    for (const [platform, entries] of Object.entries(value)) {
+      if (isForbiddenKey(platform)) {
+        return invalid4("lowprice", ["forbidden key"]);
+      }
+      if (!isRecord19(entries)) {
+        return invalid4("lowprice", [`${platform} must be object`]);
+      }
+      const platformEntries = Object.entries(entries);
+      if (platformEntries.length > 200) {
+        return invalid4("lowprice", [`${platform} too large`]);
+      }
+      const prices = /* @__PURE__ */ Object.create(null);
+      for (const [ratingKey, price] of platformEntries) {
+        if (isForbiddenKey(ratingKey)) {
+          return invalid4("lowprice", [`${platform}.forbidden`]);
+        }
+        const rating = Number(ratingKey);
+        if (!Number.isInteger(rating) || rating < 0 || rating > 99) {
+          return invalid4("lowprice", [`${platform}.${ratingKey}`]);
+        }
+        if (!isFiniteInRange(Number(price), 0, 1e12)) {
+          return invalid4("lowprice", [`${platform}.${ratingKey}.price`]);
+        }
+        prices[String(rating)] = Number(price);
+      }
+      platforms[platform] = prices;
+    }
+    return { success: true, data: platforms };
+  }
+
   // src/fsu/domain/RemoteConfigService.js
   var API_BASE_URL = "https://api.fut.to/26";
   var README_URL = "https://mfrasi851i.feishu.cn/wiki/wikcng1Ih7fFRidBfMdNS9SrucR";
@@ -17774,16 +18549,22 @@
       if (res.status == 404) {
         this.notice("notice.upgradefailed", 2);
       } else {
-        const data = this.parseResponse(res, {}, "updata.json");
-        const myVersion = Number(this.scriptVersion) || 0;
-        if (data.version > myVersion) {
-          urlText = this.fy("top.upgrade");
-          urlLink = data.updateURL;
-          this.notice("notice.upgradeconfirm", 1);
-        }
-        if (_.size(data.api)) {
-          this.info.api = data.api;
-          this.loadApiData();
+        const raw = this.parseResponse(res, {}, "updata.json");
+        const parsed = parseUpdataConfig(raw);
+        if (!parsed.success) {
+          this.debug.log("updata response rejected", parsed.error);
+        } else {
+          const data = parsed.data;
+          const myVersion = Number(this.scriptVersion) || 0;
+          if (data.version > myVersion) {
+            urlText = this.fy("top.upgrade");
+            urlLink = data.updateURL || urlLink;
+            this.notice("notice.upgradeconfirm", 1);
+          }
+          if (_.size(data.api)) {
+            this.info.api = { ...data.api };
+            this.loadApiData();
+          }
         }
       }
       onHeaderReady?.({ urlText, urlLink });
@@ -17792,9 +18573,7 @@
       const api = this.info.api;
       this.loadEndpoint(api, "meta", "meta.json", {}, (data) => this.applyMeta(data));
       this.loadEndpoint(api, "fastsbc", "fast.json", {}, (data) => this.applyFastSbc(data));
-      this.loadEndpoint(api, "pack", "pack.json", {}, (data) => {
-        this.info.base.oddo = data;
-      });
+      this.loadEndpoint(api, "pack", "pack.json", {}, (data) => this.applyPack(data));
       this.loadEndpoint(api, "sbc", "sbc.json", { reward: [], new: [] }, (data) => this.applySbc(data));
       this.loadEndpoint(api, "ggrating", "ggrating.json", {}, (data) => {
         const result = parseGgRatingConfig(data);
@@ -17816,15 +18595,9 @@
       });
       this.loadEndpoint(api, "inpacks", "inpacks.json", {}, (data) => this.applyInpacks(data));
       this.loadEndpoint(api, "other", "other.json", {}, (data) => this.applyOther(data));
-      this.loadEndpoint(api, "fgconfig", "fgconfig.json", {}, (data) => {
-        this.info.fgconfig = data;
-        this.debug.log(`fgconfig加载完毕！`);
-      });
+      this.loadEndpoint(api, "fgconfig", "fgconfig.json", {}, (data) => this.applyFgConfig(data));
       this.loadEndpoint(api, "playermeta", "playermeta.json", [], (data) => this.applyPlayerMeta(data));
-      this.loadEndpoint(api, "lowprice", "lowprice.json", {}, (data) => {
-        this.applyLowprice(this.info, data);
-        this.debug.log(`lowprice加载完毕！`);
-      });
+      this.loadEndpoint(api, "lowprice", "lowprice.json", {}, (data) => this.applyLowpriceEndpoint(data));
     }
     loadEndpoint(api, apiKey, fileName, fallback, applyData) {
       if (!_.has(api, apiKey)) {
@@ -17853,35 +18626,84 @@
       return true;
     }
     applyFastSbc(fastSbcJson) {
-      _.forEach(fastSbcJson, (item, key) => {
-        if (item.t > this.nowSeconds()) {
-          this.info.base.fastsbc[key] = item.g;
-        }
-      });
+      const result = parseFastSbcConfig(fastSbcJson, this.nowSeconds());
+      if (!result.success) {
+        this.debug.log("fastsbc response rejected", result.error);
+        return false;
+      }
+      this.info.base.fastsbc = { ...result.data };
+      return true;
+    }
+    applyPack(packJson) {
+      const result = parsePackConfig(packJson);
+      if (!result.success) {
+        this.debug.log("pack response rejected", result.error);
+        return false;
+      }
+      this.info.base.oddo = result.data;
+      return true;
     }
     applySbc(sbcJson) {
-      this.info.task.sbc.stat = sbcJson;
+      const result = parseSbcConfig(sbcJson);
+      if (!result.success) {
+        this.debug.log("sbc response rejected", result.error);
+        return false;
+      }
+      this.info.task.sbc.stat = result.data;
       const rewardText = _.map(
-        sbcJson.reward || [],
+        result.data.reward || [],
         (item) => item == 1 ? this.fy("task.player") : item == 2 ? this.fy("task.pack") : ""
       );
-      this.info.task.sbc.html = this.taskHtml((sbcJson.new || []).length, rewardText.join("、"));
+      this.info.task.sbc.html = this.taskHtml((result.data.new || []).length, rewardText.join("、"));
+      return true;
     }
     applyInpacks(data) {
-      const { defIds = [], rarityIds = [] } = data;
-      this.info.inpacks.defIds = defIds;
-      this.info.inpacks.rarityIds = rarityIds;
+      const result = parseInpacksConfig(data);
+      if (!result.success) {
+        this.debug.log("inpacks response rejected", result.error);
+        return false;
+      }
+      this.info.inpacks.defIds = result.data.defIds;
+      this.info.inpacks.rarityIds = result.data.rarityIds;
       this.debug.log(`inpacks加载完毕！`);
+      return true;
     }
     applyOther(data) {
-      const { dynamic = {}, chem = {} } = data;
+      const result = parseOtherConfig(data);
+      if (!result.success) {
+        this.debug.log("other response rejected", result.error);
+        return false;
+      }
+      const { dynamic, chem } = result.data;
+      const now = Date.now() / 1e3;
       this.info.specialPlayers = {
         dynamic,
-        DList: Object.entries(dynamic).filter(([_key, value]) => value.exp && value.exp > Date.now() / 1e3).map(([key, _value]) => Number(key)),
+        DList: Object.entries(dynamic).filter(([_key, value]) => value.exp && value.exp > now).map(([key]) => Number(key)),
         extraChem: chem,
         ECList: Object.keys(chem).map((key) => Number(key))
       };
       this.debug.log(`other加载完毕！`);
+      return true;
+    }
+    applyFgConfig(data) {
+      const result = parseFgConfig(data);
+      if (!result.success) {
+        this.debug.log("fgconfig response rejected", result.error);
+        return false;
+      }
+      this.info.fgconfig = result.data;
+      this.debug.log(`fgconfig加载完毕！`);
+      return true;
+    }
+    applyLowpriceEndpoint(data) {
+      const result = parseLowpriceConfig(data);
+      if (!result.success) {
+        this.debug.log("lowprice response rejected", result.error);
+        return false;
+      }
+      this.applyLowprice(this.info, result.data);
+      this.debug.log(`lowprice加载完毕！`);
+      return true;
     }
     applyPlayerMeta(data) {
       const result = parsePlayerMetadataRows(data);
@@ -17915,7 +18737,7 @@
           value: function getAcademyTile() {
             if (info.evolutions.newCount > 0 && !this._academyTile.__root.querySelector(".fsu-task")) {
               this._academyTile.__tileContent.before(
-                events.createDF(`<div class="fsu-task">${info.evolutions.html}</div>`)
+                events.createDF(createTrustedMarkup(`<div class="fsu-task">${info.evolutions.html}</div>`))
               );
             }
             return this._academyTile;
@@ -17941,14 +18763,16 @@
       return new Promise((resolve) => setTimeout(resolve, delay));
     };
     events.changeLoadingText = (t, s2) => {
-      let text = fy2(t);
-      if (s2 && s2 !== "") {
-        text += `<br>${fy2(s2)}`;
-      }
       events.addLoadingElment();
       const closeEl = document.querySelector(".fsu-loading-close");
-      if (closeEl) {
-        closeEl.innerHTML = text;
+      if (!closeEl) {
+        return;
+      }
+      closeEl.replaceChildren();
+      closeEl.appendChild(document.createTextNode(String(fy2(t) ?? "")));
+      if (s2 && s2 !== "") {
+        closeEl.appendChild(document.createElement("br"));
+        closeEl.appendChild(document.createTextNode(String(fy2(s2) ?? "")));
       }
     };
     events.enhanceStyleChange = () => {
@@ -18189,7 +19013,7 @@
                   if (cntlr2.current().className == "UTHomeHubViewController" && info.evolutions.newCount > 0) {
                     cntlr2.current().getView()._academyTile.getRootElement()?.querySelector(".fsu-task")?.remove();
                     cntlr2.current().getView()._academyTile.__tileContent.before(
-                      events.createDF(`<div class="fsu-task">${info.evolutions.html}</div>`)
+                      events.createDF(createTrustedMarkup(`<div class="fsu-task">${info.evolutions.html}</div>`))
                     );
                   }
                 }
@@ -18253,7 +19077,7 @@
 
   // src/fsu/core/PatchLifecycleRegistry.js
   var SAFE_DIAGNOSTIC_MEMBER = /^[A-Za-z0-9_$.[\]:-]{1,160}$/;
-  function isRecord19(value) {
+  function isRecord20(value) {
     return value !== null && typeof value === "object";
   }
   function sanitizeMissing(values) {
@@ -18264,7 +19088,7 @@
     ).slice(0, 20);
   }
   function isPatchTarget(value) {
-    if (!isRecord19(value)) return false;
+    if (!isRecord20(value)) return false;
     const owner = value.owner;
     const hasOwner = typeof owner === "object" && owner !== null || typeof owner === "function";
     return hasOwner && (typeof value.key === "string" || typeof value.key === "symbol");
@@ -18326,7 +19150,7 @@
      * @returns {PatchDiagnostic}
      */
     install(descriptorValue) {
-      if (!isRecord19(descriptorValue)) {
+      if (!isRecord20(descriptorValue)) {
         return this.record("invalid-patch", "unknown", "invalid-descriptor");
       }
       const id = typeof descriptorValue.id === "string" && SAFE_DIAGNOSTIC_MEMBER.test(descriptorValue.id) ? descriptorValue.id : "invalid-patch";
@@ -18389,9 +19213,9 @@
             "verify-threw"
           ]);
         }
-        const verificationPassed = verification === true || isRecord19(verification) && verification.ok === true;
+        const verificationPassed = verification === true || isRecord20(verification) && verification.ok === true;
         if (!verificationPassed) {
-          const missing = isRecord19(verification) && verification.ok === false ? verification.missing : [];
+          const missing = isRecord20(verification) && verification.ok === false ? verification.missing : [];
           return this.record(
             descriptor.id,
             descriptor.phase,
@@ -18724,7 +19548,7 @@
     REJECTED: "SBC_SAVE_REJECTED",
     INVALID_RESPONSE: "SBC_SAVE_INVALID_RESPONSE"
   });
-  function isRecord20(value) {
+  function isRecord21(value) {
     return value !== null && typeof value === "object";
   }
   function sbcSaveFailure(code, stage, issues) {
@@ -18734,7 +19558,7 @@
     };
   }
   function parseSbcSaveResponse(response) {
-    if (!isRecord20(response) || typeof response.success !== "boolean") {
+    if (!isRecord21(response) || typeof response.success !== "boolean") {
       return sbcSaveFailure(
         SBC_SAVE_ERROR_CODES.INVALID_RESPONSE,
         "save",
@@ -18746,7 +19570,7 @@
     ]);
   }
   function parseSbcLoadedSquad(response) {
-    if (!isRecord20(response) || !isRecord20(response.response) || !isRecord20(response.response.squad) || !Array.isArray(response.response.squad._players)) {
+    if (!isRecord21(response) || !isRecord21(response.response) || !isRecord21(response.response.squad) || !Array.isArray(response.response.squad._players)) {
       return sbcSaveFailure(
         SBC_SAVE_ERROR_CODES.INVALID_RESPONSE,
         "load",
@@ -18764,7 +19588,7 @@
     }
     const players = [];
     for (const [index, slot] of loadedSlots.entries()) {
-      if (!isRecord20(slot) || !("_item" in slot)) {
+      if (!isRecord21(slot) || !("_item" in slot)) {
         return sbcSaveFailure(
           SBC_SAVE_ERROR_CODES.INVALID_RESPONSE,
           "load",
@@ -18943,36 +19767,127 @@
     }
   };
 
-  // src/fsu/domain/SbcTemplateService.js
-  var SbcTemplateService = class {
+  // src/fsu/core/OperationScope.js
+  var OperationScope = class {
+    /**
+     * @param {{ operation?: CancellableOperation }} [options]
+     */
     constructor({ operation = new CancellableOperation() } = {}) {
       this.operation = operation;
+      this.cleanups = /* @__PURE__ */ new Map();
+    }
+    /**
+     * @param {{ onSupersede?: () => void, onCleanup?: () => void }} [options]
+     * @returns {ScopeToken}
+     */
+    start({ onSupersede, onCleanup } = {}) {
+      const previousId = this.operation.activeId;
+      if (previousId) {
+        this._runSupersede(previousId);
+      }
+      const token = this.operation.start();
+      if (typeof onSupersede === "function" || typeof onCleanup === "function") {
+        this.cleanups.set(token.id, { onSupersede, onCleanup });
+      }
+      return token;
     }
     cancel() {
-      return this.operation.cancel();
+      const activeId = this.operation.activeId;
+      const cancelled = this.operation.cancel();
+      if (cancelled && activeId) {
+        this._runCleanup(activeId);
+      }
+      return cancelled;
+    }
+    /**
+     * @param {ScopeToken | null | undefined} token
+     */
+    finish(token) {
+      if (!token) return false;
+      const finished = this.operation.finish(token);
+      if (finished) {
+        this._runCleanup(token.id);
+      } else {
+        this.cleanups.delete(token.id);
+      }
+      return finished;
     }
     isRunning() {
       return this.operation.isRunning();
     }
+    /**
+     * @param {number} id
+     */
+    _runCleanup(id) {
+      const cleanup = this.cleanups.get(id);
+      this.cleanups.delete(id);
+      if (typeof cleanup?.onCleanup === "function") {
+        cleanup.onCleanup();
+      }
+    }
+    /**
+     * @param {number} id
+     */
+    _runSupersede(id) {
+      const cleanup = this.cleanups.get(id);
+      this.cleanups.delete(id);
+      if (typeof cleanup?.onSupersede === "function") {
+        cleanup.onSupersede();
+      }
+    }
+  };
+
+  // src/fsu/domain/SbcTemplateService.js
+  var SbcTemplateService = class {
+    /**
+     * @param {{ scope?: OperationScope }} [options]
+     */
+    constructor({ scope = new OperationScope() } = {}) {
+      this.scope = scope;
+    }
+    cancel() {
+      return this.scope.cancel();
+    }
+    isRunning() {
+      return this.scope.isRunning();
+    }
+    /**
+     * @returns {Promise<SbcTemplateLoadResult>}
+     */
     async loadTemplate(controller, type, sId, helpers) {
-      const operation = this.operation.start();
+      const {
+        showLoader,
+        hideLoader,
+        changeLoadingText,
+        notice,
+        getFutbinSbcSquad,
+        getItemBy,
+        ignorePlayerToCriteria,
+        createVirtualChallenge,
+        saveSquad,
+        saveOldSquad,
+        getGoldenRange,
+        getFormationMap,
+        debug: debug2,
+        isPhone: isPhone2,
+        navigateBack
+      } = helpers;
+      const restoreController = () => {
+        try {
+          controller.setInteractionState(1);
+        } catch {
+        }
+      };
+      const token = this.scope.start({
+        onSupersede: restoreController,
+        onCleanup: () => {
+          restoreController();
+          if (typeof hideLoader === "function") {
+            hideLoader();
+          }
+        }
+      });
       try {
-        const {
-          showLoader,
-          changeLoadingText,
-          notice,
-          getFutbinSbcSquad,
-          getItemBy,
-          ignorePlayerToCriteria,
-          createVirtualChallenge,
-          saveSquad,
-          saveOldSquad,
-          getGoldenRange,
-          getFormationMap,
-          debug: debug2,
-          isPhone: isPhone2,
-          navigateBack
-        } = helpers;
         controller.setInteractionState(0);
         const squadPos = controller.challenge.squad.getFieldPlayers().map((slot) => slot.isBrick() ? null : slot.getGeneralPosition());
         showLoader();
@@ -18989,7 +19904,7 @@
           let list = await getFutbinSbcSquad(controller.challenge.id, type);
           list = _.filter(list, (item) => item.likes >= 0);
           if (list && list.length == 0) {
-            return;
+            return { success: false, reason: "empty-plan" };
           }
           if (fsu && fsu.templatePlan) {
             list = _.reject(list, (item) => _.includes(fsu.templatePlan, item.id));
@@ -19005,7 +19920,9 @@
             `${planCount}`,
             `${refePlan.length - planCount}`
           ]);
-          if (!operation.isActive()) return;
+          if (!token.isActive()) {
+            return { success: false, reason: "cancelled" };
+          }
           const planSquad = await getFutbinSbcSquad(planId, type == 1 ? 2 : type);
           if (!planSquad) continue;
           let ownedPlayer = 0;
@@ -19097,26 +20014,37 @@
           `阵容id:`,
           resultId
         );
-        if (!operation.isActive()) return;
-        const conceptIndexes = _.flatMap(resultSquad, (player, index) => player?.concept ? [index] : []);
+        if (!token.isActive()) {
+          return { success: false, reason: "cancelled" };
+        }
+        const conceptIndexes = _.flatMap(
+          resultSquad,
+          (player, index) => player?.concept ? [index] : []
+        );
         const excludeDefIds = _.map(resultSquad, "databaseId");
         if (conceptIndexes.length) {
           debug2.log("开始尝试替换假想球员！");
           let tempSquad = _.map(resultSquad, (player) => player ? player : new UTItemEntity());
           const newChallenge = createVirtualChallenge(controller.challenge);
-          if (!newChallenge) return;
+          if (!newChallenge) {
+            return { success: false, reason: "virtual-challenge-unavailable" };
+          }
           newChallenge.squad.setPlayers(tempSquad);
           const sortedConceptIndexes = _.sortBy(
             conceptIndexes,
             (index) => newChallenge.squad.getPlayer(index)._chemistry
           );
           for (const index of sortedConceptIndexes) {
-            if (!operation.isActive()) break;
+            if (!token.isActive()) break;
             await new Promise((resolve) => setTimeout(resolve, 0));
             const copySquad = _.map(tempSquad, (player) => player);
             const conceptPlayer = copySquad[index];
             const searchMaxRating = Math.min(conceptPlayer.rating + 10, getGoldenRange());
-            let searchCriteria = { NEdatabaseId: excludeDefIds, LTrating: searchMaxRating, lock: false };
+            let searchCriteria = {
+              NEdatabaseId: excludeDefIds,
+              LTrating: searchMaxRating,
+              lock: false
+            };
             searchCriteria = ignorePlayerToCriteria(searchCriteria);
             const indexPos = newChallenge.squad.getPlayer(index).generalPosition;
             changeLoadingText([
@@ -19168,21 +20096,29 @@
           debug2.log(`最终阵容`, tempSquad);
           resultSquad = tempSquad;
         }
-        if (!operation.isActive()) return;
+        if (!token.isActive()) {
+          return { success: false, reason: "cancelled" };
+        }
         const saveResult = await saveSquad(
           controller.challenge,
           controller.challenge.squad,
           resultSquad
         );
-        if (!saveResult?.success) return;
+        if (!saveResult?.success) {
+          return { success: false, reason: "save-failed" };
+        }
         saveOldSquad(controller.challenge.squad, false);
         fsu.templatePlan ??= [];
         fsu.templatePlan.push(resultId);
         if (isPhone2()) {
           navigateBack();
         }
+        return { success: true, resultId };
+      } catch (error) {
+        debug2?.log?.("SBC template load failed", error);
+        return { success: false, reason: "error" };
       } finally {
-        this.operation.finish(operation);
+        this.scope.finish(token);
       }
     }
   };
@@ -19229,18 +20165,21 @@
     events.taskHtml = function taskHtml(number, text) {
       let html = "<div>{Number}</div><div>{reward}</div>";
       if (number > 0) {
-        html = html.replace("{Number}", fy2("task.added") + number);
+        html = html.replace(
+          "{Number}",
+          escapeHtml(fy2("task.added")) + escapeHtml(number)
+        );
       } else {
         html = html.replace("fsu-task", "fsu-task no");
-        html = html.replace("{Number}", fy2("task.noadded"));
+        html = html.replace("{Number}", escapeHtml(fy2("task.noadded")));
       }
       if (text == "、") {
         text = "";
       }
-      let reward = text;
+      let reward = String(text ?? "");
       reward = reward.replace("组合包", fy2("task.pack"));
       reward = reward.replace("球员", fy2("task.player"));
-      html = html.replace("{reward}", reward);
+      html = html.replace("{reward}", escapeHtml(reward));
       return html;
     };
     events.showLoader = () => {
@@ -19250,6 +20189,14 @@
     events.hideLoader = () => {
       document.querySelector(".ut-click-shield").classList.remove("showing", "fsu-loading");
       document.querySelector(".loaderIcon").style.display = "none";
+      if (typeof events.cancelActiveOperationsFromLoader === "function") {
+        events.cancelActiveOperationsFromLoader();
+      }
+      if (typeof events.changeLoadingText === "function") {
+        events.changeLoadingText("loadingclose.text");
+      }
+    };
+    events.cancelActiveOperationsFromLoader = () => {
       if (typeof events.isSbcTemplateRunning === "function" && events.isSbcTemplateRunning()) {
         events.cancelSbcTemplate();
         if (isPhone2()) {
@@ -19274,9 +20221,6 @@
       }
       if (info.run.bulkbuy) {
         info.run.bulkbuy = false;
-      }
-      if (typeof events.changeLoadingText === "function") {
-        events.changeLoadingText("loadingclose.text");
       }
     };
   }

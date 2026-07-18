@@ -69,10 +69,113 @@ export function registerRewardEvents(deps) {
   };
 }
 
+export const REWARD_PATCH_IDS = Object.freeze({
+  CHOICE_SET_RENDER: "rewards.choice-set-render"
+});
+
+/**
+ * Single owner for UTRewardSelectionChoiceView.prototype.expandRewardSet.
+ * Calls EA original once, then runs value + Futbin augmentations in isolation.
+ */
+export function installRewardChoiceSetPatch(deps) {
+  const { events, info, fy, isPhone, patchLifecycle } = deps;
+  return patchLifecycle.install({
+    id: REWARD_PATCH_IDS.CHOICE_SET_RENDER,
+    phase: "club-and-ui",
+    targetLabel: "UTRewardSelectionChoiceView.prototype.expandRewardSet",
+    resolveTarget: () =>
+      typeof UTRewardSelectionChoiceView === "undefined"
+        ? null
+        : {
+            owner: UTRewardSelectionChoiceView.prototype,
+            key: "expandRewardSet"
+          },
+    verify: ({ originalDescriptor, originalValue }) => ({
+      ok:
+        originalDescriptor !== undefined &&
+        "value" in originalDescriptor &&
+        originalDescriptor.writable === true &&
+        typeof originalValue === "function",
+      missing: [
+        "UTRewardSelectionChoiceView.prototype.expandRewardSet.original-missing"
+      ]
+    }),
+    apply: ({ target, originalDescriptor, originalValue }) => {
+      Object.defineProperty(target.owner, target.key, {
+        ...originalDescriptor,
+        value: function fsuExpandRewardSet(e, t) {
+          const result = originalValue.call(this, e, t);
+          try {
+            const rewardTargets = this.__expandedReward?.querySelectorAll?.(".reward");
+            if (rewardTargets) {
+              let sum = 0;
+              _.map(t.rewards, (r, i) => {
+                sum += events.setRewardOddo(rewardTargets[i], r, 2);
+              });
+              if (t.rewards.length > 1) {
+                let sumBox = events.createElementWithConfig("span", {
+                  textContent: "(",
+                  style: {
+                    marginLeft: ".5rem",
+                    fontSize: "1.2rem",
+                    color: "#666"
+                  }
+                });
+                let sumText = events.createElementWithConfig("span", {
+                  textContent: sum.toLocaleString(),
+                  classList: ["currency-coins"]
+                });
+                sumBox.appendChild(sumText);
+                sumBox.appendChild(document.createTextNode(")"));
+                this.__title.appendChild(sumBox);
+              }
+            }
+          } catch {
+            // Value augmentation failure must not block Futbin button.
+          }
+          try {
+            let reward = t.rewards.find((i) => i.count);
+            let tn = this._rewardsCarousel?._tnsCarousel?.__root;
+            if (
+              reward?.isItem &&
+              reward.item?.isPlayer?.() &&
+              info.set.player_futbin &&
+              tn &&
+              tn.classList.length === 2 &&
+              tn.classList.contains("slider") &&
+              tn.classList.contains("rewards-slider-container")
+            ) {
+              let player = reward.item;
+              this._fsuPlayer = events.createButton(
+                new UTStandardButtonControl(),
+                fy("quicklist.gotofutbin"),
+                (ev) => {
+                  events.openFutbinPlayerUrl(ev, player);
+                },
+                "call-to-action mini fsu-reward-but"
+              );
+              if (!isPhone()) {
+                this._fsuPlayer.__root.classList.add("pcr");
+              }
+              tn.querySelector(".reward")?.appendChild(this._fsuPlayer.__root);
+            }
+          } catch {
+            // Futbin augmentation failure must not block value display.
+          }
+          return result;
+        }
+      });
+    }
+  });
+}
+
 export function installRewardPatches(deps) {
-  const { call, events, info, fy, cntlr, repositories, debug } = deps;
+  const { call, events, info, fy, cntlr, repositories, debug, patchLifecycle, isPhone } = deps;
 
   registerRewardEvents({ events, fy });
+  if (patchLifecycle) {
+    installRewardChoiceSetPatch({ events, info, fy, isPhone, patchLifecycle });
+  }
 
   FCObjectiveDetailsView.prototype.render = function (e) {
     call.other.rewards.objectiveDetail.call(this, e);
@@ -141,31 +244,7 @@ export function installRewardPatches(deps) {
     });
   };
 
-  UTRewardSelectionChoiceView.prototype.expandRewardSet = function (e, t) {
-    call.other.rewards.choiceSet.call(this, e, t);
-    let target = this.__expandedReward.querySelectorAll(".reward");
-    let sum = 0;
-    _.map(t.rewards, (r, i) => {
-      sum += events.setRewardOddo(target[i], r, 2);
-    });
-    if (t.rewards.length > 1) {
-      let sumBox = events.createElementWithConfig("span", {
-        textContent: "(",
-        style: {
-          marginLeft: ".5rem",
-          fontSize: "1.2rem",
-          color: "#666"
-        }
-      });
-      let sumText = events.createElementWithConfig("span", {
-        textContent: sum.toLocaleString(),
-        classList: ["currency-coins"]
-      });
-      sumBox.appendChild(sumText);
-      sumBox.appendChild(document.createTextNode(")"));
-      this.__title.appendChild(sumBox);
-    }
-  };
+  // expandRewardSet owned by installRewardChoiceSetPatch above.
 
   UTGameRewardsViewController.prototype.onButtonTapped = function (e, t, i) {
     call.other.rewards.popupTapped.call(this, e, t, i);

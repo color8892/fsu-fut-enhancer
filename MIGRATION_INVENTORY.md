@@ -73,10 +73,17 @@ from presenting that location as proof of isolation.
 
 ## Patch Inventory
 
-There are 94 direct prototype assignments under `patches/`. Ten of them define methods
-on extension-owned Store controllers, leaving 84 direct EA assignments. Together with
-one direct EA assignment inside `PatchInstaller` and 12 descriptor-managed production
-patches, the EA lifecycle migration scope is 97. The ten Store controller methods and
+Direct prototype assignment counts drift as owners move to descriptors; re-scan with:
+
+```bash
+rg -n '\.prototype\.[A-Za-z0-9_$]+\s*=' extension/src/fsu/patches | wc -l
+```
+
+PR21 removed dual owners for `expandRewardSet` and `getPlusPlayStyles` in favour of
+`rewards.choice-set-render` and `item.plus-playstyles-normalize` descriptors
+(enforced by `tests/patch-single-owner.test.mjs`). Remaining direct EA assignments
+plus descriptor-managed production patches still form the lifecycle migration scope.
+The ten Store controller methods and
 four extension-owned prototype assignments in `ui/SettingsScreen.js` are implementation
 details and must not be mixed into EA compatibility diagnostics.
 

@@ -1,4 +1,4 @@
-import { setTrustedHtml } from "../ui/HtmlSafety.js";
+import {setTrustedHtml, createTrustedMarkup } from "../ui/HtmlSafety.js";
 
 export function installSquadOverviewViewPatches(deps) {
   const { call, events, info, fy, isPhone, repositories, SBCEligibilityKey, GM_openInTab } = deps;
@@ -250,7 +250,7 @@ UTSquadOverviewViewController.prototype.viewDidAppear = function() {
                         },
                         "im"
                     )
-                    setTrustedHtml(leftRatingPlusBtn.getRootElement(), `<span> >= </span>${ratPlus}`);
+                    setTrustedHtml(leftRatingPlusBtn.getRootElement(), createTrustedMarkup(`<span> >= </span>${ratPlus}`));
                     this._fsu.leftRatingPlusBtn = leftRatingPlusBtn;
                     quickLeft.append(leftRatingPlusBtn.getRootElement());
                 }
@@ -269,7 +269,7 @@ UTSquadOverviewViewController.prototype.viewDidAppear = function() {
                         },
                         "im"
                     )
-                    setTrustedHtml(leftRatingMinusBtn.getRootElement(), `<span> <= </span>${ratMinus}`);
+                    setTrustedHtml(leftRatingMinusBtn.getRootElement(), createTrustedMarkup(`<span> <= </span>${ratMinus}`));
                     this._fsu.leftRatingMinusBtn = leftRatingMinusBtn;
                     quickLeft.append(leftRatingMinusBtn.getRootElement());
                 }
@@ -286,7 +286,7 @@ UTSquadOverviewViewController.prototype.viewDidAppear = function() {
                     },
                     "im"
                 )
-                setTrustedHtml(leftQalityBtn.getRootElement(), `${ratingStart}<span>-</span>${maxRating}`);
+                setTrustedHtml(leftQalityBtn.getRootElement(), createTrustedMarkup(`${ratingStart}<span>-</span>${maxRating}`));
                 this._fsu.leftQalityBtn = leftQalityBtn;
                 quickLeft.append(leftQalityBtn.getRootElement());
             }

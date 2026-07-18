@@ -1,3 +1,4 @@
+import { createTrustedMarkup, escapeHtml } from "../ui/HtmlSafety.js";
 import { renderSquadPrice } from "../ui/PriceRenderer.js";
 
 export const PRICE_PATCH_IDS = Object.freeze({
@@ -159,7 +160,7 @@ UTPaginatedItemListView.prototype.renderItems = function(t) {
                     }
                 }).filter(Boolean);
                 if(!s.length){
-                    this.__itemList.prepend(events.createDF(`<div class="ut-no-results-view"><div class="contents"><span class="no-results-icon"></span><h2>${fy("emptylist.t")}</h2><p>${fy("emptylist.c")}</p></div></div>`));
+                    this.__itemList.prepend(events.createDF(createTrustedMarkup(`<div class="ut-no-results-view"><div class="contents"><span class="no-results-icon"></span><h2>${escapeHtml(fy("emptylist.t"))}</h2><p>${escapeHtml(fy("emptylist.c"))}</p></div></div>`)));
                 }else{
                     if(this.__itemList.querySelector(".ut-no-results-view")){
                         this.__itemList.querySelector(".ut-no-results-view").remove()

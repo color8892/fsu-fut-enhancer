@@ -59,7 +59,11 @@ export function runAppInitLifecycleTests() {
     const view = new HomeHubView();
     view._academyTile = academyTile;
     assert.strictEqual(view.getAcademyTile(), academyTile);
-    assert.deepStrictEqual(inserted, [{ html: '<div class="fsu-task">new evolution</div>' }]);
+    assert.equal(inserted.length, 1);
+    assert.equal(
+      inserted[0].html.html,
+      '<div class="fsu-task">new evolution</div>'
+    );
 
     registerAppInitEvents(deps);
     assert.strictEqual(HomeHubView.prototype.getAcademyTile, installedMethod);

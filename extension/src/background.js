@@ -19,7 +19,7 @@
     {
       origin: "https://www.fut.gg",
       path: /^\/api\/(?:fut\/player-prices\/26\/|squads\/\d+)$/,
-      credentials: "include"
+      credentials: "omit"
     },
     {
       origin: "https://www.futbin.org",
@@ -29,11 +29,6 @@
     {
       origin: "https://enhancer-api.futnext.com",
       path: /^\/players\/prices$/,
-      credentials: "omit"
-    },
-    {
-      origin: "https://www.futnext.com",
-      path: /^\//,
       credentials: "omit"
     },
     {

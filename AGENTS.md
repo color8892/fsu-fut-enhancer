@@ -10,6 +10,7 @@ FSU 是 Chrome Manifest V3 擴充功能，只在 EA FC Ultimate Team Web App 注
 - Extension 邊界：`extension/src/background.js`、`content-bridge.js`、`page-runtime.js`
 - 產物：`extension/src/userscript.js`，只能由 `npm run build` 產生
 - 發行檔：`extension/dist/`，不提交 Git
+- **FSU Companion**（Phase 0–2 離線 shell）：`companion/` + `shared/protocol/`；見 [COMPANION_ARCHITECTURE.md](COMPANION_ARCHITECTURE.md)。尚未實作 Native Messaging，不可描述為已連線 Extension。
 
 ## 閱讀順序
 

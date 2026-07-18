@@ -88,7 +88,7 @@ sequenceDiagram
 - redirect 採 fail closed，timeout 上限 30 秒，response 上限 5 MiB。
 - Lodash 和 userscript 皆來自 extension package，不使用 CDN fallback。
 
-HTML 是另一個信任邊界。`setTrustedHtml()` 不負責 sanitize，只能接收由 extension 常數組成的 markup；遠端資料必須先 escape，或以 `textContent`／DOM node 建立。完整維護規則見 [SECURITY.md](SECURITY.md)。
+HTML 是另一個信任邊界。`createTrustedMarkup()` 產生 extension-owned brand；`setTrustedHtml()` / `createDF()` 只接受 branded markup，不接受任意 string。`createElementWithConfig()` 禁止 `innerHTML`／`on*` 等 sink。遠端與 localization 值必須走 `textContent`／text nodes，或先 `escapeHtml` 再組裝 brand。完整維護規則見 [SECURITY.md](SECURITY.md)。
 
 ---
 

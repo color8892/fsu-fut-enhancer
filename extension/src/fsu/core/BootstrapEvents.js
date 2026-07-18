@@ -2,6 +2,8 @@
  * Early UI helpers attached to the shared `events` facade during futweb bootstrap.
  */
 
+import { escapeHtml } from "../ui/HtmlSafety.js";
+
 export function attachBootstrapEvents(events, { info, cntlr, isPhone, fy }) {
   events.countPlayerAccele = (h, ag, ac, st) => {
     let type = 4;
@@ -31,18 +33,21 @@ export function attachBootstrapEvents(events, { info, cntlr, isPhone, fy }) {
   events.taskHtml = function taskHtml(number, text) {
     let html = "<div>{Number}</div><div>{reward}</div>";
     if (number > 0) {
-      html = html.replace("{Number}", fy("task.added") + number);
+      html = html.replace(
+        "{Number}",
+        escapeHtml(fy("task.added")) + escapeHtml(number)
+      );
     } else {
       html = html.replace("fsu-task", "fsu-task no");
-      html = html.replace("{Number}", fy("task.noadded"));
+      html = html.replace("{Number}", escapeHtml(fy("task.noadded")));
     }
     if (text == "、") {
       text = "";
     }
-    let reward = text;
+    let reward = String(text ?? "");
     reward = reward.replace("组合包", fy("task.pack"));
     reward = reward.replace("球员", fy("task.player"));
-    html = html.replace("{reward}", reward);
+    html = html.replace("{reward}", escapeHtml(reward));
     return html;
   };
 
@@ -54,6 +59,21 @@ export function attachBootstrapEvents(events, { info, cntlr, isPhone, fy }) {
   events.hideLoader = () => {
     document.querySelector(".ut-click-shield").classList.remove("showing", "fsu-loading");
     document.querySelector(".loaderIcon").style.display = "none";
+    // Close button may cancel active operations via explicit facades only.
+    // Market flags and SBC template tokens are owned by their operation scopes.
+    if (typeof events.cancelActiveOperationsFromLoader === "function") {
+      events.cancelActiveOperationsFromLoader();
+    }
+    if (typeof events.changeLoadingText === "function") {
+      events.changeLoadingText("loadingclose.text");
+    }
+  };
+
+  /**
+   * Explicit cancel facade used when the user dismisses the loader.
+   * Does not hide the loader itself (caller already did).
+   */
+  events.cancelActiveOperationsFromLoader = () => {
     if (
       typeof events.isSbcTemplateRunning === "function" &&
       events.isSbcTemplateRunning()
@@ -81,9 +101,6 @@ export function attachBootstrapEvents(events, { info, cntlr, isPhone, fy }) {
     }
     if (info.run.bulkbuy) {
       info.run.bulkbuy = false;
-    }
-    if (typeof events.changeLoadingText === "function") {
-      events.changeLoadingText("loadingclose.text");
     }
   };
 }

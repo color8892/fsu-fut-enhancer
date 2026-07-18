@@ -1171,7 +1171,12 @@ export function installStorePatches(deps) {
                     let expiry = events.createElementWithConfig("div", {
                         classList: "fsu-showRarityExpiry"
                     })
-                    expiry.innerHTML = `<i class="fut_icon icon_timer_expiry"></i><div>${SL.localize("academy.itemdetails.header.enrollment", [daysText])}</div>`;
+                    const expiryIcon = document.createElement("i");
+                    expiryIcon.className = "fut_icon icon_timer_expiry";
+                    const expiryText = document.createElement("div");
+                    expiryText.textContent = SL.localize("academy.itemdetails.header.enrollment", [daysText]);
+                    expiry.appendChild(expiryIcon);
+                    expiry.appendChild(expiryText);
                     infos.appendChild(expiry);
 
                     let attrs = events.createElementWithConfig("div", {

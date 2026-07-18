@@ -31,6 +31,8 @@ import { runPricePatchLifecycleTests } from "./price-patch-lifecycle.test.mjs";
 import { runPlayerMetadataResultTests } from "./player-metadata-results.test.mjs";
 import { runPlayerDetailsLifecycleTests } from "./player-details-lifecycle.test.mjs";
 import { runRemoteConfigServiceTests } from "./remote-config-service.test.mjs";
+import { runRemoteConfigResultsTests } from "./remote-config-results.test.mjs";
+import { runPackageSmokeTests } from "./package-smoke.test.mjs";
 import { runEaRuntimeAdapterTests } from "./ea-runtime-adapter.test.mjs";
 import { runPatchLifecycleRegistryTests } from "./patch-lifecycle-registry.test.mjs";
 import { runAppInitLifecycleTests } from "./app-init-lifecycle.test.mjs";
@@ -39,6 +41,8 @@ import { runStorePackCatalogTests } from "./store-pack-catalog.test.mjs";
 import { runStorePackOpenTransactionTests } from "./store-pack-open-transaction.test.mjs";
 import { runInPacksSearchTests } from "./in-packs-search.test.mjs";
 import { runStoreUiLifecycleTests } from "./store-ui-lifecycle.test.mjs";
+import { runPatchSingleOwnerTests } from "./patch-single-owner.test.mjs";
+import { runRequestPolicyCorpusTests } from "./request-policy-corpus.test.mjs";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
 const root = path.resolve(__dirname, "..");
@@ -170,7 +174,7 @@ function assertRequestPolicy() {
     method: "GET",
     url: "https://www.fut.gg/api/fut/player-prices/26/?ids=123"
   });
-  assert.strictEqual(futGgRequest.credentials, "include");
+  assert.strictEqual(futGgRequest.credentials, "omit");
 
   const configRequest = policy.authorize({
     url: "https://api.fut.to/26/meta.json?revision=1"
@@ -425,6 +429,7 @@ assertHeaderNormalization();
 assertFetchOptions();
 assertExportedClasses();
 assertRequestPolicy();
+runRequestPolicyCorpusTests();
 await assertRequestServiceRejectsUnapprovedUrl();
 assertMessageRouterSecurity();
 assertUserscriptBundle();
@@ -457,6 +462,8 @@ await runSbcFillSafetyTests();
 await runSbcSaveTransactionTests();
 await runSbcSubmitTransactionTests();
 runRemoteConfigServiceTests();
+runRemoteConfigResultsTests();
+runPackageSmokeTests();
 await runEaRuntimeAdapterTests();
 runPatchLifecycleRegistryTests();
 runAppInitLifecycleTests();
@@ -465,6 +472,7 @@ runStorePackCatalogTests();
 runStorePackOpenTransactionTests();
 await runInPacksSearchTests();
 runStoreUiLifecycleTests();
+await runPatchSingleOwnerTests();
 await runMarketActionServiceTests();
 await assertTabService();
 console.log("All extension tests passed.");

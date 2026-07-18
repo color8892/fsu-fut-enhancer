@@ -25,7 +25,25 @@ jobs:
       - run: npm run lint
       - run: npm run test:ci
       - run: git diff --exit-code -- src/userscript.js
+      - name: Restore private EA bundle artifact
+        env:
+          EA_BUNDLES_ARCHIVE_URL: ${{ secrets.EA_BUNDLES_ARCHIVE_URL }}
+        run: |
+          test -n "$EA_BUNDLES_ARCHIVE_URL"
+          mkdir -p "$RUNNER_TEMP/ea-bundles"
+          curl --fail --silent --show-error --location \
+            "$EA_BUNDLES_ARCHIVE_URL" \
+            --output "$RUNNER_TEMP/ea-bundles.zip"
+          unzip -q "$RUNNER_TEMP/ea-bundles.zip" -d "$RUNNER_TEMP/ea-bundles"
+          BUNDLE_FILE="$(find "$RUNNER_TEMP/ea-bundles" -type f \
+            \( -name 'compiled_*.js' -o -name 'ocompiled.js' \) \
+            -print -quit)"
+          test -n "$BUNDLE_FILE"
+          echo "EA_BUNDLES_DIR=$(dirname "$BUNDLE_FILE")" >> "$GITHUB_ENV"
+      - name: EA compatibility (release fail-closed)
+        run: npm run check:ea-release -- --require
       - run: npm run package
+      - run: npm run package:smoke
       - uses: softprops/action-gh-release@v3
         with:
           files: extension/dist/fsu-fut-enhancer-*.zip

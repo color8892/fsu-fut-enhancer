@@ -1,0 +1,23 @@
+{
+  "name": "@fsu/protocol",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "FSU Companion ↔ Extension protocol contracts and validation.",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./dist/src/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "lint": "tsc --noEmit",
+    "test": "tsc && node --test dist/tests/protocol.test.js"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "typescript": "^5.8.3"
+  }
+}

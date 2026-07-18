@@ -243,16 +243,26 @@ export class AcademyCalcService {
       let hasMain = false;
       for (const [key, value] of attrMap) {
         let keyText = key;
-        let textSuffix = notShowNumber.includes(key) ? "" : `<span>${value}</span>`;
+        let showNumber = !notShowNumber.includes(key);
+        let mainMark = false;
         if (key.endsWith("*")) {
           keyText = key.slice(0, -1);
           hasMain = true;
-          textSuffix = "*" + textSuffix;
+          mainMark = true;
         }
-        box.appendChild(createElementWithConfig("div", {
-          innerHTML: `${fy(`academy.attr.${keyText}`)}${textSuffix}`,
+        const item = createElementWithConfig("div", {
           className: "academyBoostsItem"
-        }));
+        });
+        item.appendChild(document.createTextNode(String(fy(`academy.attr.${keyText}`) ?? "")));
+        if (mainMark) {
+          item.appendChild(document.createTextNode("*"));
+        }
+        if (showNumber) {
+          const number = document.createElement("span");
+          number.textContent = String(value);
+          item.appendChild(number);
+        }
+        box.appendChild(item);
       }
       if (hasMain) {
         box.appendChild(createElementWithConfig("div", {

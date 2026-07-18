@@ -1,6 +1,6 @@
 import { safeParseJson } from "../infra/JsonParsing.js";
 import { RemoteConfigService } from "../domain/RemoteConfigService.js";
-import { createExternalLink } from "../ui/HtmlSafety.js";
+import {createExternalLink, createTrustedMarkup } from "../ui/HtmlSafety.js";
 
 export function registerAppInitEvents(deps) {
   const { events, info, fy, patchLifecycle } = deps;
@@ -28,7 +28,7 @@ export function registerAppInitEvents(deps) {
             !this._academyTile.__root.querySelector(".fsu-task")
           ) {
             this._academyTile.__tileContent.before(
-              events.createDF(`<div class="fsu-task">${info.evolutions.html}</div>`)
+              events.createDF(createTrustedMarkup(`<div class="fsu-task">${info.evolutions.html}</div>`))
             );
           }
           return this._academyTile;
@@ -58,14 +58,16 @@ events.wait = (min, max) => {
 };
 
 events.changeLoadingText = (t, s) => {
-    let text = fy(t);
-    if (s && s !== "") {
-        text += `<br>${fy(s)}`;
-    }
     events.addLoadingElment();
     const closeEl = document.querySelector(".fsu-loading-close");
-    if (closeEl) {
-        closeEl.innerHTML = text;
+    if (!closeEl) {
+        return;
+    }
+    closeEl.replaceChildren();
+    closeEl.appendChild(document.createTextNode(String(fy(t) ?? "")));
+    if (s && s !== "") {
+        closeEl.appendChild(document.createElement("br"));
+        closeEl.appendChild(document.createTextNode(String(fy(s) ?? "")));
     }
 };
 //26.02 添加enhancer兼容部分
@@ -341,7 +343,7 @@ events.init =  async function(){
                             if(cntlr.current().className == "UTHomeHubViewController" && info.evolutions.newCount > 0){
                                 cntlr.current().getView()._academyTile.getRootElement()?.querySelector(".fsu-task")?.remove();
                                 cntlr.current().getView()._academyTile.__tileContent.before(
-                                    events.createDF(`<div class="fsu-task">${info.evolutions.html}</div>`)
+                                    events.createDF(createTrustedMarkup(`<div class="fsu-task">${info.evolutions.html}</div>`))
                                 )
                             }
                         }

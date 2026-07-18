@@ -1,0 +1,16 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "fut-remote",
+  "description": "Untrusted EA FUT WebView with only the validated FSU HTTP bridge.",
+  "local": false,
+  "remote": {
+    "urls": [
+      "https://www.ea.com/ea-sports-fc/ultimate-team/web-app/*",
+      "https://www.ea.com/*/ea-sports-fc/ultimate-team/web-app/*",
+      "https://www.easports.com/ea-sports-fc/ultimate-team/web-app/*",
+      "https://www.easports.com/*/ea-sports-fc/ultimate-team/web-app/*"
+    ]
+  },
+  "windows": ["fut"],
+  "permissions": ["allow-embedded-http-request"]
+}

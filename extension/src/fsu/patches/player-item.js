@@ -101,7 +101,21 @@ export function installPlayerItemPatch(deps) {
                       "fsu-bodytype"
                   )
                   bodytype.getRootElement().style.cursor = `pointer`;
-                  bodytype.getRootElement().innerHTML = _.replace(info.bodytypetext[bodyTypeId], '&', `<span style='font-size:80%'>&</span>`);
+                  {
+                    const bodyRoot = bodytype.getRootElement();
+                    bodyRoot.replaceChildren();
+                    const bodyText = String(info.bodytypetext[bodyTypeId] ?? "");
+                    const ampParts = bodyText.split("&");
+                    ampParts.forEach((part, index) => {
+                      if (part) bodyRoot.appendChild(document.createTextNode(part));
+                      if (index < ampParts.length - 1) {
+                        const amp = document.createElement("span");
+                        amp.style.fontSize = "80%";
+                        amp.textContent = "&";
+                        bodyRoot.appendChild(amp);
+                      }
+                    });
+                  }
                   this._fsu.bodytype = bodytype;
                   extraElement.appendChild(bodytype.getRootElement());
               }
@@ -257,12 +271,6 @@ export function installPlayerItemPatch(deps) {
               }
 
 
-              let plow = info.base.price.hasOwnProperty(p.rating) && p.rating > info.base.price.low && p.rating < info.base.price.high ? `<div class="fsu-other-low currency-coins">${p.rating} Min: ${Number(info.base.price[p.rating]).toLocaleString()}</div>` : `<span class="fsu-other-low"></span>`;
-
-              let pOtherPos = otherPos.length ? `<div class="fsu-other-pos">${otherPos.join(" / ")}</div>` : `<span class="fsu-other-pos"></span>`;
-
-              let pd;
-
               let pe = -1,sp = events.getItemBy(2,{"definitionId":p.definitionId});
               if(sp.length == 1){
                   pe = sp[0].untradeableCount ? 0 : 1;
@@ -276,22 +284,42 @@ export function installPlayerItemPatch(deps) {
                       pe = info.roster.thousand[p.definitionId].untradeableCount ? 0 : 1;
                   }
               }
-              if(pe == -1){
-                  if(p.duplicateId !== 0){
-                      pd = `<div class="fsu-other-dup">${fy("duplicate.nodata")}</div>`;
-                  }else{
-                      pd = `<div class="fsu-other-dup swap">${fy("duplicate.swap")}</div>`;
-                  }
-              }else if(pe == 0){
-                  pd = `<div class="fsu-other-dup not">${fy("duplicate.not")}</div>`;
-              }else{
-                  pd = `<div class="fsu-other-dup yes">${fy("duplicate.yes")}</div>`;
-              }
 
               let otherElement = events.createElementWithConfig("div", {
-                  innerHTML: `${pd}${pOtherPos}${plow}`,
                   classList: ["fsu-player-other", "fsu-cards"]
               })
+              const dup = document.createElement("div");
+              if(pe == -1){
+                  dup.className = p.duplicateId !== 0 ? "fsu-other-dup" : "fsu-other-dup swap";
+                  dup.textContent = p.duplicateId !== 0 ? fy("duplicate.nodata") : fy("duplicate.swap");
+              }else if(pe == 0){
+                  dup.className = "fsu-other-dup not";
+                  dup.textContent = fy("duplicate.not");
+              }else{
+                  dup.className = "fsu-other-dup yes";
+                  dup.textContent = fy("duplicate.yes");
+              }
+              otherElement.appendChild(dup);
+              if(otherPos.length){
+                  const posEl = document.createElement("div");
+                  posEl.className = "fsu-other-pos";
+                  posEl.textContent = otherPos.join(" / ");
+                  otherElement.appendChild(posEl);
+              }else{
+                  const posEl = document.createElement("span");
+                  posEl.className = "fsu-other-pos";
+                  otherElement.appendChild(posEl);
+              }
+              if(info.base.price.hasOwnProperty(p.rating) && p.rating > info.base.price.low && p.rating < info.base.price.high){
+                  const low = document.createElement("div");
+                  low.className = "fsu-other-low currency-coins";
+                  low.textContent = `${p.rating} Min: ${Number(info.base.price[p.rating]).toLocaleString()}`;
+                  otherElement.appendChild(low);
+              }else{
+                  const low = document.createElement("span");
+                  low.className = "fsu-other-low";
+                  otherElement.appendChild(low);
+              }
               this._fsu.other = otherElement;
 
               
@@ -334,7 +362,13 @@ export function installPlayerItemPatch(deps) {
                       },
                       "fsu-specialPlayer"
                   )
-                  this._fsu.special.getRootElement().innerHTML = `<i class="fut_icon icon_chevron"></i>`;
+                  {
+                    const specialRoot = this._fsu.special.getRootElement();
+                    specialRoot.replaceChildren();
+                    const chevron = document.createElement("i");
+                    chevron.className = "fut_icon icon_chevron";
+                    specialRoot.appendChild(chevron);
+                  }
                   if(isSmall){
                       this._fsu.special.setInteractionState(0)
                   }else{

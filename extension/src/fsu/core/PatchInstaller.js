@@ -292,11 +292,23 @@ export class PatchInstaller {
     installClubSelectPatches(c.pick("call", "events", "info", "fy", "cntlr", "isPhone", "repositories", "services", "debug"));
     registerClubSelectEvents(c.pick("events", "info", "cntlr", "isPhone", "services", "repositories", "debug", "fy"));
     installClubSelectSearchPatches(c.pick("call", "events", "info", "fy", "cntlr", "repositories", "services"));
-    installRewardPatches(c.pick("call", "events", "info", "fy", "cntlr", "repositories", "debug"));
+    installRewardPatches(
+      c.pick(
+        "call",
+        "events",
+        "info",
+        "fy",
+        "cntlr",
+        "repositories",
+        "debug",
+        "patchLifecycle",
+        "isPhone"
+      )
+    );
     installClubHubPatches(c.pick("call", "events", "info", "fy", "cntlr", "isPhone", "repositories", "services"));
     registerListFilterEvents(c.pick("events", "repositories"));
     registerUiUtilsEvents(c.pick("events", "info", "cntlr", "debug", "fy", "services"));
-    installUiUtilsPatches();
+    installUiUtilsPatches(c.pick("patchLifecycle"));
     installLocalizationPatch(c.pick("call"));
     registerPlayerMetaEvents(c.pick("events", "info", "fy", "services"));
   }
