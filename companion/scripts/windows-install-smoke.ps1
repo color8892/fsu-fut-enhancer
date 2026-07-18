@@ -73,6 +73,9 @@ $item = Get-Item -LiteralPath $InstallerPath
 if ($item.Extension -ne ".exe") {
   Fail "Windows smoke currently supports the NSIS .exe installer only: $($item.FullName)"
 }
+if ($item.Name -notmatch "(?i)setup|installer") {
+  Fail "Refusing to execute a non-installer executable: $($item.FullName)"
+}
 if ($item.Length -lt 1024) {
   Fail "Installer suspiciously small: $($item.Length) bytes"
 }

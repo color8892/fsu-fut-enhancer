@@ -72,22 +72,10 @@ jobs:
         working-directory: companion
         shell: pwsh
         run: |
-          $candidates = Get-ChildItem -Path "src-tauri/target" -Recurse -File -ErrorAction SilentlyContinue |
-            Where-Object {
-              $_.Extension -eq '.exe' -and
-              (
-                $_.Name -match 'FSU|Companion|nsis|setup' -or
-                $_.FullName -match 'bundle[\\/]+(nsis|msi)'
-              ) -and
-              $_.Name -notmatch 'uninstall'
-            }
-          if (-not $candidates) {
-            # Fallback: any installer under release/bundle
-            $candidates = Get-ChildItem -Path "src-tauri/target/release/bundle" -Recurse -File -ErrorAction SilentlyContinue |
-              Where-Object { $_.Extension -eq '.exe' -and $_.Name -notmatch 'uninstall' }
-          }
+          $candidates = Get-ChildItem -Path "src-tauri/target/release/bundle/nsis" -File -ErrorAction SilentlyContinue |
+            Where-Object { $_.Extension -eq '.exe' -and $_.Name -match 'setup' }
           $installer = $candidates | Sort-Object Length -Descending | Select-Object -First 1
-          if (-not $installer) { throw "No Windows installer artifact found under src-tauri/target" }
+          if (-not $installer) { throw "No NSIS setup executable found under src-tauri/target/release/bundle/nsis" }
           Write-Host "Using installer: $($installer.FullName) size=$($installer.Length)"
           # Clean install + uninstall. Upgrade is NOT claimed here (single artifact per job).
           & .\scripts\windows-install-smoke.ps1 -InstallerPath $installer.FullName
