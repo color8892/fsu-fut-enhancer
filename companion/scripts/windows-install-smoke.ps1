@@ -22,6 +22,7 @@ param(
   [Parameter(Mandatory = $true)]
   [string]$InstallerPath,
   [string]$InstallDir = "$env:LOCALAPPDATA\FSU Companion",
+  [int]$ProcessTimeoutSeconds = 120,
   [switch]$SkipUninstall
 )
 
@@ -30,6 +31,38 @@ $ErrorActionPreference = "Stop"
 function Fail([string]$Message, [int]$Code = 1) {
   Write-Error $Message
   exit $Code
+}
+
+function Invoke-CheckedProcess(
+  [string]$FilePath,
+  [string]$Arguments,
+  [string]$Operation
+) {
+  $process = Start-Process -FilePath $FilePath -ArgumentList $Arguments -PassThru
+  if (-not $process.WaitForExit($ProcessTimeoutSeconds * 1000)) {
+    Stop-Process -Id $process.Id -Force -ErrorAction SilentlyContinue
+    Fail "$Operation timed out after $ProcessTimeoutSeconds seconds" 2
+  }
+  $process.Refresh()
+  if ($null -eq $process.ExitCode -or $process.ExitCode -ne 0) {
+    Fail "$Operation failed with exit code $($process.ExitCode)" 2
+  }
+  return $process.ExitCode
+}
+
+function Wait-ForPathState(
+  [string]$Path,
+  [bool]$ShouldExist,
+  [int]$TimeoutSeconds = 30
+) {
+  $deadline = [DateTime]::UtcNow.AddSeconds($TimeoutSeconds)
+  do {
+    if ((Test-Path -LiteralPath $Path) -eq $ShouldExist) {
+      return $true
+    }
+    Start-Sleep -Milliseconds 500
+  } while ([DateTime]::UtcNow -lt $deadline)
+  return $false
 }
 
 if (-not (Test-Path -LiteralPath $InstallerPath)) {
@@ -49,10 +82,8 @@ $hash = Get-FileHash -Algorithm SHA256 -LiteralPath $item.FullName
 Write-Host "[windows-install-smoke] sha256=$($hash.Hash)"
 
 Write-Host "[windows-install-smoke] clean install (silent)..."
-$proc = Start-Process -FilePath $item.FullName -ArgumentList "/S" -Wait -PassThru
-if ($null -eq $proc.ExitCode -or $proc.ExitCode -ne 0) {
-  Fail "install failed with exit code $($proc.ExitCode)" 2
-}
+$installExit = Invoke-CheckedProcess $item.FullName "/S" "install"
+Write-Host "[windows-install-smoke] install exit=$installExit"
 
 $exeCandidates = @(
   (Join-Path $InstallDir "FSU Companion.exe"),
@@ -77,6 +108,12 @@ if (-not $found) {
 Write-Host "[windows-install-smoke] installed binary: $found"
 
 if (-not $SkipUninstall) {
+  Get-Process -ErrorAction SilentlyContinue |
+    Where-Object {
+      try { $_.Path -eq $found } catch { $false }
+    } |
+    Stop-Process -Force -ErrorAction SilentlyContinue
+
   Write-Host "[windows-install-smoke] uninstall (silent; required)..."
   $installParent = Split-Path -Parent $found
   $uninst = Get-ChildItem -Path $installParent -Filter "uninstall*.exe" -ErrorAction SilentlyContinue |
@@ -90,11 +127,11 @@ if (-not $SkipUninstall) {
     Fail "uninstaller not found next to installed binary ($installParent); uninstall is required for smoke pass" 2
   }
   Write-Host "[windows-install-smoke] uninstaller: $($uninst.FullName)"
-  $u = Start-Process -FilePath $uninst.FullName -ArgumentList "/S" -Wait -PassThru
-  if ($null -eq $u.ExitCode -or $u.ExitCode -ne 0) {
-    Fail "uninstall failed with exit code $($u.ExitCode)" 2
+  $uninstallExit = Invoke-CheckedProcess $uninst.FullName "/S" "uninstall"
+  if (-not (Wait-ForPathState $found $false)) {
+    Fail "installed binary still exists after uninstall: $found" 2
   }
-  Write-Host "[windows-install-smoke] uninstall exit=$($u.ExitCode)"
+  Write-Host "[windows-install-smoke] uninstall exit=$uninstallExit"
 } else {
   Write-Host "[windows-install-smoke] SkipUninstall set — uninstall not exercised"
 }
