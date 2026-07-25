@@ -6,6 +6,7 @@ const path = require("path");
 const root = path.resolve(__dirname, "..");
 const entry = path.join(root, "src", "fsu", "index.js");
 const outfile = path.join(root, "src", "userscript.js");
+const manifest = require(path.join(root, "manifest.json"));
 
 const buildOptions = {
   entryPoints: [entry],
@@ -17,7 +18,7 @@ const buildOptions = {
   legalComments: "none",
   charset: "utf8",
   banner: {
-    js: "// FSU EAFC FUT Web Enhancer — bundled Chrome extension userscript (v26.9.0)"
+    js: `// FSU EAFC FUT Web Enhancer — bundled Chrome extension userscript (v${manifest.version})`
   }
 };
 

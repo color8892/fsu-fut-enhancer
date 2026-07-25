@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "description": "Sanitized shared allow/deny corpus and production endpoint inventory for Extension RequestPolicy and Companion HTTP bridge. No session values, cookies, or real SIDs. productionEndpoints is the drift source of truth for allowed origins/hosts; urlCases must cover allow+deny examples for those endpoints.",
+  "description": "Sanitized allow/deny corpus and production endpoint inventory for the Extension RequestPolicy. No session values, cookies, or real SIDs. productionEndpoints is the drift source of truth for allowed origins/hosts; urlCases must cover allow+deny examples for those endpoints.",
   "urlCases": [
     {
       "id": "allow-api-fut-to-updata",
@@ -287,10 +287,7 @@
       ],
       "endpoint": "public",
       "credentials": "omit",
-      "sides": [
-        "extension",
-        "companion"
-      ]
+      "sides": ["extension"]
     },
     {
       "id": "fut-gg",
@@ -302,10 +299,7 @@
       ],
       "endpoint": "public",
       "credentials": "omit",
-      "sides": [
-        "extension",
-        "companion"
-      ]
+      "sides": ["extension"]
     },
     {
       "id": "futbin",
@@ -321,10 +315,7 @@
       ],
       "endpoint": "public",
       "credentials": "omit",
-      "sides": [
-        "extension",
-        "companion"
-      ]
+      "sides": ["extension"]
     },
     {
       "id": "futnext-enhancer-api",
@@ -335,10 +326,7 @@
       ],
       "endpoint": "public",
       "credentials": "omit",
-      "sides": [
-        "extension",
-        "companion"
-      ]
+      "sides": ["extension"]
     },
     {
       "id": "futnext-pack-preview",
@@ -351,10 +339,7 @@
       ],
       "endpoint": "public",
       "credentials": "omit",
-      "sides": [
-        "extension",
-        "companion"
-      ]
+      "sides": ["extension"]
     },
     {
       "id": "ea-transfer-market",
@@ -365,10 +350,7 @@
       ],
       "endpoint": "ea_transfer_market",
       "credentials": "omit",
-      "sides": [
-        "extension",
-        "companion"
-      ]
+      "sides": ["extension"]
     }
   ]
 }

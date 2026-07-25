@@ -3,6 +3,24 @@
 
   const CONTENT_SOURCE = "fsu-extension-content";
   const MAX_RESPONSE_BYTES = 5 * 1024 * 1024;
+  const ALLOWED_TAB_ROUTES = [
+    {
+      origin: "https://fut.to",
+      path: /^\/$/
+    },
+    {
+      origin: "https://www.futbin.com",
+      path: /^\/.*$/
+    },
+    {
+      origin: "https://futcd.com",
+      path: /^\/sbc\.html$/
+    },
+    {
+      origin: "https://mfrasi851i.feishu.cn",
+      path: /^\/wiki\/OLNswCYQciVKw8k9iaAcmOY1nmf$/
+    }
+  ];
 
   function createSecurityError(message) {
     const error = new Error(message);
@@ -236,10 +254,60 @@
   }
 
   class GmRequestService {
-    constructor(fetchImpl, normalizer = new RequestNormalizer(), policy = new RequestPolicy()) {
+    constructor(
+      fetchImpl,
+      normalizer = new RequestNormalizer(),
+      policy = new RequestPolicy(),
+      maxResponseBytes = MAX_RESPONSE_BYTES
+    ) {
       this.fetchImpl = fetchImpl;
       this.normalizer = normalizer;
       this.policy = policy;
+      this.maxResponseBytes = maxResponseBytes;
+    }
+
+    async readResponseText(response, controller) {
+      const declaredLength = Number(response.headers.get("content-length"));
+      if (Number.isFinite(declaredLength) && declaredLength > this.maxResponseBytes) {
+        controller.abort();
+        throw new RangeError("The response exceeds the extension size limit.");
+      }
+
+      if (!response.body || typeof response.body.getReader !== "function") {
+        const responseText = await response.text();
+        if (new TextEncoder().encode(responseText).byteLength > this.maxResponseBytes) {
+          controller.abort();
+          throw new RangeError("The response exceeds the extension size limit.");
+        }
+        return responseText;
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let receivedBytes = 0;
+      let responseText = "";
+
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          receivedBytes += value.byteLength;
+          if (receivedBytes > this.maxResponseBytes) {
+            try {
+              await reader.cancel();
+            } catch {
+              // The abort below still closes the underlying fetch.
+            }
+            controller.abort();
+            throw new RangeError("The response exceeds the extension size limit.");
+          }
+          responseText += decoder.decode(value, { stream: true });
+        }
+        responseText += decoder.decode();
+        return responseText;
+      } finally {
+        reader.releaseLock();
+      }
     }
 
     async perform(details) {
@@ -262,10 +330,7 @@
           authorizedDetails.url,
           this.normalizer.buildFetchOptions(authorizedDetails, controller.signal)
         );
-        const responseText = await response.text();
-        if (new TextEncoder().encode(responseText).byteLength > MAX_RESPONSE_BYTES) {
-          throw new RangeError("The response exceeds the extension size limit.");
-        }
+        const responseText = await this.readResponseText(response, controller);
         const responseHeaders = Array.from(response.headers.entries())
           .map(([key, value]) => `${key}: ${value}`)
           .join("\r\n");
@@ -293,8 +358,9 @@
   }
 
   class TabService {
-    constructor(tabsApi) {
+    constructor(tabsApi, routes = ALLOWED_TAB_ROUTES) {
       this.tabsApi = tabsApi;
+      this.routes = routes;
     }
 
     open(url, options) {
@@ -305,8 +371,13 @@
         throw new TypeError("GM_openInTab received an invalid URL.");
       }
 
-      if (!["http:", "https:"].includes(parsedUrl.protocol)) {
-        throw new TypeError("GM_openInTab only supports http and https URLs.");
+      const route = this.routes.find(
+        (candidate) =>
+          candidate.origin === parsedUrl.origin &&
+          candidate.path.test(parsedUrl.pathname)
+      );
+      if (!route) {
+        throw createSecurityError("GM_openInTab URL is not allowed.");
       }
 
       return this.tabsApi.create({

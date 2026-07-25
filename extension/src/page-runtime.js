@@ -314,7 +314,7 @@
         script: {
           name: "FSU EAFC FUT Web Enhancer",
           namespace: "https://futcd.com/",
-          version: "26.09"
+          version: "26.10"
         },
         scriptHandler: "Chrome Extension MV3 shim"
       };

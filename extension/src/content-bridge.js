@@ -9,6 +9,52 @@
     "src/page-runtime.js",
     "src/userscript.js"
   ];
+  const MAX_STORAGE_VALUE_BYTES = 4 * 1024 * 1024;
+  const STORAGE_KEYS = new Set([
+    "SBCCount",
+    "academy",
+    "apiproxy",
+    "build",
+    "futbinId",
+    "history",
+    "packsSort",
+    "players",
+    "sbclist",
+    "set"
+  ]);
+
+  class StoragePolicy {
+    isAllowedKey(key) {
+      return (
+        STORAGE_KEYS.has(key) ||
+        /^lock_\d{2}$/.test(key) ||
+        /^playerMetaData_\d{2}$/.test(key)
+      );
+    }
+
+    isAllowedValue(key, value) {
+      if (value === undefined) return true;
+      if (key === "packsSort") return value === "asc" || value === "desc";
+      if (key === "apiproxy") {
+        return typeof value === "string" && value.length <= 2048;
+      }
+
+      try {
+        return new TextEncoder().encode(JSON.stringify(value)).byteLength <=
+          MAX_STORAGE_VALUE_BYTES;
+      } catch {
+        return false;
+      }
+    }
+
+    filter(items) {
+      return Object.fromEntries(
+        Object.entries(items || {}).filter(([key, value]) =>
+          this.isAllowedKey(key) && this.isAllowedValue(key, value)
+        )
+      );
+    }
+  }
 
   function isExtensionContextValid(runtimeApi) {
     try {
@@ -132,10 +178,11 @@
   }
 
   class ExtensionStorage {
-    constructor(storageArea, runtimeApi, contextGuard) {
+    constructor(storageArea, runtimeApi, contextGuard, policy = new StoragePolicy()) {
       this.storageArea = storageArea;
       this.runtimeApi = runtimeApi;
       this.contextGuard = contextGuard;
+      this.policy = policy;
     }
 
     getAll() {
@@ -153,7 +200,7 @@
               resolve({});
               return;
             }
-            resolve(items || {});
+            resolve(this.policy.filter(items));
           });
         } catch {
           this.contextGuard.warnOnce();
@@ -163,6 +210,11 @@
     }
 
     setValue(key, value) {
+      if (!this.policy.isAllowedKey(key) || !this.policy.isAllowedValue(key, value)) {
+        console.warn("[FSU extension] Rejected storage write outside the allowed schema.");
+        return false;
+      }
+
       if (!this.contextGuard.isValid()) {
         this.contextGuard.warnOnce();
         return false;

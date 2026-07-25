@@ -37,6 +37,7 @@ npm run test:ci
 ```bash
 npm run build             # Bundle src/fsu/index.js
 npm run build:watch       # Rebuild while editing
+npm run check:version     # Validate manifest/package/runtime version alignment
 npm run typecheck         # TypeScript checkJs strict island
 npm test                  # Unit, security, and manifest tests
 npm run test:all          # Required before commit

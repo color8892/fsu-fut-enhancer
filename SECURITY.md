@@ -16,24 +16,23 @@ FSU runs across three trust boundaries:
 2. The EA FUT page world, including EA and third-party page scripts.
 3. Remote EA, pricing, SBC, and configuration services.
 
-FSU Companion adds a fourth boundary: its local `main` WebView is trusted, while the remote `fut` WebView is untrusted and receives no core, opener, filesystem, or shell permissions.
-
 Code running in the page world is not trusted merely because it is on an allowed EA origin. Messages arriving from `window.postMessage` must be treated as attacker-controlled.
 
 ### Required controls
 
-- Content scripts and web-accessible resources are limited to FUT Web App pages.
+- Content scripts are limited to FUT Web App paths. Chrome only supports origin-level
+  matches for web-accessible resources, so packaged page scripts are limited to the
+  required EA origins and use a per-session dynamic extension ID.
 - Background requests use an origin and path allowlist; callers cannot authorize arbitrary URLs.
-- HTTP methods, forwarded headers, credentials, redirects, timeout, and response size are constrained by the background policy.
+- HTTP methods, forwarded headers, credentials, redirects, timeout, and response size are constrained by the background policy. Response bodies are streamed and aborted once they exceed 5 MB.
+- Page-world storage writes are restricted to known FSU keys, bounded values, and key-specific schemas. Only allowed storage keys are included in the initialization snapshot.
+- `GM_openInTab` is limited to documented FSU destinations; arbitrary HTTP or HTTPS tabs are rejected.
 - Executable JavaScript is packaged with the extension. Remote code fallbacks are not allowed.
 - Remote text must use `textContent` or escaping before entering a trusted HTML helper.
 - New host permissions require a documented feature need and rejection tests.
 - `www.futnext.com` is used only for GET pack/player-pick preview and probability
   routes matching `/pack|playerpick/<bounded-slug>/<numeric-id>/(open)?`; arbitrary
   FutNext paths, methods, headers, credentials, and redirects remain denied.
-- Companion's Embedded HTTP bridge is GET-only and independently validates the caller window, remote capability URL, endpoint path, headers, timeout, redirects, and 5 MB response limit.
-- Embedded runtime scripts execute only on the exact FUT host/path; EA authentication pages do not receive FSU globals or UI.
-
 See [ARCHITECTURE.md](ARCHITECTURE.md#extension-安全邊界) for the implementation flow.
 
 ## Data handling

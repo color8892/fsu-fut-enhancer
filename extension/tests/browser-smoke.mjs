@@ -110,7 +110,10 @@ async function run() {
     assert.match(worker.url(), /^chrome-extension:\/\/[^/]+\/src\/background\.js$/);
 
     await worker.evaluate(async () => {
-      await chrome.storage.local.set({ "browser-smoke-seed": "seeded" });
+      await chrome.storage.local.set({
+        packsSort: "asc",
+        "browser-smoke-private": "must-not-reach-page",
+      });
     });
 
     const page = await context.newPage();
@@ -410,14 +413,39 @@ async function run() {
     );
 
     assert.equal(
-      await page.evaluate(() => window.GM_getValue("browser-smoke-seed")),
-      "seeded",
+      await page.evaluate(() => window.GM_getValue("packsSort")),
+      "asc",
+    );
+    assert.equal(
+      await page.evaluate(() => window.GM_getValue("browser-smoke-private")),
+      undefined,
     );
 
     await page.evaluate(() => {
-      window.GM_setValue("browser-smoke-write", "written");
+      window.GM_setValue("packsSort", "desc");
     });
-    await waitForStorageValue(worker, "browser-smoke-write", "written");
+    await waitForStorageValue(worker, "packsSort", "desc");
+    await page.evaluate(() => {
+      window.postMessage(
+        {
+          source: "fsu-extension-page",
+          type: "GM_SET_VALUE",
+          key: "browser-smoke-forged-storage",
+          value: "written",
+        },
+        "*",
+      );
+    });
+    await page.waitForTimeout(100);
+    assert.equal(
+      await worker.evaluate(async () => {
+        const stored = await chrome.storage.local.get(
+          "browser-smoke-forged-storage",
+        );
+        return stored["browser-smoke-forged-storage"];
+      }),
+      undefined,
+    );
 
     const forgedResponse = await page.evaluate(
       () =>
@@ -468,7 +496,7 @@ async function run() {
       .catch(() => {});
     await page.waitForTimeout(500);
     await page.evaluate(() => {
-      window.GM_setValue("browser-smoke-after-reload", "value");
+      window.GM_setValue("packsSort", "asc");
     });
 
     const invalidatedBanner = page.locator(

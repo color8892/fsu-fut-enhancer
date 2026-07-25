@@ -1,4 +1,4 @@
-// FSU EAFC FUT Web Enhancer — bundled Chrome extension userscript (v26.9.0)
+// FSU EAFC FUT Web Enhancer — bundled Chrome extension userscript (v26.10.0)
 "use strict";
 (() => {
   // src/fsu/core/FsuContext.js

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "FSU EAFC FUT Web Enhancer",
-  "version": "26.9.0",
+  "version": "26.10.0",
   "description": "Chrome extension wrapper for the FSU EAFC FUT Web userscript.",
   "permissions": ["storage"],
   "host_permissions": [
@@ -38,7 +38,8 @@
       "matches": [
         "https://www.ea.com/*",
         "https://www.easports.com/*"
-      ]
+      ],
+      "use_dynamic_url": true
     }
   ]
 }

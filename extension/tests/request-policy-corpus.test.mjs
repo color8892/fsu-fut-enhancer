@@ -1,6 +1,6 @@
 /**
  * H3: Extension consumes the shared request-policy corpus
- * (shared/request-policy-corpus.json) — same fixture as Companion Rust tests.
+ * (shared/request-policy-corpus.json) used by the extension request policy.
  * productionEndpoints is the drift source of truth for allowed API origins.
  */
 import assert from "assert";

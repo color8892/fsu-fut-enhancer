@@ -1,6 +1,6 @@
 # FSU · EA FC FUT Web Enhancer
 
-[![Version](https://img.shields.io/badge/version-26.9.0-blue)](extension/manifest.json)
+[![Version](https://img.shields.io/badge/version-26.10.0-blue)](extension/manifest.json)
 [![Tests](https://github.com/color8892/fsu-fut-enhancer/actions/workflows/test.yml/badge.svg)](https://github.com/color8892/fsu-fut-enhancer/actions/workflows/test.yml)
 [![Release](https://img.shields.io/github/v/release/color8892/fsu-fut-enhancer?label=release)](https://github.com/color8892/fsu-fut-enhancer/releases/latest)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
@@ -98,6 +98,8 @@ npm run check:ea-bundle -- --bundles <path-to-local-ea-bundles>
 - [MIGRATION_INVENTORY.md](MIGRATION_INVENTORY.md) — Inventory of domain classifications and EA capabilities.
 - [ROADMAP.md](ROADMAP.md) — Step-by-step refactoring milestones and exit criteria.
 - [SECURITY.md](SECURITY.md) — Security boundaries, data handling policies, and vulnerability reporting.
+- [CONTRIBUTING.md](CONTRIBUTING.md) — Contribution workflow and verification requirements.
+- [CHANGELOG.md](CHANGELOG.md) — User-visible changes by release.
 - [AGENTS.md](AGENTS.md) — Maintenance rules and coding guidelines.
 
 ---

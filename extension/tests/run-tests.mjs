@@ -82,6 +82,15 @@ function assertManifest() {
     manifest.content_scripts[0].matches.every((match) => match.includes("ultimate-team/web-app")),
     "Content scripts must only run on the FUT Web App"
   );
+  assert.deepStrictEqual(manifest.web_accessible_resources[0].matches, [
+    "https://www.ea.com/*",
+    "https://www.easports.com/*"
+  ]);
+  assert.strictEqual(
+    manifest.web_accessible_resources[0].use_dynamic_url,
+    true,
+    "Web-accessible resources must use a per-session dynamic extension ID"
+  );
 
   for (const script of manifest.content_scripts[0].js) {
     assert.ok(fs.existsSync(path.join(root, script)), `Missing content script: ${script}`);
@@ -223,6 +232,55 @@ async function assertRequestServiceRejectsUnapprovedUrl() {
   assert.strictEqual(fetchCalled, false);
 }
 
+async function assertRequestServiceEnforcesResponseLimit() {
+  let capturedSignal;
+  const service = new background.GmRequestService(
+    async (_url, options) => {
+      capturedSignal = options.signal;
+      return new Response("response-too-large");
+    },
+    undefined,
+    undefined,
+    8
+  );
+
+  await assert.rejects(
+    () => service.perform({ method: "GET", url: "https://api.fut.to/26/meta.json" }),
+    (error) =>
+      error instanceof RangeError &&
+      error.message === "The response exceeds the extension size limit."
+  );
+  assert.strictEqual(capturedSignal.aborted, true);
+
+  let bodyRead = false;
+  const declaredOversizeService = new background.GmRequestService(
+    async () => {
+      const response = new Response("small", {
+        headers: { "Content-Length": "9" }
+      });
+      const originalGetReader = response.body.getReader.bind(response.body);
+      response.body.getReader = (...args) => {
+        bodyRead = true;
+        return originalGetReader(...args);
+      };
+      return response;
+    },
+    undefined,
+    undefined,
+    8
+  );
+
+  await assert.rejects(
+    () =>
+      declaredOversizeService.perform({
+        method: "GET",
+        url: "https://api.fut.to/26/meta.json"
+      }),
+    RangeError
+  );
+  assert.strictEqual(bodyRead, false);
+}
+
 async function assertTabService() {
   const createdTabs = [];
   const tabService = new background.TabService({
@@ -237,7 +295,18 @@ async function assertTabService() {
   assert.deepStrictEqual(createdTabs, [
     { url: "https://www.futbin.com/26/player/1", active: false }
   ]);
-  assert.throws(() => tabService.open("javascript:alert(1)", {}), /only supports http and https/);
+  assert.throws(
+    () => tabService.open("javascript:alert(1)", {}),
+    (error) => error.name === "SecurityError"
+  );
+  assert.throws(
+    () => tabService.open("https://example.com/phishing", {}),
+    (error) => error.name === "SecurityError"
+  );
+  assert.throws(
+    () => tabService.open("https://futcd.com/not-sbc.html", {}),
+    (error) => error.name === "SecurityError"
+  );
 }
 
 function assertMessageRouterSecurity() {
@@ -437,6 +506,7 @@ runPlayerMetaCacheTests();
 await runPackPreviewTests();
 await runBulkPackOpenTests();
 await assertRequestServiceRejectsUnapprovedUrl();
+await assertRequestServiceEnforcesResponseLimit();
 assertMessageRouterSecurity();
 assertUserscriptBundle();
 await assertPriceService();
