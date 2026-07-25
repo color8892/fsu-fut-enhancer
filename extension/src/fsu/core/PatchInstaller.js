@@ -80,7 +80,19 @@ export class PatchInstaller {
     const c = this.ctx;
     this.applyBaseStyle();
     this.wirePriceService();
-    installUnassignedPatches(c.pick("call", "events", "fy", "cntlr", "info", "debug"));
+    installUnassignedPatches(
+      c.pick(
+        "call",
+        "events",
+        "fy",
+        "cntlr",
+        "info",
+        "services",
+        "repositories",
+        "isPhone",
+        "debug"
+      )
+    );
     Object.assign(c.events, c.ctx.createSbcChemistryService(c.repositories.TeamConfig).createEventsFacade());
     installLoginPatches(c.pick("call", "events", "info", "services", "debug", "fy", "GM_getValue", "GM_xmlhttpRequest"));
     installNavigationPatches(c.pick("call", "events", "info", "isPhone", "SBCCount"));

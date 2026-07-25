@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-06-30T09:17:49.074Z",
+  "generatedAt": "2026-07-25T13:28:47.706Z",
   "bundleDir": "extension/data/ea-bundles",
   "bundles": {
     "compiled_1.js": {
@@ -8,8 +8,8 @@
       "sha256": "163ae131b32e81199531dc7cc037e6587669b1e2bcd829bdf6d248817bc76af0"
     },
     "compiled_2.js": {
-      "size": 1569253,
-      "sha256": "ea997986e9c21cdf93c52156ca757f57136dc45047be60e70e86163058c912ee"
+      "size": 1569321,
+      "sha256": "7253f76418c93f2f973d768b3047b41d2803e63a525b50742a041183ea8dadb7"
     },
     "compiled_3.js": {
       "size": 1726054,
@@ -20,8 +20,8 @@
       "sha256": "384389f4f041a49ee6024c746665f91fcb0a3680436902d3f7bc9c0d5dc3d334"
     },
     "ocompiled.js": {
-      "size": 896814,
-      "sha256": "3032d81c88184aa69ad9cd0a7d814a09f23bcdaa875c6c565bdc1faef7027575"
+      "size": 897523,
+      "sha256": "4fbdb9e5de205c810dbc06c8ff06903e0d63d82148c30a7b0886bda5dbeff672"
     }
   },
   "hooks": [
@@ -144,16 +144,6 @@
       "bundle": "compiled_3.js",
       "status": "fsu-defined",
       "snippet": null
-    },
-    {
-      "patchFile": "club-select-events.js, ui-utils.js, ui-utils.js",
-      "className": "UTItemEntity",
-      "methodName": "getPlusPlayStyles",
-      "kind": "prototype",
-      "requiresEaMethod": true,
-      "bundle": "compiled_2.js",
-      "status": "ok",
-      "snippet": "UTItemEntity.prototype.getPlusPlayStyles=function(){var t,i=null!=(t=null==(t=this.upgrades)?void 0:t.plusPlayStyles)?t:"
     },
     {
       "patchFile": "club-select-search-patches.js",
@@ -476,16 +466,6 @@
       "snippet": null
     },
     {
-      "patchFile": "panel-patches.js, rewards.js",
-      "className": "UTRewardSelectionChoiceView",
-      "methodName": "expandRewardSet",
-      "kind": "fsu-defined",
-      "requiresEaMethod": false,
-      "bundle": "compiled_3.js",
-      "status": "fsu-defined",
-      "snippet": null
-    },
-    {
       "patchFile": "picks-rewards.js",
       "className": "UTGameRewardsViewController",
       "methodName": "checkRewards",
@@ -609,21 +589,21 @@
       "patchFile": "player-meta-cache.js",
       "className": "UTItemEntity",
       "methodName": "setMetaData",
-      "kind": "prototype",
-      "requiresEaMethod": true,
+      "kind": "fsu-defined",
+      "requiresEaMethod": false,
       "bundle": "compiled_2.js",
-      "status": "ok",
-      "snippet": "UTItemEntity.prototype.setMetaData=function"
+      "status": "fsu-defined",
+      "snippet": null
     },
     {
       "patchFile": "player-meta-cache.js",
       "className": "UTItemEntityFactory",
       "methodName": "generateItemConstructorOptions",
-      "kind": "prototype",
-      "requiresEaMethod": true,
+      "kind": "fsu-defined",
+      "requiresEaMethod": false,
       "bundle": "compiled_2.js",
-      "status": "ok",
-      "snippet": "UTItemEntityFactory.prototype.generateItemConstructorOptions=function"
+      "status": "fsu-defined",
+      "snippet": null
     },
     {
       "patchFile": "rewards.js",
@@ -643,6 +623,16 @@
       "requiresEaMethod": false,
       "bundle": "compiled_3.js",
       "status": "ok",
+      "snippet": null
+    },
+    {
+      "patchFile": "rewards.js",
+      "className": "UTRewardSelectionChoiceView",
+      "methodName": "expandRewardSet",
+      "kind": "fsu-defined",
+      "requiresEaMethod": false,
+      "bundle": "compiled_3.js",
+      "status": "fsu-defined",
       "snippet": null
     },
     {
@@ -669,11 +659,11 @@
       "patchFile": "sbc-challenges.js",
       "className": "UTSBCChallengesViewController",
       "methodName": "viewDidAppear",
-      "kind": "prototype",
-      "requiresEaMethod": true,
+      "kind": "fsu-defined",
+      "requiresEaMethod": false,
       "bundle": "compiled_4.js",
-      "status": "ok",
-      "snippet": "UTSBCChallengesViewController.prototype.viewDidAppear=function(){var e,i;o.prototype.viewDidAppear.call(this),this.sbset"
+      "status": "fsu-defined",
+      "snippet": null
     },
     {
       "patchFile": "sbc-fill-events.js",
@@ -929,11 +919,11 @@
       "patchFile": "sbc-submit.js",
       "className": "UTSBCService",
       "methodName": "submitChallenge",
-      "kind": "prototype",
-      "requiresEaMethod": true,
+      "kind": "fsu-defined",
+      "requiresEaMethod": false,
       "bundle": "compiled_2.js",
-      "status": "ok",
-      "snippet": "UTSBCService.prototype.submitChallenge=function(o,r,i,n){var a,s,l=this,c=new EAObservable,u=new UTServiceResponseDTO;re"
+      "status": "fsu-defined",
+      "snippet": null
     },
     {
       "patchFile": "search-events.js",
@@ -1019,21 +1009,21 @@
       "patchFile": "store.js",
       "className": "UTStoreHubView",
       "methodName": "togglePackTileDisplay",
-      "kind": "prototype",
-      "requiresEaMethod": true,
+      "kind": "fsu-defined",
+      "requiresEaMethod": false,
       "bundle": "compiled_4.js",
-      "status": "ok",
-      "snippet": "UTStoreHubView.prototype.togglePackTileDisplay=function"
+      "status": "fsu-defined",
+      "snippet": null
     },
     {
       "patchFile": "store.js",
       "className": "UTStoreHubViewController",
       "methodName": "onPackLoadComplete",
-      "kind": "prototype",
-      "requiresEaMethod": true,
+      "kind": "fsu-defined",
+      "requiresEaMethod": false,
       "bundle": "compiled_4.js",
-      "status": "ok",
-      "snippet": "UTStoreHubViewController.prototype.onPackLoadComplete=function(e,t){e.unobserve(this);var i,o,e=this.getView(),n=getAppM"
+      "status": "fsu-defined",
+      "snippet": null
     },
     {
       "patchFile": "store.js",
@@ -1059,11 +1049,11 @@
       "patchFile": "store.js",
       "className": "UTStoreViewController",
       "methodName": "eOpenPack",
-      "kind": "prototype",
-      "requiresEaMethod": true,
+      "kind": "fsu-defined",
+      "requiresEaMethod": false,
       "bundle": "compiled_4.js",
-      "status": "ok",
-      "snippet": "UTStoreViewController.prototype.eOpenPack=function(a,e,t){var i,r,s,l,o,n,c,u,d,p=this;this.isOpeningPack||(r=this.getVi"
+      "status": "fsu-defined",
+      "snippet": null
     },
     {
       "patchFile": "store.js",
@@ -1076,6 +1066,16 @@
       "snippet": null
     },
     {
+      "patchFile": "ui-utils.js",
+      "className": "UTItemEntity",
+      "methodName": "getPlusPlayStyles",
+      "kind": "fsu-defined",
+      "requiresEaMethod": false,
+      "bundle": "compiled_2.js",
+      "status": "fsu-defined",
+      "snippet": null
+    },
+    {
       "patchFile": "unassigned.js",
       "className": "UTUnassignedItemsView",
       "methodName": "renderSection",
@@ -1084,6 +1084,16 @@
       "bundle": "compiled_3.js",
       "status": "fsu-defined",
       "snippet": null
+    },
+    {
+      "patchFile": "unassigned.js",
+      "className": "UTUnassignedItemsViewController",
+      "methodName": "getUnassignedItems",
+      "kind": "prototype",
+      "requiresEaMethod": true,
+      "bundle": "compiled_3.js",
+      "status": "ok",
+      "snippet": "UTUnassignedItemsViewController.prototype.getUnassignedItems=function(o){var n=this;void 0===o&&(o=!0),this.viewmodel&&t"
     },
     {
       "patchFile": "unassigned.js",

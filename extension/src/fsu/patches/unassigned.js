@@ -1,7 +1,79 @@
 import {setTrustedHtml, createTrustedMarkup } from "../ui/HtmlSafety.js";
 
+export function requestUnassignedItemsSafely(
+  controller,
+  notifyDataChange = true,
+  helpers
+) {
+  const request = controller?.viewmodel?.requestUnassignedItems?.();
+  if (!request || typeof request.observe !== "function") {
+    return false;
+  }
+
+  request.observe(controller, (subscription, result) => {
+    subscription?.unobserve?.(controller);
+
+    const view = controller.getView?.();
+    if (!view || typeof view.setInteractionState !== "function") {
+      helpers.debug?.log?.(
+        "Skipped unassigned refresh completion for a detached view"
+      );
+      return;
+    }
+
+    view.setInteractionState(true);
+    if (result?.success) {
+      controller.renderView?.();
+      if (notifyDataChange) {
+        controller.onDataChange?.notify?.();
+      }
+      return;
+    }
+
+    const networkErrorController = helpers.getNetworkErrorController();
+    if (networkErrorController?.checkCriticalStatus?.(result?.status)) {
+      networkErrorController.handleStatus(result.status);
+      return;
+    }
+    helpers.notifyLoadFailure();
+  });
+  return true;
+}
+
 export function installUnassignedPatches(deps) {
-  const { call, events, fy, cntlr, info } = deps;
+  const {
+    call,
+    events,
+    fy,
+    cntlr,
+    info,
+    services,
+    repositories,
+    isPhone,
+    debug
+  } = deps;
+
+  const eaGetUnassignedItems =
+    UTUnassignedItemsViewController.prototype.getUnassignedItems;
+  if (typeof eaGetUnassignedItems === "function") {
+    UTUnassignedItemsViewController.prototype.getUnassignedItems = function (
+      notifyDataChange
+    ) {
+      if (notifyDataChange === undefined) {
+        notifyDataChange = true;
+      }
+      requestUnassignedItemsSafely(this, notifyDataChange, {
+        getNetworkErrorController: () =>
+          getAppMain().getNetworkErrorController(),
+        notifyLoadFailure: () =>
+          services.Notification.queue([
+            services.Localization.localize("newitems.loaderror"),
+            UINotificationType.NEGATIVE
+          ]),
+        debug
+      });
+    };
+  }
 
   UTUnassignedItemsViewController.prototype.updateUntradeableDuplicateSectionOptions = function (...args) {
       call.view.unassignedUpdateUDSO.call(this, ...args);

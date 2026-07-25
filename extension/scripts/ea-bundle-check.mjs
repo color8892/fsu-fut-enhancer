@@ -30,6 +30,16 @@ if (!fs.existsSync(bundleDir)) {
 }
 
 const current = buildBaseline(bundleDir, patchesDir);
+const repositoryRoot = path.dirname(extensionRoot);
+const relativeBundleDir = path.relative(repositoryRoot, bundleDir);
+if (
+  relativeBundleDir &&
+  relativeBundleDir !== ".." &&
+  !relativeBundleDir.startsWith(`..${path.sep}`) &&
+  !path.isAbsolute(relativeBundleDir)
+) {
+  current.bundleDir = relativeBundleDir;
+}
 
 if (updateBaseline) {
   fs.mkdirSync(path.dirname(baselinePath), { recursive: true });

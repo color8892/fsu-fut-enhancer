@@ -2167,8 +2167,65 @@
   ]);
 
   // src/fsu/patches/unassigned.js
+  function requestUnassignedItemsSafely(controller, notifyDataChange = true, helpers) {
+    const request = controller?.viewmodel?.requestUnassignedItems?.();
+    if (!request || typeof request.observe !== "function") {
+      return false;
+    }
+    request.observe(controller, (subscription, result) => {
+      subscription?.unobserve?.(controller);
+      const view = controller.getView?.();
+      if (!view || typeof view.setInteractionState !== "function") {
+        helpers.debug?.log?.(
+          "Skipped unassigned refresh completion for a detached view"
+        );
+        return;
+      }
+      view.setInteractionState(true);
+      if (result?.success) {
+        controller.renderView?.();
+        if (notifyDataChange) {
+          controller.onDataChange?.notify?.();
+        }
+        return;
+      }
+      const networkErrorController = helpers.getNetworkErrorController();
+      if (networkErrorController?.checkCriticalStatus?.(result?.status)) {
+        networkErrorController.handleStatus(result.status);
+        return;
+      }
+      helpers.notifyLoadFailure();
+    });
+    return true;
+  }
   function installUnassignedPatches(deps) {
-    const { call, events, fy: fy2, cntlr: cntlr2, info } = deps;
+    const {
+      call,
+      events,
+      fy: fy2,
+      cntlr: cntlr2,
+      info,
+      services: services2,
+      repositories: repositories2,
+      isPhone: isPhone2,
+      debug: debug2
+    } = deps;
+    const eaGetUnassignedItems = UTUnassignedItemsViewController.prototype.getUnassignedItems;
+    if (typeof eaGetUnassignedItems === "function") {
+      UTUnassignedItemsViewController.prototype.getUnassignedItems = function(notifyDataChange) {
+        if (notifyDataChange === void 0) {
+          notifyDataChange = true;
+        }
+        requestUnassignedItemsSafely(this, notifyDataChange, {
+          getNetworkErrorController: () => getAppMain().getNetworkErrorController(),
+          notifyLoadFailure: () => services2.Notification.queue([
+            services2.Localization.localize("newitems.loaderror"),
+            UINotificationType.NEGATIVE
+          ]),
+          debug: debug2
+        });
+      };
+    }
     UTUnassignedItemsViewController.prototype.updateUntradeableDuplicateSectionOptions = function(...args) {
       call.view.unassignedUpdateUDSO.call(this, ...args);
       let section = this.getView().getSection(UTUnassignedItemsViewModel.SECTION.UNTRADABLEDUPLICATES);
@@ -2187,7 +2244,7 @@
           new UTStandardButtonControl(),
           fy2("unassignedlist.refresh.btn"),
           async (_e) => {
-            await services.Item.itemDao.itemRepo.unassigned.reset();
+            await services2.Item.itemDao.itemRepo.unassigned.reset();
             await controller.getUnassignedItems();
             events.notice("notice.uasreset", 0);
           },
@@ -2261,10 +2318,10 @@
           let playerIds = _.map(players, (i2) => {
             return i2.definitionId;
           });
-          let r = repositories.Item;
+          let r = repositories2.Item;
           if (r.numItemsInCache(ItemPile.STORAGE) && !_.has(section, "_fsuGoToStorage")) {
-            let sendClubPlayers = _.filter(repositories.Item.storage.values(), (i2) => {
-              let clubPlayers = events.getItemBy(1, { "definitionId": i2.definitionId, "upgrades": null }, false, repositories.Item.club.items.values());
+            let sendClubPlayers = _.filter(repositories2.Item.storage.values(), (i2) => {
+              let clubPlayers = events.getItemBy(1, { "definitionId": i2.definitionId, "upgrades": null }, false, repositories2.Item.club.items.values());
               return clubPlayers.length == 0;
             });
             if (sendClubPlayers.length) {
@@ -2323,9 +2380,9 @@
               new UTImageButtonControl(),
               "",
               async (_e) => {
-                const controller2 = isPhone() ? cntlr2.current() : cntlr2.left();
+                const controller2 = isPhone2() ? cntlr2.current() : cntlr2.left();
                 let movePlayers = storageLack < hPlayers.length ? _.take(hPlayers, storageLack) : hPlayers;
-                services.Item.move(movePlayers, ItemPile.STORAGE, true).observe(controller2, controller2.onMoveToStorageComplete);
+                services2.Item.move(movePlayers, ItemPile.STORAGE, true).observe(controller2, controller2.onMoveToStorageComplete);
               },
               "filter-btn fsu-storage"
             );
@@ -2376,7 +2433,7 @@
           new UTImageButtonControl(),
           "",
           async (_e) => {
-            await services.Item.itemDao.itemRepo.unassigned.reset();
+            await services2.Item.itemDao.itemRepo.unassigned.reset();
             await controller.getUnassignedItems();
             events.notice("notice.uasreset", 0);
           },
@@ -2400,10 +2457,10 @@
         });
         console.log(fastList);
         if (fastList.length) {
-          if (_.size(services.SBC.repository.getSets())) {
+          if (_.size(services2.SBC.repository.getSets())) {
             controller._fsuFastList = [];
             _.forOwn(fastList, (i2) => {
-              const set = services.SBC.repository.getSetById(i2.sId);
+              const set = services2.SBC.repository.getSetById(i2.sId);
               const challenge = set ? set.getChallenge(i2.cId) : null;
               if (set && !set.isComplete() && (challenge == null || !challenge.isCompleted())) {
                 let btnTitle;
@@ -2427,9 +2484,9 @@
                       if (btn._swap.length) {
                         console.log("有可交换的");
                         events.showLoader();
-                        services.Item.move(btn._swap, ItemPile.CLUB).observe(cntlr2.current(), async (e4, t2) => {
+                        services2.Item.move(btn._swap, ItemPile.CLUB).observe(cntlr2.current(), async (e4, t2) => {
                           if (e4.unobserve(cntlr2.current()), t2.success) {
-                            services.Item.requestUnassignedItems().observe(cntlr2.current(), (ee, tt) => {
+                            services2.Item.requestUnassignedItems().observe(cntlr2.current(), (ee, tt) => {
                               ee.unobserve(cntlr2.current());
                               if (tt.success) {
                                 events.isSBCCache(btn._sId, btn._cId);
@@ -2439,7 +2496,7 @@
                               }
                             });
                           } else {
-                            services.Notification.queue([services.Localization.localize("notification.item.moveFailed"), UINotificationType.NEGATIVE]);
+                            services2.Notification.queue([services2.Localization.localize("notification.item.moveFailed"), UINotificationType.NEGATIVE]);
                           }
                         });
                       } else {
@@ -14008,7 +14065,19 @@
       const c = this.ctx;
       this.applyBaseStyle();
       this.wirePriceService();
-      installUnassignedPatches(c.pick("call", "events", "fy", "cntlr", "info", "debug"));
+      installUnassignedPatches(
+        c.pick(
+          "call",
+          "events",
+          "fy",
+          "cntlr",
+          "info",
+          "services",
+          "repositories",
+          "isPhone",
+          "debug"
+        )
+      );
       Object.assign(c.events, c.ctx.createSbcChemistryService(c.repositories.TeamConfig).createEventsFacade());
       installLoginPatches(c.pick("call", "events", "info", "services", "debug", "fy", "GM_getValue", "GM_xmlhttpRequest"));
       installNavigationPatches(c.pick("call", "events", "info", "isPhone", "SBCCount"));

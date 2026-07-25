@@ -4,6 +4,11 @@ All notable user-visible and maintenance changes are recorded here.
 
 ## [Unreleased]
 
+### Fixed
+
+- Prevent detached Unassigned Items views from throwing while an asynchronous
+  refresh completes.
+
 ### Security
 
 - Enforce the 5 MB remote response limit while streaming instead of after buffering.
