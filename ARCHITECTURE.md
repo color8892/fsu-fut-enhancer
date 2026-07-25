@@ -458,7 +458,7 @@ flowchart TD
 | `getItemBy` | 俱樂部/倉庫搜尋 | `core/ModuleRegistry.js` |
 | `invalidatePlayerSearchCache` | 清除搜尋快取 | `core/ModuleRegistry.js` |
 | `isPrecious` | 是否保留高價球員 | `core/ModuleRegistry.js` |
-| `loadPlayerInfo` / `getGGRating` / `getPlayerGGR` | 球員資訊 / GG 評分 | `patches/player-list.js` |
+| `loadPlayerInfo` / `fgCalc` / `fgPopup` | 球員資訊 / FG 評分 | `patches/player-list.js`、`patches/player-meta.js` |
 | `playerSelectionSort` | 選人排序 | `patches/navigation.js` |
 | `listSortFilter` / `fsuDispose` | 清單排序 / 清理 | `patches/lifecycle-patches.js` |
 | `setListFilterTitleAndState` / `listFilterData` | 篩選 UI | `patches/club-select-events.js` |

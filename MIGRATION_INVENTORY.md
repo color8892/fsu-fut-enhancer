@@ -26,6 +26,9 @@ phase, or an EA capability changes.
 - Player metadata contracts: `extension/src/fsu/domain/PlayerMetadataResults.js`
 - Player details fixtures: `extension/tests/player-metadata-results.test.mjs`,
   `extension/tests/player-details-lifecycle.test.mjs`
+- Local PlayerMeta cache/hydration: `extension/src/fsu/domain/PlayerMetaCacheService.js`,
+  `extension/src/fsu/patches/player-meta-cache.js`
+- PlayerMeta fixtures: `extension/tests/player-meta-cache.test.mjs`
 - Store pack catalog boundary: `extension/src/fsu/ea/StorePackCatalogAdapter.js`,
   `extension/src/fsu/domain/StorePackCatalogService.js`
 - Store catalog/lifecycle fixtures: `extension/tests/store-pack-catalog.test.mjs`
@@ -36,6 +39,10 @@ phase, or an EA capability changes.
   `extension/src/fsu/ea/InPacksSearchAdapter.js`
 - In-packs fixtures: `extension/tests/in-packs-search.test.mjs`
 - Store UI lifecycle fixtures: `extension/tests/store-ui-lifecycle.test.mjs`
+- Pack/player-pick preview boundary: `extension/src/fsu/domain/PackPreviewResults.js`,
+  `extension/src/fsu/domain/PackPreviewService.js`
+- Preview/bulk-open fixtures: `extension/tests/pack-preview.test.mjs`,
+  `extension/tests/bulk-pack-open.test.mjs`
 
 The EA bundle baseline verifies that referenced classes and methods can be found in a
 sanitized local bundle. It does not verify patch behavior, idempotence, restore, DOM
@@ -63,7 +70,7 @@ Classification rules:
 
 | Class | Files | Current migration need |
 |-------|-------|------------------------|
-| `pure` | `InPacksSearchResults.js`, `InPacksSearchService.js`, `PlayerLockService.js`, `SbcChemistryService.js`, `SbcRequirementsService.js`, `SbcResponseAdapter.js`, `SbcSnapshotResults.js`, `SbcUndoHistoryService.js`, `StorePackCatalogService.js`, `StorePackOpenResults.js`, `lodashMixins.js` | Keep ambient-runtime free and add to strict island when contracts are complete. |
+| `pure` | `BulkPackOpenService.js`, `InPacksSearchResults.js`, `InPacksSearchService.js`, `PackPreviewResults.js`, `PackPreviewService.js`, `PlayerLockService.js`, `PlayerMetaCacheService.js`, `SbcChemistryService.js`, `SbcRequirementsService.js`, `SbcResponseAdapter.js`, `SbcSnapshotResults.js`, `SbcUndoHistoryService.js`, `StorePackCatalogService.js`, `StorePackOpenResults.js`, `lodashMixins.js` | Keep ambient-runtime free and add to strict island when contracts are complete. |
 | `EA-boundary` | `FastSbcPlannerService.js`, `MarketActionService.js`, `PriceService.js`, `SbcSquadSaveService.js`, `StorePackOpenTransactionService.js` | Replace remaining raw EA entity/view shapes with small capability and renderer interfaces. |
 | `legacy-domain` | `AcademyCalcService.js`, `BuildPreferencesService.js`, `FastSbcService.js`, `FgRatingService.js`, `Localization.js`, `OneFillCriteriaService.js`, `PlayerSearchService.js`, `PlayerValueService.js`, `RemoteConfigService.js`, `SbcCountService.js`, `SbcDataService.js`, `SbcPlayerMatchService.js`, `SbcRatingService.js`, `SbcSquadFillService.js`, `SbcTemplateService.js`, `SettingsService.js` | Remove ambient globals one vertical slice at a time; do not bulk-move files without behavior tests. |
 
@@ -90,7 +97,8 @@ details and must not be mixed into EA compatibility diagnostics.
 `home.academy-tile`, `market.search-view-generate`, `price.squad-value`,
 `details.quick-list-render`, `sbc.challenges-view`, `sbc.submit-transaction` and
 `store.pack-list`, `store.pack-open-transaction`, `store.reveal-list`,
-`store.pack-animation`, `store.category-navigation` and `store.hub-tiles` have direct
+`store.pack-animation`, `store.category-navigation`, `store.hub-tiles` and
+`store.hub-pack-count` have direct
 lifecycle behavior tests. For every other family, `EA baseline` below means target
 compatibility evidence, not behavioral coverage.
 
@@ -103,9 +111,9 @@ verify/apply failure, failure isolation, sanitized diagnostics and reverse resto
 | `installEarly` | `unassigned.js`, `login.js`, `navigation.js`, `squad-builder.js`, `player-cards.js` -> `player-item.js` + `misc-item.js`; plus tactics-role assignment in `PatchInstaller` | 10 | Medium | EA baseline |
 | `installHubAndLists` | `picks-rewards.js`, `squad-overview-view.js`, `sectioned-list.js`, `build-ignore.js`, `player-list.js`; `price.squad-value` uses lifecycle descriptor; `sbc-hub.js`, `academy-hub.js`, `sbc-nav-events.js` -> `sbc-challenges.js`; `sbc.challenges-view` uses lifecycle descriptor | 18 | Medium | Squad-value/challenges lifecycle behavior + EA baseline |
 | `installSbcCore` | `player-bio.js`, `panel-patches.js`; `details.quick-list-render` uses lifecycle descriptor; `sbc-substitution.js`, `objectives-hub.js`, `home-hub.js` | 10 | Medium | Player-details lifecycle behavior + EA baseline |
-| `installMarketAndSquad` | `market.js`; `market.search-view-generate` uses lifecycle descriptor; `store.js`; six Store patches use lifecycle descriptors and ten Store controller methods are extension-owned; `search-events.js`, submit portion of `sbc-squad.js`, `sbc-fill-events.js`, `sbc-fill-patches.js`, `sbc-tile-events.js`, `sbc-reward-events.js`, `sbc-fast.js` | 25 | High | Search/store lifecycle behavior + EA baseline |
+| `installMarketAndSquad` | `market.js`; `market.search-view-generate` uses lifecycle descriptor; `store.js`; seven Store patches use lifecycle descriptors and ten Store controller methods are extension-owned; `search-events.js`, submit portion of `sbc-squad.js`, `sbc-fill-events.js`, `sbc-fill-patches.js`, `sbc-tile-events.js`, `sbc-reward-events.js`, `sbc-fast.js` | 25 | High | Search/store lifecycle behavior + EA baseline |
 | `installClubAndUi` | `club-select.js`, `club-select-events.js`, `club-select-search-patches.js`, `rewards.js`, `club-hub.js`, `list-filter-events.js`, `ui-utils.js`, `player-meta.js` | 13 | Medium | EA baseline |
-| `installLate` | `sbc-submit.js`; `sbc.submit-transaction` uses lifecycle descriptor; `misc-patches.js`, requirements portion of `sbc-squad.js`, `lifecycle-patches.js`, `academy-details.js`, `sbc-squad-overview.js` | 9 | High | Submit lifecycle behavior + EA baseline |
+| `installLate` | `sbc-submit.js`; `sbc.submit-transaction` uses lifecycle descriptor; `misc-patches.js`, requirements portion of `sbc-squad.js`, `lifecycle-patches.js`, `academy-details.js`, `sbc-squad-overview.js`, `player-meta-cache.js` | 9 | High | Submit/PlayerMeta behavior + EA baseline |
 | Late renderer only | `player-details.js` | 0 | Low | Indirect bundle symbol assertion |
 
 Special wiring constraints:
@@ -141,6 +149,8 @@ Special wiring constraints:
   Reveal/category/hub preserve the EA method return value and isolate post-render
   augmentation failures. Animation supports an originally absent own method and removes
   the injected property on restore.
+- `store.hub-pack-count` wraps EA render-first, derives only the unopened-pack count,
+  removes its badge when hidden, and restores the exact original descriptor.
 - The six `PatchInstaller` phases preserve legacy call order and must remain the
   compatibility layer while descriptors are introduced.
 
@@ -171,6 +181,8 @@ false/null result instead of exposing raw EA services to domain modules.
 | `store.pack-catalog` | `snapshot()` | article fields, currency enum, `getPrice`, localization and pack value | Pack grouping, sorting and display summaries | Unit |
 | `store.pack-open` | `prepare()`, `readCompletion()` | viewmodel pack selection, `isOpeningPack`, my-packs inventory | Duplicate guard and repeat-pack state commit | Unit + browser lifecycle |
 | `store.in-packs-search` | `requestPage()` | `UTSearchCriteriaDTO`, `services.Item.searchConceptItems` observable | Bounded concept-player pagination | Unit |
+| `store.bulk-pack-open` | `prepare()`, `openAndAssign()` | unassigned/store repositories, pack observable, club/storage move | Cancellable, capped sequential open and assignment | Unit |
+| `player.local-meta` | `capture()`, `hydrate()` | metadata XHR, EA item factory/entity constructors | Year-scoped local PlayerMeta reuse | Unit + EA baseline |
 
 Remote SBC squad responses are validated by `SbcSnapshotResults` before consumption.
 Futbin player mappings and prices are committed through one validated

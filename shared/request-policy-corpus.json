@@ -95,11 +95,43 @@
       "expect": "deny"
     },
     {
+      "id": "allow-www-futnext-pack-open",
+      "url": "https://www.futnext.com/pack/Gold-Pack/1001/open",
+      "method": "GET",
+      "expect": "allow",
+      "endpoint": "public"
+    },
+    {
+      "id": "allow-www-futnext-playerpick-open",
+      "url": "https://www.futnext.com/playerpick/Player-Pick/2002/open",
+      "method": "GET",
+      "expect": "allow",
+      "endpoint": "public"
+    },
+    {
+      "id": "allow-www-futnext-pack-probability",
+      "url": "https://www.futnext.com/pack/Gold-Pack/1001/",
+      "method": "GET",
+      "expect": "allow",
+      "endpoint": "public"
+    },
+    {
       "id": "deny-www-futnext-broad",
       "url": "https://www.futnext.com/anything",
       "method": "GET",
-      "expect": "deny",
-      "note": "www.futnext.com is unused; only enhancer-api.futnext.com/players/prices is allowed"
+      "expect": "deny"
+    },
+    {
+      "id": "deny-www-futnext-path-traversal",
+      "url": "https://www.futnext.com/pack/../admin/1001/open",
+      "method": "GET",
+      "expect": "deny"
+    },
+    {
+      "id": "deny-www-futnext-encoded-slash",
+      "url": "https://www.futnext.com/pack/Gold%2FPack/1001/open",
+      "method": "GET",
+      "expect": "deny"
     },
     {
       "id": "allow-ea-transfermarket",
@@ -300,6 +332,22 @@
       "host": "enhancer-api.futnext.com",
       "paths": [
         "/players/prices"
+      ],
+      "endpoint": "public",
+      "credentials": "omit",
+      "sides": [
+        "extension",
+        "companion"
+      ]
+    },
+    {
+      "id": "futnext-pack-preview",
+      "origin": "https://www.futnext.com",
+      "host": "www.futnext.com",
+      "paths": [
+        "/pack/Gold-Pack/1001/open",
+        "/playerpick/Player-Pick/2002/open",
+        "/pack/Gold-Pack/1001/"
       ],
       "endpoint": "public",
       "credentials": "omit",

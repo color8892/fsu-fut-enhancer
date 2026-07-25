@@ -93,6 +93,47 @@ fn is_futbin_path(path: &str) -> bool {
         && ACTIONS.contains(&parts[3])
 }
 
+fn is_futnext_preview_path(path: &str) -> bool {
+    let parts: Vec<&str> = path.trim_matches('/').split('/').collect();
+    let valid_slug = |slug: &str| {
+        if slug.is_empty() || slug.len() > 192 || matches!(slug, "." | "..") {
+            return false;
+        }
+        let bytes = slug.as_bytes();
+        let mut index = 0;
+        while index < bytes.len() {
+            let byte = bytes[index];
+            if byte == b'%' {
+                if index + 2 >= bytes.len() {
+                    return false;
+                }
+                let (Some(high), Some(low)) = (
+                    (bytes[index + 1] as char).to_digit(16),
+                    (bytes[index + 2] as char).to_digit(16),
+                ) else {
+                    return false;
+                };
+                let decoded = ((high << 4) | low) as u8;
+                if decoded == b'/' || decoded == b'\\' || decoded <= 0x1f || decoded == 0x7f {
+                    return false;
+                }
+                index += 3;
+                continue;
+            }
+            if !(byte.is_ascii_alphanumeric() || matches!(byte, b'&' | b'.' | b'_' | b'-')) {
+                return false;
+            }
+            index += 1;
+        }
+        true
+    };
+    match parts.as_slice() {
+        ["pack", slug, id] => valid_slug(slug) && digits(id),
+        ["pack" | "playerpick", slug, id, "open"] => valid_slug(slug) && digits(id),
+        _ => false,
+    }
+}
+
 fn authorize_url(raw: &str) -> Result<(Url, Endpoint), String> {
     let url = Url::parse(raw).map_err(|_| "invalid request URL".to_string())?;
     if url.scheme() != "https" || !url.username().is_empty() || url.password().is_some() {
@@ -104,6 +145,7 @@ fn authorize_url(raw: &str) -> Result<(Url, Endpoint), String> {
         ("www.fut.gg", path) if is_fut_gg_path(path) => Endpoint::Public,
         ("www.futbin.org", path) if is_futbin_path(path) => Endpoint::Public,
         ("enhancer-api.futnext.com", "/players/prices") => Endpoint::Public,
+        ("www.futnext.com", path) if is_futnext_preview_path(path) => Endpoint::Public,
         ("utas.mob.v5.prd.futc-ext.gcp.ea.com", "/ut/game/fc26/transfermarket") => {
             Endpoint::EaTransferMarket
         }
@@ -668,6 +710,7 @@ mod tests {
         // Companion production hosts must equal inventory (no silent extras).
         // Spot-check known denials outside inventory stay denied.
         assert!(authorize_url("https://www.futnext.com/anything").is_err());
+        assert!(authorize_url("https://www.futnext.com/pack/Gold-Pack/1001/open").is_ok());
         assert!(authorize_url("https://evil.example/26/updata.json").is_err());
 
         // Every allow urlCase host must appear in inventory.

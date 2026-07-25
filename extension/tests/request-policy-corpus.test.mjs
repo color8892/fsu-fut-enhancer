@@ -189,14 +189,14 @@ export function runRequestPolicyCorpusTests() {
     "manifest API host_permissions must match productionEndpoints inventory"
   );
 
-  // Explicit regression: unused broad www.futnext.com must stay denied / absent.
+  // Broad www.futnext.com access stays denied; only preview/probability routes are allowed.
   assert.equal(
     authorizeOrNull(policy, "GET", "https://www.futnext.com/anything").ok,
     false,
     "www.futnext.com must be denied"
   );
   assert.ok(
-    !manifest.host_permissions.includes("https://www.futnext.com/*"),
-    "manifest must not grant www.futnext.com/*"
+    manifest.host_permissions.includes("https://www.futnext.com/*"),
+    "manifest must grant the policy-enforced FutNext preview host"
   );
 }

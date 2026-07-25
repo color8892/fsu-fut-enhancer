@@ -3,12 +3,15 @@ import { PatchLifecycleRegistry } from "../src/fsu/core/PatchLifecycleRegistry.j
 import { StorePackCatalogService } from "../src/fsu/domain/StorePackCatalogService.js";
 import {
   STORE_PACK_ARTICLE_ERROR_CODES,
-  StorePackCatalogAdapter
+  StorePackCatalogAdapter,
+  isPlayerPackContentType
 } from "../src/fsu/ea/StorePackCatalogAdapter.js";
 import {
   STORE_PATCH_IDS,
+  isMyPacksCategory,
   installStorePackListPatch,
-  registerStorePackListLifecycleEvents
+  registerStorePackListLifecycleEvents,
+  resolveStorePackSummary
 } from "../src/fsu/patches/store.js";
 
 const COINS = "coins";
@@ -53,6 +56,24 @@ function createCatalog(values) {
 }
 
 export function runStorePackCatalogTests() {
+  assert.equal(isPlayerPackContentType("players"), true);
+  assert.equal(isPlayerPackContentType("PLAYER"), true);
+  assert.equal(isPlayerPackContentType("player-items"), true);
+  assert.equal(isPlayerPackContentType("mixed"), false);
+  assert.equal(isMyPacksCategory("my-packs"), true);
+  assert.equal(isMyPacksCategory({ categoryId: "MY_PACKS" }), true);
+  assert.equal(isMyPacksCategory("promo"), false);
+  assert.deepEqual(
+    resolveStorePackSummary(
+      {
+        "1-true": { packId: 1, tradable: true, count: 2 },
+        "1-false": { packId: 1, tradable: false, count: 3 }
+      },
+      "1",
+      { tradable: false }
+    ),
+    { packId: 1, tradable: false, count: 3 }
+  );
   const first = createArticle({ id: 1, tradable: true });
   const duplicate = createArticle({ id: 1, tradable: true });
   const second = createArticle({ id: 2 });
@@ -83,6 +104,33 @@ export function runStorePackCatalogTests() {
   assert.deepEqual(myPacks.data.warnings, [
     { index: 2, code: STORE_PACK_ARTICLE_ERROR_CODES.INVALID }
   ]);
+
+  const unknownValueAdapter = new StorePackCatalogAdapter({
+    coinsCurrency: COINS,
+    pointsCurrency: POINTS,
+    localize: (key) => `Localized ${key}`,
+    getPackValue: () => undefined,
+    truncate: (text) => text
+  });
+  const unknownOwnedPack = unknownValueAdapter.snapshot(
+    createArticle({ id: 9, contentType: "player" }),
+    {
+      categoryId: "mypacks",
+      isMyPacks: true,
+      nowSeconds: 100_000
+    }
+  );
+  assert.equal(unknownOwnedPack.success, true);
+  assert.equal(unknownOwnedPack.data.value, 0);
+  assert.equal(unknownOwnedPack.data.isPlayers, true);
+  assert.equal(
+    unknownValueAdapter.snapshot(createArticle({ id: 9 }), {
+      categoryId: "promo",
+      isMyPacks: false,
+      nowSeconds: 100_000
+    }).success,
+    false
+  );
 
   const coinOnly = createArticle({
     id: 10,

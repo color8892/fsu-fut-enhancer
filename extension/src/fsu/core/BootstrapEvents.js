@@ -102,5 +102,11 @@ export function attachBootstrapEvents(events, { info, cntlr, isPhone, fy }) {
     if (info.run.bulkbuy) {
       info.run.bulkbuy = false;
     }
+    if (
+      typeof events.isBulkPackOpenRunning === "function" &&
+      events.isBulkPackOpenRunning()
+    ) {
+      events.cancelBulkPackOpen();
+    }
   };
 }

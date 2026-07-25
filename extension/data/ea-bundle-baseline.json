@@ -606,6 +606,26 @@
       "snippet": null
     },
     {
+      "patchFile": "player-meta-cache.js",
+      "className": "UTItemEntity",
+      "methodName": "setMetaData",
+      "kind": "prototype",
+      "requiresEaMethod": true,
+      "bundle": "compiled_2.js",
+      "status": "ok",
+      "snippet": "UTItemEntity.prototype.setMetaData=function"
+    },
+    {
+      "patchFile": "player-meta-cache.js",
+      "className": "UTItemEntityFactory",
+      "methodName": "generateItemConstructorOptions",
+      "kind": "prototype",
+      "requiresEaMethod": true,
+      "bundle": "compiled_2.js",
+      "status": "ok",
+      "snippet": "UTItemEntityFactory.prototype.generateItemConstructorOptions=function"
+    },
+    {
       "patchFile": "rewards.js",
       "className": "UTGameRewardsViewController",
       "methodName": "onButtonTapped",
@@ -994,6 +1014,16 @@
       "bundle": "compiled_4.js",
       "status": "fsu-defined",
       "snippet": null
+    },
+    {
+      "patchFile": "store.js",
+      "className": "UTStoreHubView",
+      "methodName": "togglePackTileDisplay",
+      "kind": "prototype",
+      "requiresEaMethod": true,
+      "bundle": "compiled_4.js",
+      "status": "ok",
+      "snippet": "UTStoreHubView.prototype.togglePackTileDisplay=function"
     },
     {
       "patchFile": "store.js",

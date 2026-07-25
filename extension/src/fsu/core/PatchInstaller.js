@@ -43,6 +43,7 @@ import {
 } from "../patches/sbc-squad-overview.js";
 import { installPlayerBioPatches } from "../patches/player-bio.js";
 import { installPanelPatches } from "../patches/panel-patches.js";
+import { installPlayerMetaCachePatches } from "../patches/player-meta-cache.js";
 
 /**
  * Declarative patch installer preserving legacy hook order.
@@ -214,7 +215,7 @@ export class PatchInstaller {
         "AssetLocationUtils",
         "unsafeWindow",
         "patchLifecycle",
-        "debug"
+        "httpClient"
       )
     );
     installSearchPatches(c.pick("call", "events", "info", "isPhone", "cntlr", "fy"));
@@ -315,6 +316,16 @@ export class PatchInstaller {
 
   installLate() {
     const c = this.ctx;
+    installPlayerMetaCachePatches(
+      c.pick(
+        "info",
+        "services",
+        "repositories",
+        "GM_setValue",
+        "patchLifecycle",
+        "debug"
+      )
+    );
     installSbcSubmitPatch({
       sbcCountService: c.ctx.sbcCountService,
       onCountChanged: () => c.SBCCount.changeCount(),

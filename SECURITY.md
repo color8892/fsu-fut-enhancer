@@ -28,6 +28,9 @@ Code running in the page world is not trusted merely because it is on an allowed
 - Executable JavaScript is packaged with the extension. Remote code fallbacks are not allowed.
 - Remote text must use `textContent` or escaping before entering a trusted HTML helper.
 - New host permissions require a documented feature need and rejection tests.
+- `www.futnext.com` is used only for GET pack/player-pick preview and probability
+  routes matching `/pack|playerpick/<bounded-slug>/<numeric-id>/(open)?`; arbitrary
+  FutNext paths, methods, headers, credentials, and redirects remain denied.
 - Companion's Embedded HTTP bridge is GET-only and independently validates the caller window, remote capability URL, endpoint path, headers, timeout, redirects, and 5 MB response limit.
 - Embedded runtime scripts execute only on the exact FUT host/path; EA authentication pages do not receive FSU globals or UI.
 
