@@ -5,7 +5,7 @@
 [![Release](https://img.shields.io/github/v/release/color8892/fsu-fut-enhancer?label=release)](https://github.com/color8892/fsu-fut-enhancer/releases/latest)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-FSU is an open-source Chrome extension and desktop companion tool designed for the **EA Sports FC Ultimate Team (FUT) Web App**. It seamlessly injects advanced Squad Building Challenge (SBC) solvers, real-time market prices, player metadata, evolution previews, duplicate item management, and quality-of-life shortcuts directly into the FUT Web App interface.
+FSU is an open-source Chrome extension designed for the **EA Sports FC Ultimate Team (FUT) Web App**. It seamlessly injects advanced Squad Building Challenge (SBC) solvers, real-time market prices, player metadata, evolution previews, duplicate item management, and quality-of-life shortcuts directly into the FUT Web App interface.
 
 > [!NOTE]
 > **Disclaimer**: FSU is an independent open-source project and is not affiliated with, endorsed by, or sponsored by Electronic Arts Inc. or EA Sports. Please read the [Risk & Terms Disclaimer](#risk--terms-disclaimer) before use.
@@ -61,27 +61,6 @@ npm run build
 ```
 
 After building, load the `extension/` directory into Chrome via `chrome://extensions` -> **Load unpacked**.
-
----
-
-## 🖥️ FSU Companion (Desktop App)
-
-Located in `companion/`, **FSU Companion** is a desktop shell built with **Tauri 2** (supporting macOS `.app` and Windows `.exe` / `.msi`).
-
-- **Extension Fallback Mode** (Default): System browser integration with Chrome MV3 extension.
-- **Embedded Mode** (Optional): Runs FUT Web App inside an isolated desktop WebView with local FSU runtime auto-injection without installing Chrome extensions.
-
-To build the companion app locally:
-
-```bash
-cd companion
-npm install
-npm run package:runtime   # Copies runtime bundles from extension
-npm test                  # Runs unit & protocol safety tests
-npm run tauri build       # Compiles native desktop binaries
-```
-
-For companion architecture details, see [COMPANION_ARCHITECTURE.md](COMPANION_ARCHITECTURE.md).
 
 ---
 
