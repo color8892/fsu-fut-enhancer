@@ -50,6 +50,7 @@
     "src/fsu/infra/RatingPrices.js",
     "src/fsu/infra/HttpClient.js",
     "src/fsu/core/FsuContext.js",
+    "src/fsu/domain/PriceService.js",
     "src/fsu/ui/HtmlSafety.js",
     "src/fsu/ui/PriceRenderer.js",
     "src/fsu/ui/PlayerDetailsRenderer.js"

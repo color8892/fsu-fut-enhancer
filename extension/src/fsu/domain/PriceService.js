@@ -12,7 +12,21 @@ const PRICE_BATCH_SIZE = 23;
 const PRICE_FRESH_TTL_MS = 5 * 60 * 1000;
 const PRICE_STALE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
+/**
+ * Domain service for fetching, caching, and mapping player market prices.
+ */
 export class PriceService {
+  /**
+   * @param {{
+   *   httpClient: { request: (method: string, url: string, body?: any, contentType?: string) => Promise<string> },
+   *   store: { getObject: (key: string, fallback: any) => any, setJson: (key: string, val: any) => void },
+   *   getInfo: () => any,
+   *   debug: { log: (...args: any[]) => void },
+   *   now?: () => number,
+   *   freshTtlMs?: number,
+   *   staleMaxAgeMs?: number
+   * }} options
+   */
   constructor({
     httpClient,
     store,
@@ -29,14 +43,21 @@ export class PriceService {
     this.now = now;
     this.freshTtlMs = freshTtlMs;
     this.staleMaxAgeMs = staleMaxAgeMs;
+    /** @type {((error: any) => void) | null} */
     this.errorHandler = null;
     this.requestQueue = new PriceRequestQueue();
   }
 
+  /**
+   * @param {(error: any) => void} handler
+   */
   setErrorHandler(handler) {
     this.errorHandler = handler;
   }
 
+  /**
+   * @param {any} error
+   */
   handleError(error) {
     if (this.errorHandler) {
       this.errorHandler(error);
@@ -44,10 +65,23 @@ export class PriceService {
     throw error;
   }
 
+  /**
+   * @param {string} method
+   * @param {string} url
+   * @param {any} [body]
+   * @param {string} [contentType]
+   * @returns {Promise<string>}
+   */
   request(method, url, body, contentType) {
     return this.httpClient.request(method, url, body, contentType);
   }
 
+  /**
+   * @param {string} response
+   * @param {any} fallback
+   * @param {string} label
+   * @returns {any}
+   */
   parseJsonResponse(response, fallback, label) {
     return safeParseJson(response, fallback, {
       label,
@@ -55,6 +89,11 @@ export class PriceService {
     });
   }
 
+  /**
+   * @param {number|string} definitionId
+   * @param {number} type
+   * @returns {any}
+   */
   getCachePrice(definitionId, type) {
     const info = this.getInfo();
     const priceDataKey = "data";
@@ -90,6 +129,11 @@ export class PriceService {
     return undefined;
   }
 
+  /**
+   * @param {number|string} purchasePrice
+   * @param {number|string} lastPrice
+   * @returns {string}
+   */
   priceLastDiff(purchasePrice, lastPrice) {
     let percent = ((Number(purchasePrice) * 0.95) / Number(lastPrice) - 1) * 100;
     percent = Number(percent.toFixed(0));
@@ -104,6 +148,10 @@ export class PriceService {
       : `<span class="minus">${value}</span>`;
   }
 
+  /**
+   * @param {string} url
+   * @returns {Promise<any>}
+   */
   async getFutbinUrl(url) {
     try {
       const response = await this.request("GET", url);
@@ -113,6 +161,10 @@ export class PriceService {
     }
   }
 
+  /**
+   * @param {number[]} definitionIds
+   * @returns {Promise<any>}
+   */
   async getPriceForUrl(definitionIds) {
     this.debug.log(definitionIds);
     const sortedIds = [...definitionIds].sort((a, b) => a - b);
@@ -121,6 +173,10 @@ export class PriceService {
     return this.requestQueue.run(queueKey, () => this._fetchPriceForUrl(sortedIds));
   }
 
+  /**
+   * @param {number[]} definitionIds
+   * @returns {Promise<any>}
+   */
   async _fetchPriceForUrl(definitionIds) {
     const info = this.getInfo();
     const provider =
@@ -168,15 +224,23 @@ export class PriceService {
     }
   }
 
+  /**
+   * @param {any} error
+   */
   reportError(error) {
     if (this.errorHandler) {
       this.errorHandler(error);
     }
   }
 
+  /**
+   * @param {number[]} definitionIds
+   * @returns {Record<string, any>}
+   */
   getStalePrices(definitionIds) {
     const data = this.getInfo().roster.data;
     const now = this.now();
+    /** @type {Record<string, any>} */
     const prices = {};
     for (const definitionId of definitionIds) {
       const entry = data?.[definitionId];
@@ -191,6 +255,11 @@ export class PriceService {
     return prices;
   }
 
+  /**
+   * @param {number[]} definitionIds
+   * @param {any} result
+   * @returns {any}
+   */
   commitPriceBatch(definitionIds, result) {
     if (!result.success) {
       this.debug.log("Price provider response rejected", result.error);
@@ -206,6 +275,10 @@ export class PriceService {
     return result;
   }
 
+  /**
+   * @param {number|string} playerResourceId
+   * @returns {Promise<any>}
+   */
   async getPriceForFutbin(playerResourceId) {
     try {
       const info = this.getInfo();
@@ -233,7 +306,7 @@ export class PriceService {
           now: this.now()
         }
       );
-      const committed = this.commitPriceBatch([playerResourceId], result);
+      const committed = this.commitPriceBatch([Number(playerResourceId)], result);
       return committed.data.prices[playerResourceId];
     } catch (error) {
       this.handleError(error);
@@ -245,12 +318,21 @@ export class PriceService {
     info.futbinId = this.store.getObject("futbinId", {});
   }
 
+  /**
+   * @param {number|string} definitionId
+   * @param {number|string} futbinId
+   */
   setFutbinMapping(definitionId, futbinId) {
     const info = this.getInfo();
     info.futbinId[definitionId] = futbinId;
     this.store.setJson("futbinId", info.futbinId);
   }
 
+  /**
+   * @param {any} data
+   * @param {number|string} definitionId
+   * @returns {any}
+   */
   setPriceFromFutbinData(data, definitionId) {
     const info = this.getInfo();
     const normalizedResponse =
@@ -265,9 +347,13 @@ export class PriceService {
         now: this.now()
       }
     );
-    return this.commitPriceBatch([definitionId], result);
+    return this.commitPriceBatch([Number(definitionId)], result);
   }
 
+  /**
+   * @param {any[]} players
+   * @returns {boolean}
+   */
   commitFutbinSquadPlayers(players) {
     const info = this.getInfo();
     const result = parseFutbinPrices(
@@ -302,6 +388,10 @@ export class PriceService {
     return true;
   }
 
+  /**
+   * @param {any} player
+   * @returns {Promise<number>}
+   */
   async getFutbinPlayerId(player) {
     try {
       const info = this.getInfo();
@@ -328,7 +418,7 @@ export class PriceService {
       const items = Array.isArray(data?.data) ? data.data : [];
       if (
         items.some(
-          (itemData) =>
+          (/** @type {any} */ itemData) =>
             !Number.isInteger(Number(itemData?.ID)) ||
             Number(itemData.ID) <= 0
         )
@@ -347,9 +437,15 @@ export class PriceService {
       return info.futbinId[player.definitionId] || 0;
     } catch (error) {
       this.handleError(error);
+      return 0;
     }
   }
 
+  /**
+   * @param {number|string} definitionId
+   * @param {number|string} futbinId
+   * @returns {Promise<any>}
+   */
   async getFutbinPrice(definitionId, futbinId) {
     try {
       const info = this.getInfo();
@@ -364,7 +460,7 @@ export class PriceService {
         platform: info.base.platform === "pc" ? "pc" : "ps",
         now: this.now()
       });
-      this.commitPriceBatch([definitionId], result);
+      this.commitPriceBatch([Number(definitionId)], result);
 
       return info.roster.data[definitionId];
     } catch (error) {
@@ -375,14 +471,15 @@ export class PriceService {
   createFutbinIdFacade() {
     return {
       init: () => this.initFutbinId(),
-      set: (definitionId, futbinId) => this.setFutbinMapping(definitionId, futbinId),
-      getId: (player) => this.getFutbinPlayerId(player),
-      getPrice: (definitionId, futbinId) => this.getFutbinPrice(definitionId, futbinId),
-      setPrice: (data, definitionId) => this.setPriceFromFutbinData(data, definitionId),
-      commitSquadPlayers: (players) => this.commitFutbinSquadPlayers(players)
+      set: (/** @type {any} */ definitionId, /** @type {any} */ futbinId) => this.setFutbinMapping(definitionId, futbinId),
+      getId: (/** @type {any} */ player) => this.getFutbinPlayerId(player),
+      getPrice: (/** @type {any} */ definitionId, /** @type {any} */ futbinId) => this.getFutbinPrice(definitionId, futbinId),
+      setPrice: (/** @type {any} */ data, /** @type {any} */ definitionId) => this.setPriceFromFutbinData(data, definitionId),
+      commitSquadPlayers: (/** @type {any[]} */ players) => this.commitFutbinSquadPlayers(players)
     };
   }
 }
+
 
 export {
   PRICE_BATCH_SIZE,

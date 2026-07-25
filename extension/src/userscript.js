@@ -464,6 +464,17 @@
   var PRICE_FRESH_TTL_MS = 5 * 60 * 1e3;
   var PRICE_STALE_MAX_AGE_MS = 24 * 60 * 60 * 1e3;
   var PriceService = class {
+    /**
+     * @param {{
+     *   httpClient: { request: (method: string, url: string, body?: any, contentType?: string) => Promise<string> },
+     *   store: { getObject: (key: string, fallback: any) => any, setJson: (key: string, val: any) => void },
+     *   getInfo: () => any,
+     *   debug: { log: (...args: any[]) => void },
+     *   now?: () => number,
+     *   freshTtlMs?: number,
+     *   staleMaxAgeMs?: number
+     * }} options
+     */
     constructor({
       httpClient,
       store,
@@ -483,24 +494,48 @@
       this.errorHandler = null;
       this.requestQueue = new PriceRequestQueue();
     }
+    /**
+     * @param {(error: any) => void} handler
+     */
     setErrorHandler(handler) {
       this.errorHandler = handler;
     }
+    /**
+     * @param {any} error
+     */
     handleError(error) {
       if (this.errorHandler) {
         this.errorHandler(error);
       }
       throw error;
     }
+    /**
+     * @param {string} method
+     * @param {string} url
+     * @param {any} [body]
+     * @param {string} [contentType]
+     * @returns {Promise<string>}
+     */
     request(method, url, body, contentType) {
       return this.httpClient.request(method, url, body, contentType);
     }
+    /**
+     * @param {string} response
+     * @param {any} fallback
+     * @param {string} label
+     * @returns {any}
+     */
     parseJsonResponse(response, fallback, label) {
       return safeParseJson(response, fallback, {
         label,
         onError: (error, context) => this.debug.log(`${context.label} parse failed`, error)
       });
     }
+    /**
+     * @param {number|string} definitionId
+     * @param {number} type
+     * @returns {any}
+     */
     getCachePrice(definitionId, type) {
       const info = this.getInfo();
       const priceDataKey = "data";
@@ -525,6 +560,11 @@
       }
       return void 0;
     }
+    /**
+     * @param {number|string} purchasePrice
+     * @param {number|string} lastPrice
+     * @returns {string}
+     */
     priceLastDiff(purchasePrice, lastPrice) {
       let percent = (Number(purchasePrice) * 0.95 / Number(lastPrice) - 1) * 100;
       percent = Number(percent.toFixed(0));
@@ -534,6 +574,10 @@
       const value = ("+" + percent + "%").replace("+-", "-");
       return value.indexOf("+") !== -1 ? `<span class="plus">${value}</span>` : `<span class="minus">${value}</span>`;
     }
+    /**
+     * @param {string} url
+     * @returns {Promise<any>}
+     */
     async getFutbinUrl(url) {
       try {
         const response = await this.request("GET", url);
@@ -542,12 +586,20 @@
         this.handleError(error);
       }
     }
+    /**
+     * @param {number[]} definitionIds
+     * @returns {Promise<any>}
+     */
     async getPriceForUrl(definitionIds) {
       this.debug.log(definitionIds);
       const sortedIds = [...definitionIds].sort((a, b) => a - b);
       const queueKey = `url:${sortedIds.join(",")}`;
       return this.requestQueue.run(queueKey, () => this._fetchPriceForUrl(sortedIds));
     }
+    /**
+     * @param {number[]} definitionIds
+     * @returns {Promise<any>}
+     */
     async _fetchPriceForUrl(definitionIds) {
       const info = this.getInfo();
       const provider = [1, 2].includes(info.apiPlatform) ? "futgg" : info.apiPlatform === 3 ? "futnext" : "none";
@@ -591,11 +643,18 @@
         );
       }
     }
+    /**
+     * @param {any} error
+     */
     reportError(error) {
       if (this.errorHandler) {
         this.errorHandler(error);
       }
     }
+    /**
+     * @param {number[]} definitionIds
+     * @returns {Record<string, any>}
+     */
     getStalePrices(definitionIds) {
       const data = this.getInfo().roster.data;
       const now = this.now();
@@ -608,6 +667,11 @@
       }
       return prices;
     }
+    /**
+     * @param {number[]} definitionIds
+     * @param {any} result
+     * @returns {any}
+     */
     commitPriceBatch(definitionIds, result) {
       if (!result.success) {
         this.debug.log("Price provider response rejected", result.error);
@@ -622,6 +686,10 @@
       info.roster.data = { ...info.roster.data, ...result.data.prices };
       return result;
     }
+    /**
+     * @param {number|string} playerResourceId
+     * @returns {Promise<any>}
+     */
     async getPriceForFutbin(playerResourceId) {
       try {
         const info = this.getInfo();
@@ -644,7 +712,7 @@
             now: this.now()
           }
         );
-        const committed = this.commitPriceBatch([playerResourceId], result);
+        const committed = this.commitPriceBatch([Number(playerResourceId)], result);
         return committed.data.prices[playerResourceId];
       } catch (error) {
         this.handleError(error);
@@ -654,11 +722,20 @@
       const info = this.getInfo();
       info.futbinId = this.store.getObject("futbinId", {});
     }
+    /**
+     * @param {number|string} definitionId
+     * @param {number|string} futbinId
+     */
     setFutbinMapping(definitionId, futbinId) {
       const info = this.getInfo();
       info.futbinId[definitionId] = futbinId;
       this.store.setJson("futbinId", info.futbinId);
     }
+    /**
+     * @param {any} data
+     * @param {number|string} definitionId
+     * @returns {any}
+     */
     setPriceFromFutbinData(data, definitionId) {
       const info = this.getInfo();
       const normalizedResponse = data !== null && typeof data === "object" && !Array.isArray(data) ? { data: [{ ...data, definitionId }] } : null;
@@ -670,8 +747,12 @@
           now: this.now()
         }
       );
-      return this.commitPriceBatch([definitionId], result);
+      return this.commitPriceBatch([Number(definitionId)], result);
     }
+    /**
+     * @param {any[]} players
+     * @returns {boolean}
+     */
     commitFutbinSquadPlayers(players) {
       const info = this.getInfo();
       const result = parseFutbinPrices(
@@ -696,6 +777,10 @@
       info.roster.data = { ...info.roster.data, ...result.data.prices };
       return true;
     }
+    /**
+     * @param {any} player
+     * @returns {Promise<number>}
+     */
     async getFutbinPlayerId(player) {
       try {
         const info = this.getInfo();
@@ -736,8 +821,14 @@
         return info.futbinId[player.definitionId] || 0;
       } catch (error) {
         this.handleError(error);
+        return 0;
       }
     }
+    /**
+     * @param {number|string} definitionId
+     * @param {number|string} futbinId
+     * @returns {Promise<any>}
+     */
     async getFutbinPrice(definitionId, futbinId) {
       try {
         const info = this.getInfo();
@@ -752,7 +843,7 @@
           platform: info.base.platform === "pc" ? "pc" : "ps",
           now: this.now()
         });
-        this.commitPriceBatch([definitionId], result);
+        this.commitPriceBatch([Number(definitionId)], result);
         return info.roster.data[definitionId];
       } catch (error) {
         this.handleError(error);
