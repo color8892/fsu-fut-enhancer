@@ -7,19 +7,21 @@
      * @param {Record<string, unknown>} fields
      */
     constructor(fields) {
-      Object.assign(this, fields);
+      const self = this;
+      Object.assign(self, fields);
     }
     /**
      * @param {...string} keys
      * @returns {Record<string, unknown>}
      */
     pick(...keys) {
+      const self = this;
       const out = {};
       for (const key of keys) {
-        if (!Object.prototype.hasOwnProperty.call(this, key) || this[key] === void 0) {
+        if (!Object.prototype.hasOwnProperty.call(self, key) || self[key] === void 0) {
           throw new Error(`FsuContext missing required dependency: ${key}`);
         }
-        out[key] = this[key];
+        out[key] = self[key];
       }
       return out;
     }
@@ -168,10 +170,22 @@
 
   // src/fsu/infra/HttpClient.js
   var FsuHttpClient = class {
+    /**
+     * @param {Function} xmlHttpRequest
+     * @param {string} [userAgent]
+     */
     constructor(xmlHttpRequest, userAgent) {
       this.xmlHttpRequest = xmlHttpRequest;
-      this.userAgent = userAgent;
+      this.userAgent = userAgent || "";
     }
+    /**
+     * Send an HTTP request.
+     * @param {string} method
+     * @param {string} url
+     * @param {string|null} [body]
+     * @param {string} [contentType]
+     * @returns {Promise<string>}
+     */
     request(method, url, body, contentType) {
       return new Promise((resolve, reject) => {
         this.xmlHttpRequest({
@@ -182,6 +196,9 @@
             "User-Agent": this.userAgent,
             "Content-Type": contentType ? contentType : "application/json"
           },
+          /**
+           * @param {{ status: number, responseText: string }} res
+           */
           onload: (res) => {
             if (res.status !== 200 && res.status !== 201) {
               reject(res.status);
@@ -189,9 +206,12 @@
             }
             resolve(res.responseText);
           },
+          /**
+           * @param {any} error
+           */
           onerror: (error) => {
             console.error("Request failed:", error);
-            if (error.status) {
+            if (error && typeof error === "object" && "status" in error && error.status) {
               reject(error.status);
             } else {
               reject("Unknown error occurred");

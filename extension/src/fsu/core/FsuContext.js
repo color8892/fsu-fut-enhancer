@@ -1,13 +1,16 @@
 /**
  * Central runtime context for FSU futweb wiring.
  * Replaces ad-hoc patchCtx objects with typed dependency picking.
+ * @implements {Record<string, any>}
  */
 export class FsuContext {
   /**
    * @param {Record<string, unknown>} fields
    */
   constructor(fields) {
-    Object.assign(this, fields);
+    /** @type {Record<string, any>} */
+    const self = this;
+    Object.assign(self, fields);
   }
 
   /**
@@ -15,12 +18,15 @@ export class FsuContext {
    * @returns {Record<string, unknown>}
    */
   pick(...keys) {
+    /** @type {Record<string, any>} */
+    const self = this;
+    /** @type {Record<string, unknown>} */
     const out = {};
     for (const key of keys) {
-      if (!Object.prototype.hasOwnProperty.call(this, key) || this[key] === undefined) {
+      if (!Object.prototype.hasOwnProperty.call(self, key) || self[key] === undefined) {
         throw new Error(`FsuContext missing required dependency: ${key}`);
       }
-      out[key] = this[key];
+      out[key] = self[key];
     }
     return out;
   }
