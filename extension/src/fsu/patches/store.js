@@ -6,9 +6,42 @@ import { EaObservableAdapter } from "../ea/EaObservableAdapter.js";
 import { InPacksSearchAdapter } from "../ea/InPacksSearchAdapter.js";
 import { StorePackCatalogAdapter } from "../ea/StorePackCatalogAdapter.js";
 import { StorePackOpenAdapter } from "../ea/StorePackOpenAdapter.js";
+import { registerPackPreviewEvents } from "./pack-preview.js";
+import {
+    BULK_PACK_ERROR_CODES,
+    BulkPackOpenService
+} from "../domain/BulkPackOpenService.js";
+import { BulkPackOpenAdapter } from "../ea/BulkPackOpenAdapter.js";
 
 let inPacksController;
 let specialPlayersController;
+
+export function isMyPacksCategory(value) {
+    if (typeof value === "string") {
+        return value.toLowerCase().replace(/[^a-z]/g, "") === "mypacks";
+    }
+    if (value && typeof value === "object") {
+        return ["id", "key", "name", "category", "categoryId"].some(
+            (key) => isMyPacksCategory(value[key])
+        );
+    }
+    return false;
+}
+
+export function resolveStorePackSummary(summaries, articleId, article) {
+    const candidates = Object.values(summaries || {}).filter(
+        (summary) => Number(summary?.packId) === Number(articleId)
+    );
+    if (!candidates.length) return null;
+    if (typeof article?.tradable === "boolean") {
+        return (
+            candidates.find(
+                (summary) => summary.tradable === article.tradable
+            ) || candidates[0]
+        );
+    }
+    return candidates[0];
+}
 
 export const STORE_PATCH_IDS = Object.freeze({
     PACK_LIST: "store.pack-list",
@@ -16,7 +49,8 @@ export const STORE_PATCH_IDS = Object.freeze({
     REVEAL_LIST: "store.reveal-list",
     PACK_ANIMATION: "store.pack-animation",
     CATEGORY_NAVIGATION: "store.category-navigation",
-    HUB_TILES: "store.hub-tiles"
+    HUB_TILES: "store.hub-tiles",
+    HUB_PACK_COUNT: "store.hub-pack-count"
 });
 
 function installStoreUiMethodPatch(options) {
@@ -121,6 +155,52 @@ export function installStoreHubPatch(deps) {
         expectedOriginal: deps.call.other.store.onPackLoadComplete,
         patchedMethod: deps.patchedMethod,
         patchLifecycle: deps.patchLifecycle
+    });
+}
+
+export function installStoreHubPackCountPatch(deps) {
+    const { patchLifecycle, getPackCount } = deps;
+    return patchLifecycle.install({
+        id: STORE_PATCH_IDS.HUB_PACK_COUNT,
+        phase: "market-and-squad",
+        targetLabel: "UTStoreHubView.prototype.togglePackTileDisplay",
+        resolveTarget: () =>
+            typeof UTStoreHubView === "undefined"
+                ? null
+                : {
+                    owner: UTStoreHubView.prototype,
+                    key: "togglePackTileDisplay"
+                },
+        verify: ({ originalDescriptor, originalValue }) => ({
+            ok:
+                originalDescriptor !== undefined &&
+                "value" in originalDescriptor &&
+                originalDescriptor.writable === true &&
+                typeof originalValue === "function",
+            missing: ["UTStoreHubView.prototype.togglePackTileDisplay"]
+        }),
+        apply: ({ target, originalDescriptor, originalValue }) => {
+            Object.defineProperty(target.owner, target.key, {
+                ...originalDescriptor,
+                value: function fsuTogglePackTileDisplay(...args) {
+                    const result = originalValue.apply(this, args);
+                    try {
+                        const count = getPackCount();
+                        const root = this._packsTile?.getRootElement?.();
+                        if(root){
+                            if(args[0] && count > 0){
+                                root.setAttribute("data-num", String(count));
+                            }else{
+                                root.removeAttribute("data-num");
+                            }
+                        }
+                    } catch {
+                        // Badge augmentation must not break EA's store hub.
+                    }
+                    return result;
+                }
+            });
+        }
     });
 }
 
@@ -243,7 +323,7 @@ export function commitInPacksPlayers(info, players) {
 }
 
 export function installStorePatches(deps) {
-    const { call, events, info, cntlr, isPhone, fy, repositories, services, GM_setValue, AssetLocationUtils, unsafeWindow, patchLifecycle, debug } = deps;
+    const { call, events, info, cntlr, isPhone, fy, repositories, services, GM_setValue, AssetLocationUtils, unsafeWindow, patchLifecycle, debug, httpClient } = deps;
     const GM_openInTab = unsafeWindow.GM_openInTab;
 
     events.showPlayerListPopup = (title, text, players, desc) => {
@@ -328,6 +408,93 @@ export function installStorePatches(deps) {
         popupView.getRootElement().querySelector(".ea-dialog-view--body").prepend(popupBox);
         gPopupClickShield.setActivePopup(popupController);
     };
+    registerPackPreviewEvents({
+        events,
+        info,
+        cntlr,
+        fy,
+        services,
+        httpClient,
+        debug
+    });
+    const bulkPackOpenService = new BulkPackOpenService({
+        adapter: new BulkPackOpenAdapter({
+            repositories,
+            services,
+            getClubItems: (definitionId) =>
+                events.getItemBy(1, {
+                    definitionId,
+                    upgrades: null
+                }),
+            itemPile: ItemPile,
+            playerInjury: PlayerInjury,
+            purchasePackType: PurchasePackType
+        })
+    });
+    events.cancelBulkPackOpen = () => bulkPackOpenService.cancel();
+    events.isBulkPackOpenRunning = () => bulkPackOpenService.isRunning();
+    events.openPacks = async (packId, packName, count) => {
+        events.showLoader();
+        const result = await bulkPackOpenService.run({
+            packId,
+            count,
+            context: cntlr.current(),
+            onProgress: (current, total) =>
+                events.changeLoadingText(
+                    ["openpack.progress.loadertext1", packName],
+                    ["openpack.progress.loadertext2", current, total]
+                )
+        });
+        events.hideLoader();
+        if(result.success){
+            repositories.Store.setDirty();
+            const summary = result.data;
+            const players = _.orderBy(
+                summary.players,
+                ["rareflag", "rating"],
+                ["desc", "desc"]
+            ).slice(0, 20);
+            events.showPlayerListPopup(
+                fy(["openpack.result.popupt", packName]),
+                fy([
+                    "openpack.result.popupm1",
+                    summary.opened,
+                    summary.requested - summary.opened,
+                    summary.clubCount,
+                    summary.storageCount,
+                    summary.specialCount,
+                    summary.highestRating
+                ]),
+                players,
+                fy("openpack.result.popupm2")
+            );
+            return true;
+        }
+        debug.log("Bulk pack open stopped", result);
+        if(result.error.code !== BULK_PACK_ERROR_CODES.CANCELLED){
+            const issue = result.error.issues?.[0] || result.error.code;
+            events.notice(
+                result.error.code === BULK_PACK_ERROR_CODES.PRECONDITION &&
+                issue === "unassigned-items"
+                    ? "openpack.unassigned.notice"
+                    : ["openpack.openerror.notice", issue],
+                2
+            );
+        }
+        return false;
+    };
+    events.openPacksConfirmPopup = (packId, packName, count) => {
+        const safeCount = Math.min(count, 50);
+        events.popup(
+            fy(["openpack.storebtn.popupt", packName]),
+            fy(["openpack.storebtn.popupm.safe", safeCount]),
+            (choice) => {
+                if(choice === 2){
+                    events.openPacks(packId, packName, safeCount);
+                }
+            }
+        );
+    };
 
     //球员预览包打开 读取球员列表查询价格
     function fsuStoreRevealItems(e, t, i, o) {
@@ -406,8 +573,8 @@ export function installStorePatches(deps) {
     });
 
     function fsuStorePackList(e, t, i, o) {
-        const HideAndShow = this.getStoreCategory() == 'mypacks';
         const categoryId = this.getStoreCategory();
+        const HideAndShow = isMyPacksCategory(categoryId);
         let catalog;
         try {
             catalog = storePackCatalogService.createCatalog(e, {
@@ -526,8 +693,42 @@ export function installStorePatches(deps) {
                         item._pack.getRootElement().appendChild(packInfoBox);
                     }
                 }
+                if(packCoin && packData && !itemElement.querySelector(".fsu-trypack")){
+                    const tryPackButton = events.createButton(
+                        new UTCurrencyButtonControl(),
+                        fy("trypack.button.subtext"),
+                        () => events.tryPack(packData),
+                        "fsu-trypack"
+                    );
+                    const box = events.createElementWithConfig("div", {
+                        classList: "fsu-trypack-box"
+                    });
+                    box.appendChild(tryPackButton.getRootElement());
+                    const parent = itemElement.querySelector(
+                        ".ut-store-pack-details-view--pack-counts"
+                    );
+                    if(parent){
+                        parent.style.position = "relative";
+                        parent.appendChild(box);
+                    }
+                }
+                if(packCoin && packData && !itemElement.querySelector(".fsu-realprob")){
+                    const probabilityButton = events.createButton(
+                        new UTStandardButtonControl(),
+                        fy("realprob.btn"),
+                        () => events.raelProbability(packData),
+                        "fsu-realprob mini"
+                    );
+                    item._fsuExtraInfo?.appendChild(
+                        probabilityButton.getRootElement()
+                    );
+                }
                 if(HideAndShow){
-                    const packInfo = this._fsuPacks[`${item.articleId}-${!item.__root.classList.contains('is-untradeable')}`];
+                    const packInfo = resolveStorePackSummary(
+                        this._fsuPacks,
+                        item.articleId,
+                        packData
+                    );
                     if(packInfo){
                         if (!itemElement.querySelector(".fsu-packcount")) {
                             itemElement.style.position = "relative";
@@ -547,6 +748,44 @@ export function installStorePatches(deps) {
                                 }
                             });
                             itemElement.appendChild(packCount)
+                        }
+                        if(
+                            packInfo.isPlayers &&
+                            !itemElement.querySelector(".fsu-bulkopen")
+                        ){
+                            const bulkOpenButton = events.createButton(
+                                new UTCurrencyButtonControl(),
+                                `${fy("openpack.storebtn.text")} (${Math.min(packInfo.count, 50)})`,
+                                () => {
+                                    events.openPacks(
+                                        item.articleId,
+                                        packInfo.fullName,
+                                        Math.min(packInfo.count, 50)
+                                    );
+                                },
+                                "fsu-bulkopen call-to-action"
+                            );
+                            bulkOpenButton.__currencyLabel.textContent =
+                                fy("openpack.storebtn.subtext");
+                            const actionContainer =
+                                item.__articleActionContainer ||
+                                itemElement.querySelector(
+                                    ".ut-store-pack-details-view--actions"
+                                ) ||
+                                itemElement;
+                            actionContainer.prepend(
+                                bulkOpenButton.getRootElement()
+                            );
+                            if(actionContainer !== itemElement){
+                                actionContainer.style.gap = "1rem";
+                            }else {
+                                bulkOpenButton.getRootElement().style.margin =
+                                    "0.5rem";
+                                debug.log("Bulk pack button fallback", {
+                                    success: true,
+                                    fallback: "pack-root"
+                                });
+                            }
                         }
 
                     }
@@ -963,6 +1202,15 @@ export function installStorePatches(deps) {
             ? installStoreHubPatch(storeHubLifecycleDeps)
             : patchLifecycle.restore(STORE_PATCH_IDS.HUB_TILES);
     events.setStoreHubPatchEnabled(true);
+    events.setStoreHubPackCountPatchEnabled = (enabled) =>
+        enabled
+            ? installStoreHubPackCountPatch({
+                patchLifecycle,
+                getPackCount: () =>
+                    Number(repositories.Store.myPacks?.length) || 0
+            })
+            : patchLifecycle.restore(STORE_PATCH_IDS.HUB_PACK_COUNT);
+    events.setStoreHubPackCountPatchEnabled(true);
 
     events.cancelInPacksSearch = () => inPacksSearchService.cancel();
 

@@ -11,6 +11,7 @@
     "https://www.fut.gg/*",
     "https://api.fut.to/*",
     "https://enhancer-api.futnext.com/*",
+    "https://www.futnext.com/*",
     "https://utas.mob.v5.prd.futc-ext.gcp.ea.com/*"
   ],
   "background": {

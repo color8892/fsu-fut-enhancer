@@ -1614,6 +1614,7 @@
     "openpack.storebtn.subtext": ["自动分配球员", "自動分配球員", "Auto Assign Players"],
     "openpack.storebtn.popupt": ["批量打开提示 - %1", "批量開啟提示 - %1", "Bulk Open Notice - %1"],
     "openpack.storebtn.popupm": ["批量开启将会自动开启指定球员包，非重复球员保存至俱乐部，重复且评分高于 %1(黄金范围) 的球员保存至SBC仓库，无法分配则弹出未分配列表并停止程序。<br><br>批量开启数量（默认为全部）：", "批量開啟將會自動開啟指定的球員包，非重複球員將保存至俱樂部，重複且評分高於 %1（黃金範圍） 的球員將保存至 SBC 倉庫，若無法分配，將彈出未分配列表並停止程序。<br><br>批量開啟數量（預設為全部）：", "Bulk opening will automatically open the selected player packs.<br>Non-duplicate players will be sent to your Club.<br>Duplicate players with a rating above %1 (Gold range) will be sent to SBC storage.<br>If any players cannot be assigned, the unassigned list will be displayed and the process will stop.<br><br>Number of packs to open (default is all):"],
+    "openpack.storebtn.popupm.safe": ["将依序开启最多 %1 个球员包。非重复球员会移至俱乐部，重复球员会在有容量时移至 SBC 仓库；若有未分配球员、容量不足或移动失败，程序会立即停止。", "將依序開啟最多 %1 個球員包。非重複球員會移至俱樂部，重複球員會在有容量時移至 SBC 倉庫；若有未分配球員、容量不足或移動失敗，程序會立即停止。", "Up to %1 player packs will be opened sequentially. Non-duplicates go to the Club and duplicates go to SBC storage when capacity allows. The run stops immediately if items are unassigned, capacity is insufficient, or a move fails."],
     "sort.desc": ["由高到低", "由高至低", "Descending"],
     "sort.asc": ["由低到高", "由低至高", "Ascending"],
     "packssort.switch.notice": ["切换 %1 排序为按包回报价值 %2 排序", "切換 %1 排序為依據包回報價值的 %2 排序", "Switch %1 sorting to %2 sorting based on pack returns"],
@@ -4648,6 +4649,16 @@
             e2.__mainReward.querySelector(".ut-pack-graphic-view").appendChild(packBox);
           }
         }
+        const pickItem = e2.data.awards[0]?.item;
+        if (pickItem?.isPlayerPickItem?.() && e2._infoBtn?.getRootElement?.().style.display !== "none" && !e2._fsuPickPreview) {
+          e2._infoBtn.removeTarget(e2, e2._eCheckMoreInfo, EventType.TAP);
+          e2._infoBtn.addTarget(
+            e2,
+            () => events.fixedPickPopup(pickItem),
+            EventType.TAP
+          );
+          e2._fsuPickPreview = true;
+        }
       }
     };
   }
@@ -5325,11 +5336,32 @@
                 );
                 if (!li) return;
                 let btn;
-                if (item.isItem && item.item.isPlayer()) {
+                if (item.isItem) {
+                  if (item.item.isPlayer()) {
+                    btn = events.createButton(
+                      new UTStandardButtonControl(),
+                      localize("sbc.watchplayer"),
+                      (event) => events.openFutbinPlayerUrl(event, item.item),
+                      "mini"
+                    );
+                  } else if (item.item.isPlayerPickItem()) {
+                    btn = events.createButton(
+                      new UTStandardButtonControl(),
+                      localize("sbc.watchplayer"),
+                      () => events.fixedPickPopup(item.item),
+                      "mini"
+                    );
+                  }
+                } else if (item.isPack) {
                   btn = events.createButton(
                     new UTStandardButtonControl(),
-                    localize("sbc.watchplayer"),
-                    (event) => events.openFutbinPlayerUrl(event, item.item),
+                    localize("trypack.button.subtext"),
+                    () => events.tryPack({
+                      id: item.value,
+                      odds: false,
+                      packName: `FUT_STORE_PACK_${item.value}_NAME`,
+                      tradable: item.tradable
+                    }),
                     "mini"
                   );
                 }
@@ -6814,7 +6846,7 @@
         };
       }
       const valid = [];
-      const invalid5 = [];
+      const invalid6 = [];
       articles.forEach((article, index) => {
         let result;
         try {
@@ -6824,7 +6856,7 @@
             isMyPacks
           });
         } catch {
-          invalid5.push({
+          invalid6.push({
             article,
             index,
             code: "STORE_PACK_ARTICLE_ADAPTER_FAILED"
@@ -6834,7 +6866,7 @@
         if (result.success) {
           valid.push({ snapshot: result.data, index });
         } else {
-          invalid5.push({ article, index, code: result.error.code });
+          invalid6.push({ article, index, code: result.error.code });
         }
       });
       const summaries = {};
@@ -6874,14 +6906,14 @@
         data: {
           articles: [
             ...enhanced.map((entry) => entry.snapshot.article),
-            ...invalid5.sort((left, right) => left.index - right.index).map((entry) => entry.article)
+            ...invalid6.sort((left, right) => left.index - right.index).map((entry) => entry.article)
           ],
           summaries,
           articleStates: valid.map((entry) => ({
             article: entry.snapshot.article,
             isNew: entry.snapshot.isNew
           })),
-          warnings: invalid5.map(({ index, code }) => ({ index, code }))
+          warnings: invalid6.map(({ index, code }) => ({ index, code }))
         }
       };
     }
@@ -7150,6 +7182,12 @@
   function failure2(code, issues) {
     return { success: false, error: { code, issues } };
   }
+  function isPlayerPackContentType(value) {
+    const normalized = String(value || "").trim().toLowerCase().replace(/[^a-z]/g, "");
+    return ["player", "players", "playeritem", "playeritems"].includes(
+      normalized
+    );
+  }
   var StorePackCatalogAdapter = class {
     /**
      * @param {{
@@ -7204,11 +7242,19 @@
           "store.localization"
         ]);
       }
-      if (!Number.isFinite(value) || value < 0 || typeof localizedName !== "string") {
+      if (typeof localizedName !== "string") {
         return failure2(STORE_PACK_ARTICLE_ERROR_CODES.INVALID, [
-          "article.value",
           "article.localizedName"
         ]);
+      }
+      if (!Number.isFinite(value) || value < 0) {
+        if (isMyPacks) {
+          value = 0;
+        } else {
+          return failure2(STORE_PACK_ARTICLE_ERROR_CODES.INVALID, [
+            "article.value"
+          ]);
+        }
       }
       let coinsPrice = 0;
       let pointsPrice = 0;
@@ -7256,7 +7302,7 @@
           article,
           id: Number(id),
           tradable,
-          isPlayers: contentType === "players",
+          isPlayers: isPlayerPackContentType(contentType),
           name,
           fullName,
           value,
@@ -7429,16 +7475,703 @@
     }
   };
 
+  // src/fsu/domain/PackPreviewResults.js
+  var PACK_PREVIEW_INVALID = "PACK_PREVIEW_INVALID";
+  function invalid2(provider, issues) {
+    return {
+      success: false,
+      error: {
+        code: PACK_PREVIEW_INVALID,
+        provider,
+        issues
+      }
+    };
+  }
+  function isRecord12(value) {
+    return value !== null && typeof value === "object" && !Array.isArray(value);
+  }
+  function parsePlayerPickPreview(text) {
+    if (typeof text !== "string" || text.length > 5 * 1024 * 1024) {
+      return invalid2("futnext-playerpick", ["response"]);
+    }
+    const ids = [
+      ...text.matchAll(/https:\/\/cdn\.futnext\.com\/player\/(\d+)\.png/g)
+    ].map((match) => Number(match[1]));
+    const unique = [...new Set(ids)].filter(
+      (id) => Number.isInteger(id) && id > 0
+    );
+    return unique.length ? { success: true, data: unique } : invalid2("futnext-playerpick", ["player ids"]);
+  }
+  function parsePackPreview(text) {
+    if (typeof text !== "string" || text.length > 5 * 1024 * 1024) {
+      return invalid2("futnext-pack", ["response"]);
+    }
+    const start = text.indexOf("packItem");
+    const end = text.indexOf('"renderItemByDefault', start);
+    if (start < 0 || end <= start) {
+      return invalid2("futnext-pack", ["packItem markers"]);
+    }
+    try {
+      const raw = `{"${text.slice(start, end).replace(/\\/g, "")}}`.replace(/,\}/g, "}");
+      const parsed = JSON.parse(raw);
+      if (!isRecord12(parsed.packItem) || !Array.isArray(parsed.packItem.items) || parsed.packItem.items.length > 200 || !isRecord12(parsed.packItem.pack)) {
+        return invalid2("futnext-pack", ["packItem shape"]);
+      }
+      return { success: true, data: parsed };
+    } catch {
+      return invalid2("futnext-pack", ["json"]);
+    }
+  }
+  function parsePackProbability(text) {
+    if (typeof text !== "string" || text.length > 5 * 1024 * 1024) {
+      return invalid2("futnext-probability", ["response"]);
+    }
+    const start = text.indexOf('"rarityOdds');
+    const end = text.indexOf('},\\"returns', start);
+    if (start < 0 || end <= start) {
+      return invalid2("futnext-probability", ["probability markers"]);
+    }
+    try {
+      const parsed = JSON.parse(
+        `{${text.slice(start, end).replace(/\\/g, "")}}`
+      );
+      if (!Array.isArray(parsed.rarityOdds) || !Array.isArray(parsed.ratingOdds) || parsed.rarityOdds.length > 200 || parsed.ratingOdds.length > 200) {
+        return invalid2("futnext-probability", ["probability shape"]);
+      }
+      const rarity = (
+        /** @type {unknown[]} */
+        parsed.rarityOdds.map(
+          (entry, index) => {
+            if (!isRecord12(entry) || !isRecord12(entry.rarity) || !Number.isInteger(entry.rarity.id) || typeof entry.odds !== "number" || !Number.isFinite(entry.odds) || entry.odds <= 0 || entry.odds > 1) {
+              throw new Error(`rarityOdds.${index}`);
+            }
+            return { id: entry.rarity.id, odds: entry.odds };
+          }
+        )
+      );
+      const rating = (
+        /** @type {unknown[]} */
+        parsed.ratingOdds.map(
+          (entry, index) => {
+            if (!isRecord12(entry) || !Number.isInteger(entry.rating) || typeof entry.odds !== "number" || !Number.isFinite(entry.odds) || entry.odds <= 0 || entry.odds > 1) {
+              throw new Error(`ratingOdds.${index}`);
+            }
+            return { rating: entry.rating, odds: entry.odds };
+          }
+        )
+      );
+      return { success: true, data: { rarity, rating } };
+    } catch {
+      return invalid2("futnext-probability", ["probability entries"]);
+    }
+  }
+
+  // src/fsu/domain/PackPreviewService.js
+  function slugify(value) {
+    const normalized = String(value || "").trim().replace(/\s+/g, "-").replace(/\//g, "&");
+    return encodeURIComponent(normalized).slice(0, 192);
+  }
+  var PackPreviewService = class {
+    /** @param {{request: PreviewRequest}} deps */
+    constructor({ request }) {
+      this.request = request;
+    }
+    /** @param {{id: string | number, name: unknown}} input */
+    async getPackPreview({ id, name }) {
+      const url = this.buildUrl("pack", id, name, true);
+      if (!url) return parsePackPreview(null);
+      return parsePackPreview(
+        await this.request("GET", url, null, "text/x-component")
+      );
+    }
+    /** @param {{id: string | number, name: unknown}} input */
+    async getPlayerPickPreview({ id, name }) {
+      const url = this.buildUrl("playerpick", id, name, true);
+      if (!url) return parsePlayerPickPreview(null);
+      return parsePlayerPickPreview(
+        await this.request("GET", url, null, "text/x-component")
+      );
+    }
+    /** @param {{id: string | number, name: unknown}} input */
+    async getProbability({ id, name }) {
+      const url = this.buildUrl("pack", id, name, false);
+      if (!url) return parsePackProbability(null);
+      return parsePackProbability(
+        await this.request("GET", url, null, "text/x-component")
+      );
+    }
+    /**
+     * @param {"pack" | "playerpick"} type
+     * @param {string | number} id
+     * @param {unknown} name
+     * @param {boolean} open
+     */
+    buildUrl(type, id, name, open) {
+      if (!["pack", "playerpick"].includes(type) || !Number.isInteger(Number(id)) || Number(id) <= 0) {
+        return null;
+      }
+      const slug = slugify(name);
+      if (!slug) return null;
+      return `https://www.futnext.com/${type}/${slug}/${Number(id)}/${open ? "open" : ""}`;
+    }
+  };
+
+  // src/fsu/patches/pack-preview.js
+  function createPreviewItems(payload) {
+    const base = {
+      assetId: 0,
+      assists: 0,
+      attributeArray: [0, 0, 0, 0, 0, 0],
+      baseTraits: [],
+      cardsubtypeid: 2,
+      contract: 7,
+      discardValue: 0,
+      formation: "f3412",
+      gender: 0,
+      id: 0,
+      injuryGames: 0,
+      injuryType: "none",
+      itemState: "free",
+      itemType: "player",
+      lastSalePrice: 0,
+      leagueId: 0,
+      lifetimeAssists: 0,
+      lifetimeStatsArray: [0, 0, 0, 0, 0],
+      loyaltyBonus: 1,
+      marketDataMaxPrice: 0,
+      marketDataMinPrice: 0,
+      nation: 0,
+      owners: 1,
+      pile: 7,
+      playStyle: 250,
+      plusRoles: [],
+      possiblePositions: [],
+      preferredPosition: "",
+      preferredfoot: 1,
+      rareflag: 0,
+      rating: 0,
+      resourceGameYear: 2026,
+      resourceId: 0,
+      skillmoves: 0,
+      statsArray: [0, 0, 0, 0, 0],
+      teamid: 0,
+      timestamp: 0,
+      untradeable: true,
+      weakfootabilitytypecode: 0
+    };
+    const factory = new UTItemEntityFactory();
+    return payload.packItem.items.map((item) => {
+      const positions = Array.isArray(item.positions) ? item.positions : [];
+      const traits = Array.isArray(item.traits) ? item.traits : [];
+      return factory.createItem({
+        ...base,
+        assetId: Number(item.id) || 0,
+        resourceId: Number(item.id) || 0,
+        rating: Number(item.rating) || 0,
+        preferredPosition: positions.find((position) => position.isPreferred)?.name || "",
+        teamid: Number(item.club?.id) || 0,
+        leagueId: Number(item.league?.id) || 0,
+        nation: Number(item.nation?.id) || 0,
+        attributeArray: Object.values(item.attributes || {}),
+        skillmoves: Math.max(0, (Number(item.skills) || 1) - 1),
+        weakfootabilitytypecode: Number(item.weekFoot) || 0,
+        preferredfoot: Number(item.foot) || 1,
+        possiblePositions: positions.map((position) => position.name),
+        baseTraits: traits.filter((trait) => trait.isIcon === false).map((trait) => trait.id),
+        iconTraits: traits.filter((trait) => trait.isIcon === true).map((trait) => trait.id),
+        rareflag: Number(item.rarity?.id) || 0
+      });
+    });
+  }
+  function showProbabilityPopup({ pack, probability, events, fy: fy2, services: services2 }) {
+    const controller = new EADialogViewController({
+      dialogOptions: [{ labelEnum: enums.UIDialogOptions.OK }],
+      message: "",
+      title: fy2([
+        "realprob.popupt",
+        services2.Localization.localize(pack.packName)
+      ]),
+      type: EADialogView.Type.MESSAGE
+    });
+    controller.init();
+    const body = controller.getView().__msg;
+    body.replaceChildren();
+    body.appendChild(
+      events.createElementWithConfig("p", {
+        textContent: fy2("realprob.popupm").replace(/<br\s*\/?>/gi, "\n"),
+        style: { whiteSpace: "pre-line" }
+      })
+    );
+    const table = document.createElement("div");
+    table.className = "fsu-realProdBody";
+    const header = events.createElementWithConfig("div", {
+      classList: "fsu-realProdTitle"
+    });
+    [
+      fy2("realprob.title_1"),
+      fy2("realprob.title_2"),
+      fy2("realprob.title_3"),
+      fy2("realprob.title_4")
+    ].forEach((value) => {
+      header.appendChild(
+        events.createElementWithConfig("div", {
+          textContent: value
+        })
+      );
+    });
+    table.appendChild(header);
+    probability.rarity.forEach((entry) => {
+      const row = events.createElementWithConfig("div", {
+        classList: "fsu-realProdBodyItem"
+      });
+      const odds = entry.odds * 100;
+      const name = services2.Localization.localize(`item.raretype${entry.id}`);
+      const ea = Array.isArray(pack.odds) ? pack.odds.find(
+        (item) => String(item.description || "").includes(`${name} `)
+      )?.odds || "-" : "-";
+      [name, ea, `${odds.toFixed(odds >= 0.1 ? 1 : 2)}%`, Math.round(1 / entry.odds)].forEach((value) => {
+        row.appendChild(
+          events.createElementWithConfig("div", {
+            textContent: String(value)
+          })
+        );
+      });
+      table.appendChild(row);
+    });
+    body.appendChild(table);
+    gPopupClickShield.setActivePopup(controller);
+  }
+  function registerPackPreviewEvents(deps) {
+    const {
+      events,
+      info,
+      cntlr: cntlr2,
+      fy: fy2,
+      services: services2,
+      httpClient,
+      debug: debug2
+    } = deps;
+    const previewService = new PackPreviewService({
+      request: (...args) => httpClient.request(...args)
+    });
+    const observableAdapter = new EaObservableAdapter();
+    events.tryPack = async (pack) => {
+      events.showLoader();
+      try {
+        const result = await previewService.getPackPreview({
+          id: pack.id,
+          name: services2.Localization.localize(pack.packName)
+        });
+        if (!result.success) {
+          debug2.log("Pack preview rejected", result);
+          events.notice("notice.loaderror", 2);
+          return false;
+        }
+        const items = createPreviewItems(result.data);
+        const returns = Number(
+          result.data.packItem.pack?.returns?.avgReturns
+        );
+        if (Number.isFinite(returns) && returns >= 0) {
+          info.base.oddo[pack.id] = returns;
+        }
+        const specialCount = items.filter(
+          (item) => Number(item.rareflag) >= 2
+        ).length;
+        events.showPlayerListPopup(
+          `${services2.Localization.localize(pack.packName)} ${fy2("trypack.popup.suffix")}`,
+          fy2(["trypack.foot.info1_2", items.length, specialCount]),
+          _.orderBy(items, ["rareflag", "rating"], ["desc", "desc"]),
+          fy2("trypack.foot.info3")
+        );
+        return true;
+      } catch (error) {
+        debug2.log("Pack preview failed", error);
+        events.notice("notice.loaderror", 2);
+        return false;
+      } finally {
+        events.hideLoader();
+      }
+    };
+    events.raelProbability = async (pack) => {
+      events.showLoader();
+      try {
+        const result = await previewService.getProbability({
+          id: pack.id,
+          name: services2.Localization.localize(pack.packName)
+        });
+        if (!result.success) {
+          debug2.log("Pack probability rejected", result);
+          events.notice("notice.loaderror", 2);
+          return false;
+        }
+        showProbabilityPopup({
+          pack,
+          probability: result.data,
+          events,
+          fy: fy2,
+          services: services2
+        });
+        return true;
+      } catch (error) {
+        debug2.log("Pack probability failed", error);
+        events.notice("notice.loaderror", 2);
+        return false;
+      } finally {
+        events.hideLoader();
+      }
+    };
+    events.fixedPickPopup = async (pickItem) => {
+      events.showLoader();
+      try {
+        const staticData = pickItem.getStaticData();
+        const result = await previewService.getPlayerPickPreview({
+          id: pickItem.id,
+          name: staticData.name
+        });
+        if (!result.success) {
+          debug2.log("Player pick preview rejected", result);
+          events.notice("notice.loaderror", 2);
+          return false;
+        }
+        const criteria = new UTSearchCriteriaDTO();
+        criteria.count = 200;
+        criteria.defId = result.data;
+        const observed = await observableAdapter.observeOnce(
+          services2.Item.searchConceptItems(criteria),
+          cntlr2.current(),
+          "store.player-pick-preview"
+        );
+        const response = observed?.data;
+        if (!observed?.success || !response?.success || !Array.isArray(response.response?.items)) {
+          debug2.log("Player pick concept search rejected", observed);
+          events.notice("notice.loaderror", 2);
+          return false;
+        }
+        const allowed = new Set(result.data);
+        const players = response.response.items.filter((item) => {
+          if (!allowed.has(item.definitionId)) return false;
+          item.concept = false;
+          return true;
+        });
+        events.showPlayerListPopup(
+          staticData.description || staticData.name,
+          fy2("pickpreview.popupm"),
+          players
+        );
+        return true;
+      } catch (error) {
+        debug2.log("Player pick preview failed", error);
+        events.notice("notice.loaderror", 2);
+        return false;
+      } finally {
+        events.hideLoader();
+      }
+    };
+  }
+
+  // src/fsu/domain/BulkPackOpenService.js
+  var BULK_PACK_ERROR_CODES = Object.freeze({
+    BUSY: "BULK_PACK_BUSY",
+    INVALID_INPUT: "BULK_PACK_INVALID_INPUT",
+    PRECONDITION: "BULK_PACK_PRECONDITION_FAILED",
+    OPEN_FAILED: "BULK_PACK_OPEN_FAILED",
+    ASSIGN_FAILED: "BULK_PACK_ASSIGN_FAILED",
+    CANCELLED: "BULK_PACK_CANCELLED"
+  });
+  function failure3(code, issues, data = {}) {
+    return { success: false, error: { code, issues }, data };
+  }
+  var BulkPackOpenService = class {
+    /**
+     * @param {{
+     *   adapter: BulkPackAdapter,
+     *   wait?: (ms: number) => Promise<void>,
+     *   delayMs?: number,
+     *   maxPacks?: number
+     * }} deps
+     */
+    constructor({ adapter, wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms)), delayMs = 750, maxPacks = 50 }) {
+      this.adapter = adapter;
+      this.wait = wait;
+      this.delayMs = delayMs;
+      this.maxPacks = maxPacks;
+      this.active = null;
+    }
+    cancel() {
+      if (!this.active) return false;
+      this.active.cancelled = true;
+      return true;
+    }
+    isRunning() {
+      return this.active !== null;
+    }
+    /**
+     * @param {{
+     *   packId: number,
+     *   count: number,
+     *   context: unknown,
+     *   onProgress?: (current: number, total: number) => void
+     * }} input
+     */
+    async run({ packId, count, context, onProgress = () => {
+    } }) {
+      if (this.active) {
+        return failure3(BULK_PACK_ERROR_CODES.BUSY, ["bulk-pack.in-flight"]);
+      }
+      if (!Number.isInteger(packId) || packId <= 0 || !Number.isInteger(count) || count <= 0 || count > this.maxPacks) {
+        return failure3(BULK_PACK_ERROR_CODES.INVALID_INPUT, ["packId", "count"]);
+      }
+      const token = { cancelled: false };
+      this.active = token;
+      const summary = {
+        requested: count,
+        opened: 0,
+        clubCount: 0,
+        storageCount: 0,
+        specialCount: 0,
+        highestRating: 0,
+        /** @type {BulkPackPlayer[]} */
+        players: []
+      };
+      try {
+        const prepared = await this.adapter.prepare({
+          packId,
+          count,
+          context
+        });
+        if (!prepared?.success || !Array.isArray(prepared.data?.packs)) {
+          return failure3(
+            BULK_PACK_ERROR_CODES.PRECONDITION,
+            prepared?.error?.issues || ["bulk-pack.prepare"],
+            summary
+          );
+        }
+        for (let index = 0; index < prepared.data.packs.length; index++) {
+          if (token.cancelled) {
+            return failure3(
+              BULK_PACK_ERROR_CODES.CANCELLED,
+              ["bulk-pack.cancelled"],
+              summary
+            );
+          }
+          onProgress(index + 1, count);
+          const result = await this.adapter.openAndAssign({
+            pack: prepared.data.packs[index],
+            context,
+            packIndex: index + 1
+          });
+          if (!result?.success || !Array.isArray(result.data?.players)) {
+            return failure3(
+              result?.error?.code === BULK_PACK_ERROR_CODES.ASSIGN_FAILED ? BULK_PACK_ERROR_CODES.ASSIGN_FAILED : BULK_PACK_ERROR_CODES.OPEN_FAILED,
+              result?.error?.issues || ["bulk-pack.open"],
+              summary
+            );
+          }
+          summary.opened++;
+          summary.clubCount += result.data.clubCount || 0;
+          summary.storageCount += result.data.storageCount || 0;
+          for (const player of result.data.players) {
+            summary.specialCount += player.isSpecial?.() ? 1 : 0;
+            summary.highestRating = Math.max(
+              summary.highestRating,
+              Number(player.rating) || 0
+            );
+            summary.players.push(player);
+          }
+          if (index + 1 < prepared.data.packs.length) {
+            await this.wait(this.delayMs);
+          }
+        }
+        return { success: true, data: summary };
+      } finally {
+        if (this.active === token) this.active = null;
+      }
+    }
+  };
+
+  // src/fsu/ea/BulkPackOpenAdapter.js
+  function failure4(code, issues) {
+    return { success: false, error: { code, issues } };
+  }
+  var BulkPackOpenAdapter = class {
+    constructor({
+      repositories: repositories2,
+      services: services2,
+      getClubItems,
+      itemPile,
+      playerInjury,
+      purchasePackType,
+      storageCapacity = 100,
+      observableAdapter = new EaObservableAdapter()
+    }) {
+      this.repositories = repositories2;
+      this.services = services2;
+      this.getClubItems = getClubItems;
+      this.itemPile = itemPile;
+      this.playerInjury = playerInjury;
+      this.purchasePackType = purchasePackType;
+      this.storageCapacity = storageCapacity;
+      this.observableAdapter = observableAdapter;
+    }
+    async observe(observable, context, capability) {
+      const observed = await this.observableAdapter.observeOnce(
+        observable,
+        context,
+        capability
+      );
+      if (!observed?.success) return observed;
+      return observed.data;
+    }
+    async prepare({ packId, count, context }) {
+      try {
+        this.repositories.Item.unassigned.reset();
+        const unassigned = await this.observe(
+          this.services.Item.requestUnassignedItems(),
+          context,
+          "store.bulk-open.unassigned"
+        );
+        if (!unassigned?.success || !Array.isArray(unassigned.response?.items) || unassigned.response.items.length > 0) {
+          return failure4(BULK_PACK_ERROR_CODES.PRECONDITION, [
+            "unassigned-items"
+          ]);
+        }
+        const refreshed = await this.observe(
+          this.services.Store.getPacks(
+            this.purchasePackType.ALL,
+            true,
+            true
+          ),
+          context,
+          "store.bulk-open.catalog"
+        );
+        if (!refreshed?.success) {
+          return failure4(BULK_PACK_ERROR_CODES.PRECONDITION, [
+            "store-catalog"
+          ]);
+        }
+        const packs = this.repositories.Store.myPacks.values().filter((pack) => Number(pack.id) === packId).slice(0, count);
+        if (packs.length !== count) {
+          return failure4(BULK_PACK_ERROR_CODES.PRECONDITION, [
+            "pack-inventory"
+          ]);
+        }
+        return { success: true, data: { packs } };
+      } catch {
+        return failure4(BULK_PACK_ERROR_CODES.PRECONDITION, [
+          "bulk-pack-capability"
+        ]);
+      }
+    }
+    async openAndAssign({ pack, context, packIndex }) {
+      const open = await this.observe(
+        pack.open(),
+        context,
+        "store.bulk-open.pack"
+      );
+      if (!open?.success || !Array.isArray(open.response?.items)) {
+        return failure4(BULK_PACK_ERROR_CODES.OPEN_FAILED, ["pack.open"]);
+      }
+      if (pack.isMyPack === true) {
+        try {
+          this.services.User.getUser().decrementNumUnopenedPacks();
+        } catch {
+        }
+      }
+      const club = [];
+      const storage = [];
+      const storageRatings = this.repositories.Item.storage.values().map((item) => Number(item.rating)).filter(Number.isFinite);
+      const minimumStorageRating = storageRatings.length ? Math.min(...storageRatings) : 0;
+      const currentStorageCount = this.repositories.Item.numItemsInCache(
+        this.itemPile.STORAGE
+      );
+      for (const item of open.response.items) {
+        const existing = this.getClubItems(item.definitionId);
+        if (!existing.length) {
+          club.push(item);
+          continue;
+        }
+        if (Number(item.rating) >= minimumStorageRating && currentStorageCount + storage.length < this.storageCapacity) {
+          item.duplicateId = existing[0].id;
+          item.pile = this.itemPile.PURCHASED;
+          item.injuryType = this.playerInjury.NONE;
+          storage.push(item);
+          continue;
+        }
+        return failure4(BULK_PACK_ERROR_CODES.ASSIGN_FAILED, [
+          "duplicate-capacity"
+        ]);
+      }
+      const move = async (items, pile, storageMove = false) => {
+        if (!items.length) return { success: true };
+        return this.observe(
+          this.services.Item.move(items, pile, storageMove),
+          context,
+          "store.bulk-open.assign"
+        );
+      };
+      const clubResult = await move(club, this.itemPile.CLUB);
+      if (!clubResult?.success) {
+        return failure4(BULK_PACK_ERROR_CODES.ASSIGN_FAILED, ["club-move"]);
+      }
+      const storageResult = await move(
+        storage,
+        this.itemPile.STORAGE,
+        true
+      );
+      if (!storageResult?.success) {
+        return failure4(BULK_PACK_ERROR_CODES.ASSIGN_FAILED, [
+          "storage-move"
+        ]);
+      }
+      const players = [...club, ...storage];
+      players.forEach((item) => {
+        item.packCount = packIndex;
+      });
+      return {
+        success: true,
+        data: {
+          players,
+          clubCount: club.length,
+          storageCount: storage.length
+        }
+      };
+    }
+  };
+
   // src/fsu/patches/store.js
   var inPacksController;
   var specialPlayersController;
+  function isMyPacksCategory(value) {
+    if (typeof value === "string") {
+      return value.toLowerCase().replace(/[^a-z]/g, "") === "mypacks";
+    }
+    if (value && typeof value === "object") {
+      return ["id", "key", "name", "category", "categoryId"].some(
+        (key) => isMyPacksCategory(value[key])
+      );
+    }
+    return false;
+  }
+  function resolveStorePackSummary(summaries, articleId, article) {
+    const candidates = Object.values(summaries || {}).filter(
+      (summary) => Number(summary?.packId) === Number(articleId)
+    );
+    if (!candidates.length) return null;
+    if (typeof article?.tradable === "boolean") {
+      return candidates.find(
+        (summary) => summary.tradable === article.tradable
+      ) || candidates[0];
+    }
+    return candidates[0];
+  }
   var STORE_PATCH_IDS = Object.freeze({
     PACK_LIST: "store.pack-list",
     PACK_OPEN_TRANSACTION: "store.pack-open-transaction",
     REVEAL_LIST: "store.reveal-list",
     PACK_ANIMATION: "store.pack-animation",
     CATEGORY_NAVIGATION: "store.category-navigation",
-    HUB_TILES: "store.hub-tiles"
+    HUB_TILES: "store.hub-tiles",
+    HUB_PACK_COUNT: "store.hub-pack-count"
   });
   function installStoreUiMethodPatch(options) {
     const {
@@ -7519,6 +8252,43 @@
       expectedOriginal: deps.call.other.store.onPackLoadComplete,
       patchedMethod: deps.patchedMethod,
       patchLifecycle: deps.patchLifecycle
+    });
+  }
+  function installStoreHubPackCountPatch(deps) {
+    const { patchLifecycle, getPackCount } = deps;
+    return patchLifecycle.install({
+      id: STORE_PATCH_IDS.HUB_PACK_COUNT,
+      phase: "market-and-squad",
+      targetLabel: "UTStoreHubView.prototype.togglePackTileDisplay",
+      resolveTarget: () => typeof UTStoreHubView === "undefined" ? null : {
+        owner: UTStoreHubView.prototype,
+        key: "togglePackTileDisplay"
+      },
+      verify: ({ originalDescriptor, originalValue }) => ({
+        ok: originalDescriptor !== void 0 && "value" in originalDescriptor && originalDescriptor.writable === true && typeof originalValue === "function",
+        missing: ["UTStoreHubView.prototype.togglePackTileDisplay"]
+      }),
+      apply: ({ target, originalDescriptor, originalValue }) => {
+        Object.defineProperty(target.owner, target.key, {
+          ...originalDescriptor,
+          value: function fsuTogglePackTileDisplay(...args) {
+            const result = originalValue.apply(this, args);
+            try {
+              const count = getPackCount();
+              const root = this._packsTile?.getRootElement?.();
+              if (root) {
+                if (args[0] && count > 0) {
+                  root.setAttribute("data-num", String(count));
+                } else {
+                  root.removeAttribute("data-num");
+                }
+              }
+            } catch {
+            }
+            return result;
+          }
+        });
+      }
     });
   }
   function installStorePackListPatch(deps) {
@@ -7611,7 +8381,7 @@
     return true;
   }
   function installStorePatches(deps) {
-    const { call, events, info, cntlr: cntlr2, isPhone: isPhone2, fy: fy2, repositories: repositories2, services: services2, GM_setValue: GM_setValue2, AssetLocationUtils: AssetLocationUtils2, unsafeWindow: unsafeWindow2, patchLifecycle, debug: debug2 } = deps;
+    const { call, events, info, cntlr: cntlr2, isPhone: isPhone2, fy: fy2, repositories: repositories2, services: services2, GM_setValue: GM_setValue2, AssetLocationUtils: AssetLocationUtils2, unsafeWindow: unsafeWindow2, patchLifecycle, debug: debug2, httpClient } = deps;
     const GM_openInTab2 = unsafeWindow2.GM_openInTab;
     events.showPlayerListPopup = (title, text, players, desc) => {
       const popupController = new EADialogViewController({
@@ -7695,6 +8465,88 @@
       popupView.getRootElement().querySelector(".ea-dialog-view--body").prepend(popupBox);
       gPopupClickShield.setActivePopup(popupController);
     };
+    registerPackPreviewEvents({
+      events,
+      info,
+      cntlr: cntlr2,
+      fy: fy2,
+      services: services2,
+      httpClient,
+      debug: debug2
+    });
+    const bulkPackOpenService = new BulkPackOpenService({
+      adapter: new BulkPackOpenAdapter({
+        repositories: repositories2,
+        services: services2,
+        getClubItems: (definitionId) => events.getItemBy(1, {
+          definitionId,
+          upgrades: null
+        }),
+        itemPile: ItemPile,
+        playerInjury: PlayerInjury,
+        purchasePackType: PurchasePackType
+      })
+    });
+    events.cancelBulkPackOpen = () => bulkPackOpenService.cancel();
+    events.isBulkPackOpenRunning = () => bulkPackOpenService.isRunning();
+    events.openPacks = async (packId, packName, count) => {
+      events.showLoader();
+      const result = await bulkPackOpenService.run({
+        packId,
+        count,
+        context: cntlr2.current(),
+        onProgress: (current, total) => events.changeLoadingText(
+          ["openpack.progress.loadertext1", packName],
+          ["openpack.progress.loadertext2", current, total]
+        )
+      });
+      events.hideLoader();
+      if (result.success) {
+        repositories2.Store.setDirty();
+        const summary = result.data;
+        const players = _.orderBy(
+          summary.players,
+          ["rareflag", "rating"],
+          ["desc", "desc"]
+        ).slice(0, 20);
+        events.showPlayerListPopup(
+          fy2(["openpack.result.popupt", packName]),
+          fy2([
+            "openpack.result.popupm1",
+            summary.opened,
+            summary.requested - summary.opened,
+            summary.clubCount,
+            summary.storageCount,
+            summary.specialCount,
+            summary.highestRating
+          ]),
+          players,
+          fy2("openpack.result.popupm2")
+        );
+        return true;
+      }
+      debug2.log("Bulk pack open stopped", result);
+      if (result.error.code !== BULK_PACK_ERROR_CODES.CANCELLED) {
+        const issue = result.error.issues?.[0] || result.error.code;
+        events.notice(
+          result.error.code === BULK_PACK_ERROR_CODES.PRECONDITION && issue === "unassigned-items" ? "openpack.unassigned.notice" : ["openpack.openerror.notice", issue],
+          2
+        );
+      }
+      return false;
+    };
+    events.openPacksConfirmPopup = (packId, packName, count) => {
+      const safeCount = Math.min(count, 50);
+      events.popup(
+        fy2(["openpack.storebtn.popupt", packName]),
+        fy2(["openpack.storebtn.popupm.safe", safeCount]),
+        (choice) => {
+          if (choice === 2) {
+            events.openPacks(packId, packName, safeCount);
+          }
+        }
+      );
+    };
     function fsuStoreRevealItems(e2, t, i, o) {
       let showPlayers = e2;
       try {
@@ -7759,8 +8611,8 @@
       })
     });
     function fsuStorePackList(e2, t, i, o) {
-      const HideAndShow = this.getStoreCategory() == "mypacks";
       const categoryId = this.getStoreCategory();
+      const HideAndShow = isMyPacksCategory(categoryId);
       let catalog;
       try {
         catalog = storePackCatalogService.createCatalog(e2, {
@@ -7867,8 +8719,42 @@
               item._pack.getRootElement().appendChild(packInfoBox);
             }
           }
+          if (packCoin && packData && !itemElement.querySelector(".fsu-trypack")) {
+            const tryPackButton = events.createButton(
+              new UTCurrencyButtonControl(),
+              fy2("trypack.button.subtext"),
+              () => events.tryPack(packData),
+              "fsu-trypack"
+            );
+            const box = events.createElementWithConfig("div", {
+              classList: "fsu-trypack-box"
+            });
+            box.appendChild(tryPackButton.getRootElement());
+            const parent = itemElement.querySelector(
+              ".ut-store-pack-details-view--pack-counts"
+            );
+            if (parent) {
+              parent.style.position = "relative";
+              parent.appendChild(box);
+            }
+          }
+          if (packCoin && packData && !itemElement.querySelector(".fsu-realprob")) {
+            const probabilityButton = events.createButton(
+              new UTStandardButtonControl(),
+              fy2("realprob.btn"),
+              () => events.raelProbability(packData),
+              "fsu-realprob mini"
+            );
+            item._fsuExtraInfo?.appendChild(
+              probabilityButton.getRootElement()
+            );
+          }
           if (HideAndShow) {
-            const packInfo = this._fsuPacks[`${item.articleId}-${!item.__root.classList.contains("is-untradeable")}`];
+            const packInfo = resolveStorePackSummary(
+              this._fsuPacks,
+              item.articleId,
+              packData
+            );
             if (packInfo) {
               if (!itemElement.querySelector(".fsu-packcount")) {
                 itemElement.style.position = "relative";
@@ -7888,6 +8774,36 @@
                   }
                 });
                 itemElement.appendChild(packCount);
+              }
+              if (packInfo.isPlayers && !itemElement.querySelector(".fsu-bulkopen")) {
+                const bulkOpenButton = events.createButton(
+                  new UTCurrencyButtonControl(),
+                  `${fy2("openpack.storebtn.text")} (${Math.min(packInfo.count, 50)})`,
+                  () => {
+                    events.openPacks(
+                      item.articleId,
+                      packInfo.fullName,
+                      Math.min(packInfo.count, 50)
+                    );
+                  },
+                  "fsu-bulkopen call-to-action"
+                );
+                bulkOpenButton.__currencyLabel.textContent = fy2("openpack.storebtn.subtext");
+                const actionContainer = item.__articleActionContainer || itemElement.querySelector(
+                  ".ut-store-pack-details-view--actions"
+                ) || itemElement;
+                actionContainer.prepend(
+                  bulkOpenButton.getRootElement()
+                );
+                if (actionContainer !== itemElement) {
+                  actionContainer.style.gap = "1rem";
+                } else {
+                  bulkOpenButton.getRootElement().style.margin = "0.5rem";
+                  debug2.log("Bulk pack button fallback", {
+                    success: true,
+                    fallback: "pack-root"
+                  });
+                }
               }
             }
           }
@@ -8271,6 +9187,11 @@
     };
     events.setStoreHubPatchEnabled = (enabled) => enabled ? installStoreHubPatch(storeHubLifecycleDeps) : patchLifecycle.restore(STORE_PATCH_IDS.HUB_TILES);
     events.setStoreHubPatchEnabled(true);
+    events.setStoreHubPackCountPatchEnabled = (enabled) => enabled ? installStoreHubPackCountPatch({
+      patchLifecycle,
+      getPackCount: () => Number(repositories2.Store.myPacks?.length) || 0
+    }) : patchLifecycle.restore(STORE_PATCH_IDS.HUB_PACK_COUNT);
+    events.setStoreHubPackCountPatchEnabled(true);
     events.cancelInPacksSearch = () => inPacksSearchService.cancel();
     events.goToInPacks = async (nav) => {
       if (!nav) return false;
@@ -11397,7 +12318,7 @@
     unobserve() {
     }
   };
-  function isRecord12(value) {
+  function isRecord13(value) {
     return value !== null && typeof value === "object";
   }
   var SbcSubmitTransactionService = class {
@@ -11428,15 +12349,15 @@
       const challenge = args[0];
       const setEntity = args[1];
       const challengeId = Number(
-        isRecord12(challenge) ? challenge.id : void 0
+        isRecord13(challenge) ? challenge.id : void 0
       );
       let canSubmit;
       try {
-        canSubmit = isRecord12(challenge) && typeof challenge.canSubmit === "function" && challenge.canSubmit() === true;
+        canSubmit = isRecord13(challenge) && typeof challenge.canSubmit === "function" && challenge.canSubmit() === true;
       } catch {
         canSubmit = false;
       }
-      if (!Number.isInteger(challengeId) || challengeId <= 0 || !isRecord12(setEntity) || !canSubmit) {
+      if (!Number.isInteger(challengeId) || challengeId <= 0 || !isRecord13(setEntity) || !canSubmit) {
         const result = sbcSubmitFailure(
           SBC_SUBMIT_ERROR_CODES.PRECONDITION,
           ["challenge.id", "challenge.canSubmit", "set"]
@@ -11477,7 +12398,7 @@
           error: result.error
         });
       }
-      if (!isRecord12(observable) || typeof observable.observe !== "function") {
+      if (!isRecord13(observable) || typeof observable.observe !== "function") {
         const result = sbcSubmitFailure(
           SBC_SUBMIT_ERROR_CODES.INVALID_RESPONSE,
           ["submit.observable"]
@@ -12717,6 +13638,236 @@
     };
   }
 
+  // src/fsu/domain/PlayerMetaCacheService.js
+  var MAX_METADATA_RECORDS = 5e3;
+  var MAX_METADATA_ARRAY = 200;
+  function isRecord14(value) {
+    return value !== null && typeof value === "object" && !Array.isArray(value);
+  }
+  function cloneArray(value) {
+    if (!Array.isArray(value) || value.length > MAX_METADATA_ARRAY) return null;
+    return value.map((item) => {
+      if (item === null || ["string", "number", "boolean"].includes(typeof item)) {
+        return item;
+      }
+      if (!isRecord14(item)) return null;
+      return { ...item };
+    });
+  }
+  var PlayerMetaCacheService = class {
+    /**
+     * @param {{
+     *   info: PlayerMetaInfo,
+     *   persist: (key: string, value: string) => void,
+     *   getYear: () => string | number,
+     *   debug?: PlayerMetaDebug
+     * }} deps
+     */
+    constructor({ info, persist, getYear, debug: debug2 }) {
+      this.info = info;
+      this.persist = persist;
+      this.getYear = getYear;
+      this.debug = debug2;
+    }
+    /** @param {unknown} value */
+    capture(value) {
+      if (!Array.isArray(value) || value.length > MAX_METADATA_RECORDS) {
+        return false;
+      }
+      const next = { ...this.info.playerMetaData || {} };
+      let changed = false;
+      for (const entry of value) {
+        if (!isRecord14(entry) || !Number.isInteger(entry.defId) || Number(entry.defId) <= 0) {
+          continue;
+        }
+        const definitionId = Number(entry.defId);
+        if (Object.prototype.hasOwnProperty.call(next, definitionId)) continue;
+        const attributes = cloneArray(entry.ingameattribs ?? []);
+        const rolePlus = cloneArray(entry.rolePlus ?? []);
+        const rolePlusPlus = cloneArray(entry.rolePlusPlus ?? []);
+        if (!attributes || !rolePlus || !rolePlusPlus) continue;
+        next[definitionId] = {
+          a: attributes,
+          b: rolePlus,
+          c: rolePlusPlus
+        };
+        changed = true;
+      }
+      if (!changed) return true;
+      this.info.playerMetaData = next;
+      try {
+        this.persist(`playerMetaData_${this.getYear()}`, JSON.stringify(next));
+      } catch (error) {
+        this.debug?.log?.("Player metadata cache persist failed", error);
+        return false;
+      }
+      return true;
+    }
+    /**
+     * @param {{definitionId?: unknown} | null | undefined} player
+     * @param {unknown} metaData
+     * @param {PlayerMetaCapabilities} capabilities
+     */
+    hydrate(player, metaData, capabilities) {
+      const definitionId = Number(player?.definitionId);
+      const cached = this.info.playerMetaData?.[definitionId];
+      if (!cached || !isRecord14(metaData)) return metaData;
+      const { createSubAttribute, createRole } = capabilities;
+      if (typeof createSubAttribute !== "function" || typeof createRole !== "function") {
+        return metaData;
+      }
+      try {
+        const copy = { ...metaData };
+        copy.attributes = cached.a.map(
+          (value, key) => createSubAttribute(key, value)
+        );
+        copy.rolePlus = cached.b.map((value) => createRole(value));
+        copy.rolePlusPlus = cached.c.map((value) => createRole(value));
+        copy.isLocal = true;
+        return copy;
+      } catch (error) {
+        this.debug?.log?.("Player metadata cache hydrate failed", error);
+        return metaData;
+      }
+    }
+  };
+
+  // src/fsu/patches/player-meta-cache.js
+  var PLAYER_META_CACHE_PATCH_IDS = Object.freeze({
+    XHR_CAPTURE: "player-meta.xhr-capture",
+    FACTORY_HYDRATE: "player-meta.factory-hydrate",
+    ENTITY_HYDRATE: "player-meta.entity-hydrate",
+    ACADEMY_GK_SUB_ATTRIBUTE: "academy.gk-sub-attribute"
+  });
+  function installMethodPatch(patchLifecycle, descriptor) {
+    return patchLifecycle.install({
+      ...descriptor,
+      verify: ({ originalDescriptor, originalValue }) => ({
+        ok: originalDescriptor !== void 0 && "value" in originalDescriptor && originalDescriptor.writable === true && typeof originalValue === "function",
+        missing: [`${descriptor.targetLabel}.method`]
+      })
+    });
+  }
+  function installPlayerMetaCachePatches(deps) {
+    const {
+      info,
+      services: services2,
+      repositories: repositories2,
+      GM_setValue: GM_setValue2,
+      patchLifecycle,
+      debug: debug2
+    } = deps;
+    const service = new PlayerMetaCacheService({
+      info,
+      persist: GM_setValue2,
+      getYear: () => info.base.year,
+      debug: debug2
+    });
+    const capabilities = {
+      createSubAttribute: (key, value) => new UTPlayerSubAttributeVO(key, value),
+      createRole: (value) => services2.PlayerMetaData.metaDAO.generatePlayerRoleVO(value)
+    };
+    const shouldHydrate = (player) => Number.isInteger(Number(player?.definitionId)) && player?.type === ItemType.PLAYER && Object.prototype.hasOwnProperty.call(
+      info.playerMetaData || {},
+      Number(player.definitionId)
+    ) && !repositories2.PlayerMeta.has(Number(player.definitionId));
+    installMethodPatch(patchLifecycle, {
+      id: PLAYER_META_CACHE_PATCH_IDS.XHR_CAPTURE,
+      phase: "late",
+      targetLabel: "XMLHttpRequest.prototype.open",
+      resolveTarget: () => typeof XMLHttpRequest === "undefined" ? null : { owner: XMLHttpRequest.prototype, key: "open" },
+      apply: ({ target, originalDescriptor, originalValue }) => {
+        Object.defineProperty(target.owner, target.key, {
+          ...originalDescriptor,
+          value: function fsuPlayerMetaOpen(method, url, ...rest) {
+            if (typeof url === "string" && url.includes("/attributes/metadata")) {
+              this.addEventListener("load", () => {
+                try {
+                  service.capture(JSON.parse(this.responseText));
+                } catch (error) {
+                  debug2.log("Player metadata response rejected", error);
+                }
+              });
+            }
+            return originalValue.call(this, method, url, ...rest);
+          }
+        });
+      }
+    });
+    installMethodPatch(patchLifecycle, {
+      id: PLAYER_META_CACHE_PATCH_IDS.FACTORY_HYDRATE,
+      phase: "late",
+      targetLabel: "UTItemEntityFactory.prototype.generateItemConstructorOptions",
+      resolveTarget: () => typeof UTItemEntityFactory === "undefined" ? null : {
+        owner: UTItemEntityFactory.prototype,
+        key: "generateItemConstructorOptions"
+      },
+      apply: ({ target, originalDescriptor, originalValue }) => {
+        Object.defineProperty(target.owner, target.key, {
+          ...originalDescriptor,
+          value: function fsuGenerateItemConstructorOptions(...args) {
+            const options = originalValue.apply(this, args);
+            if (shouldHydrate(options)) {
+              options.metaData = service.hydrate(
+                options,
+                options.metaData,
+                capabilities
+              );
+            }
+            return options;
+          }
+        });
+      }
+    });
+    installMethodPatch(patchLifecycle, {
+      id: PLAYER_META_CACHE_PATCH_IDS.ENTITY_HYDRATE,
+      phase: "late",
+      targetLabel: "UTItemEntity.prototype.setMetaData",
+      resolveTarget: () => typeof UTItemEntity === "undefined" ? null : { owner: UTItemEntity.prototype, key: "setMetaData" },
+      apply: ({ target, originalDescriptor, originalValue }) => {
+        Object.defineProperty(target.owner, target.key, {
+          ...originalDescriptor,
+          value: function fsuSetMetaData(metaData) {
+            const result = originalValue.call(this, metaData);
+            if (shouldHydrate(this)) {
+              this._metaData = service.hydrate(
+                this,
+                metaData,
+                capabilities
+              );
+            }
+            return result;
+          }
+        });
+      }
+    });
+    const academyMap = typeof AcademyStatEnum === "undefined" || typeof ItemSubAttribute === "undefined" ? null : /* @__PURE__ */ new Map([
+      [AcademyStatEnum.GK_SUB_DIVING, ItemSubAttribute.gkdiving],
+      [AcademyStatEnum.GK_SUB_HANDLING, ItemSubAttribute.gkhandling],
+      [AcademyStatEnum.GK_SUB_KICKING, ItemSubAttribute.gkkicking],
+      [AcademyStatEnum.GK_SUB_REFLEXES, ItemSubAttribute.gkreflexes],
+      [
+        AcademyStatEnum.GK_SUB_POSITIONING_SUB,
+        ItemSubAttribute.gkpositioning
+      ]
+    ]);
+    installMethodPatch(patchLifecycle, {
+      id: PLAYER_META_CACHE_PATCH_IDS.ACADEMY_GK_SUB_ATTRIBUTE,
+      phase: "late",
+      targetLabel: "UTAcademyUtils.getSubAttributeByUpgradeId",
+      resolveTarget: () => typeof UTAcademyUtils === "undefined" || academyMap === null ? null : { owner: UTAcademyUtils, key: "getSubAttributeByUpgradeId" },
+      apply: ({ target, originalDescriptor, originalValue }) => {
+        Object.defineProperty(target.owner, target.key, {
+          ...originalDescriptor,
+          value: function fsuGetSubAttributeByUpgradeId(type) {
+            return academyMap?.has(type) ? academyMap.get(type) : originalValue.call(this, type);
+          }
+        });
+      }
+    });
+    return service;
+  }
+
   // src/fsu/core/PatchInstaller.js
   var PatchInstaller = class {
     /**
@@ -12875,7 +14026,7 @@
           "AssetLocationUtils",
           "unsafeWindow",
           "patchLifecycle",
-          "debug"
+          "httpClient"
         )
       );
       installSearchPatches(c.pick("call", "events", "info", "isPhone", "cntlr", "fy"));
@@ -12974,6 +14125,16 @@
     }
     installLate() {
       const c = this.ctx;
+      installPlayerMetaCachePatches(
+        c.pick(
+          "info",
+          "services",
+          "repositories",
+          "GM_setValue",
+          "patchLifecycle",
+          "debug"
+        )
+      );
       installSbcSubmitPatch({
         sbcCountService: c.ctx.sbcCountService,
         onCountChanged: () => c.SBCCount.changeCount(),
@@ -13397,11 +14558,11 @@
     ITEM_PURCHASE_CAPACITY: "item.purchase-capacity",
     ITEM_LISTING_INVENTORY: "item.listing-inventory"
   });
-  function isRecord13(value) {
+  function isRecord15(value) {
     return value !== null && typeof value === "object";
   }
   function asPropertyBag2(value) {
-    if (isRecord13(value)) return value;
+    if (isRecord15(value)) return value;
     if (typeof value === "function") {
       return (
         /** @type {Record<string, unknown>} */
@@ -13518,7 +14679,7 @@
     }
     /** @returns {Record<string, unknown>} */
     getCriteria() {
-      return isRecord13(this.model.searchCriteria) ? this.model.searchCriteria : this.criteria;
+      return isRecord15(this.model.searchCriteria) ? this.model.searchCriteria : this.criteria;
     }
   };
   var EaRuntimeAdapter = class {
@@ -13555,7 +14716,7 @@
       }
       if (name === EA_CAPABILITIES.MARKET_QUERY_MODEL) {
         const runtime = this.getMarketRuntime();
-        if (!isRecord13(runtime)) {
+        if (!isRecord15(runtime)) {
           return { name, supported: false, missing: ["marketRuntime"] };
         }
         const requiredConstructors = ["UTSearchCriteriaDTO", "UTBucketedItemSearchViewModel"];
@@ -13565,13 +14726,13 @@
           if (typeof runtime[key] !== "function") missing.push(`marketRuntime.${key}`);
         }
         for (const key of requiredEnums) {
-          if (!isRecord13(runtime[key])) missing.push(`marketRuntime.${key}`);
+          if (!isRecord15(runtime[key])) missing.push(`marketRuntime.${key}`);
         }
         return { name, supported: missing.length === 0, missing };
       }
       if (name === EA_CAPABILITIES.CURRENCY_STEPS) {
         const runtime = this.getMarketRuntime();
-        if (!isRecord13(runtime)) {
+        if (!isRecord15(runtime)) {
           return { name, supported: false, missing: ["marketRuntime"] };
         }
         const currencyInput = asPropertyBag2(runtime.UTCurrencyInputControl);
@@ -13589,8 +14750,8 @@
       }
       if (name === EA_CAPABILITIES.ITEM_STATIC_DATA) {
         const repositories2 = this.getRepositories();
-        const itemRepository = isRecord13(repositories2) ? repositories2.Item : void 0;
-        if (!isRecord13(itemRepository) || typeof itemRepository.getStaticDataByDefId !== "function") {
+        const itemRepository = isRecord15(repositories2) ? repositories2.Item : void 0;
+        if (!isRecord15(itemRepository) || typeof itemRepository.getStaticDataByDefId !== "function") {
           return {
             name,
             supported: false,
@@ -13602,12 +14763,12 @@
       if (name === EA_CAPABILITIES.ITEM_PURCHASE_CAPACITY) {
         const repositories2 = this.getRepositories();
         const runtime = this.getItemRuntime();
-        const itemRepository = isRecord13(repositories2) ? repositories2.Item : void 0;
+        const itemRepository = isRecord15(repositories2) ? repositories2.Item : void 0;
         const missing = [];
-        if (!isRecord13(itemRepository) || typeof itemRepository.numItemsInCache !== "function") {
+        if (!isRecord15(itemRepository) || typeof itemRepository.numItemsInCache !== "function") {
           missing.push("repositories.Item.numItemsInCache");
         }
-        if (!isRecord13(runtime) || !isRecord13(runtime.ItemPile) || runtime.ItemPile.PURCHASED === void 0) {
+        if (!isRecord15(runtime) || !isRecord15(runtime.ItemPile) || runtime.ItemPile.PURCHASED === void 0) {
           missing.push("itemRuntime.ItemPile.PURCHASED");
         }
         return { name, supported: missing.length === 0, missing };
@@ -13615,43 +14776,43 @@
       if (name === EA_CAPABILITIES.ITEM_LISTING_INVENTORY) {
         const repositories2 = this.getRepositories();
         const runtime = this.getItemRuntime();
-        const itemRepository = isRecord13(repositories2) ? repositories2.Item : void 0;
+        const itemRepository = isRecord15(repositories2) ? repositories2.Item : void 0;
         const missing = [];
-        const transfer = isRecord13(itemRepository) ? itemRepository.transfer : void 0;
-        const unassigned = isRecord13(itemRepository) ? itemRepository.unassigned : void 0;
-        const club = isRecord13(itemRepository) ? itemRepository.club : void 0;
-        const clubItems = isRecord13(club) ? club.items : void 0;
-        if (!isRecord13(transfer) || typeof transfer.get !== "function") {
+        const transfer = isRecord15(itemRepository) ? itemRepository.transfer : void 0;
+        const unassigned = isRecord15(itemRepository) ? itemRepository.unassigned : void 0;
+        const club = isRecord15(itemRepository) ? itemRepository.club : void 0;
+        const clubItems = isRecord15(club) ? club.items : void 0;
+        if (!isRecord15(transfer) || typeof transfer.get !== "function") {
           missing.push("repositories.Item.transfer.get");
         }
-        if (!isRecord13(transfer) || !isRecord13(transfer._collection)) {
+        if (!isRecord15(transfer) || !isRecord15(transfer._collection)) {
           missing.push("repositories.Item.transfer._collection");
         }
-        if (!isRecord13(unassigned) || typeof unassigned.get !== "function") {
+        if (!isRecord15(unassigned) || typeof unassigned.get !== "function") {
           missing.push("repositories.Item.unassigned.get");
         }
-        if (!isRecord13(clubItems) || typeof clubItems.get !== "function") {
+        if (!isRecord15(clubItems) || typeof clubItems.get !== "function") {
           missing.push("repositories.Item.club.items.get");
         }
-        if (!isRecord13(itemRepository) || typeof itemRepository.getPileSize !== "function") {
+        if (!isRecord15(itemRepository) || typeof itemRepository.getPileSize !== "function") {
           missing.push("repositories.Item.getPileSize");
         }
-        if (!isRecord13(itemRepository) || typeof itemRepository.numItemsInCache !== "function") {
+        if (!isRecord15(itemRepository) || typeof itemRepository.numItemsInCache !== "function") {
           missing.push("repositories.Item.numItemsInCache");
         }
-        if (!isRecord13(runtime) || !isRecord13(runtime.ItemPile) || runtime.ItemPile.TRANSFER === void 0) {
+        if (!isRecord15(runtime) || !isRecord15(runtime.ItemPile) || runtime.ItemPile.TRANSFER === void 0) {
           missing.push("itemRuntime.ItemPile.TRANSFER");
         }
         return { name, supported: missing.length === 0, missing };
       }
       const services2 = this.getServices();
-      if (!isRecord13(services2)) {
+      if (!isRecord15(services2)) {
         return { name, supported: false, missing: ["services"] };
       }
       if (name === EA_CAPABILITIES.MARKET_SEARCH) {
         const itemService = services2.Item;
         const missing = [];
-        if (!isRecord13(itemService)) {
+        if (!isRecord15(itemService)) {
           missing.push("services.Item");
         } else {
           if (typeof itemService.clearTransferMarketCache !== "function") {
@@ -13669,25 +14830,25 @@
         const itemService = services2.Item;
         const localization = services2.Localization;
         const notification = services2.Notification;
-        if (!isRecord13(itemService) || typeof itemService.move !== "function") {
+        if (!isRecord15(itemService) || typeof itemService.move !== "function") {
           missing.push("services.Item.move");
         }
-        if (!isRecord13(localization) || typeof localization.localize !== "function") {
+        if (!isRecord15(localization) || typeof localization.localize !== "function") {
           missing.push("services.Localization.localize");
         }
-        if (!isRecord13(notification) || typeof notification.queue !== "function") {
+        if (!isRecord15(notification) || typeof notification.queue !== "function") {
           missing.push("services.Notification.queue");
         }
-        if (!isRecord13(runtime)) {
+        if (!isRecord15(runtime)) {
           missing.push("itemRuntime");
         } else {
-          if (!isRecord13(runtime.ItemPile) || runtime.ItemPile.CLUB === void 0) {
+          if (!isRecord15(runtime.ItemPile) || runtime.ItemPile.CLUB === void 0) {
             missing.push("itemRuntime.ItemPile.CLUB");
           }
-          if (!isRecord13(runtime.UINotificationType) || runtime.UINotificationType.NEUTRAL === void 0 || runtime.UINotificationType.NEGATIVE === void 0) {
+          if (!isRecord15(runtime.UINotificationType) || runtime.UINotificationType.NEUTRAL === void 0 || runtime.UINotificationType.NEGATIVE === void 0) {
             missing.push("itemRuntime.UINotificationType");
           }
-          if (!isRecord13(runtime.NetworkErrorManager) || typeof runtime.NetworkErrorManager.handleStatus !== "function") {
+          if (!isRecord15(runtime.NetworkErrorManager) || typeof runtime.NetworkErrorManager.handleStatus !== "function") {
             missing.push("itemRuntime.NetworkErrorManager.handleStatus");
           }
         }
@@ -13698,25 +14859,25 @@
         const missing = [];
         const itemService = services2.Item;
         const userService = services2.User;
-        if (!isRecord13(itemService) || typeof itemService.bid !== "function") {
+        if (!isRecord15(itemService) || typeof itemService.bid !== "function") {
           missing.push("services.Item.bid");
         }
-        if (!isRecord13(itemService) || typeof itemService.move !== "function") {
+        if (!isRecord15(itemService) || typeof itemService.move !== "function") {
           missing.push("services.Item.move");
         }
-        if (!isRecord13(userService) || typeof userService.getUser !== "function") {
+        if (!isRecord15(userService) || typeof userService.getUser !== "function") {
           missing.push("services.User.getUser");
         }
-        if (!isRecord13(runtime)) {
+        if (!isRecord15(runtime)) {
           missing.push("itemRuntime");
         } else {
-          if (!isRecord13(runtime.ItemPile) || runtime.ItemPile.CLUB === void 0) {
+          if (!isRecord15(runtime.ItemPile) || runtime.ItemPile.CLUB === void 0) {
             missing.push("itemRuntime.ItemPile.CLUB");
           }
-          if (!isRecord13(runtime.GameCurrency) || runtime.GameCurrency.COINS === void 0) {
+          if (!isRecord15(runtime.GameCurrency) || runtime.GameCurrency.COINS === void 0) {
             missing.push("itemRuntime.GameCurrency.COINS");
           }
-          if (!isRecord13(runtime.UtasErrorCode) || runtime.UtasErrorCode.PERMISSION_DENIED === void 0) {
+          if (!isRecord15(runtime.UtasErrorCode) || runtime.UtasErrorCode.PERMISSION_DENIED === void 0) {
             missing.push("itemRuntime.UtasErrorCode.PERMISSION_DENIED");
           }
         }
@@ -13728,28 +14889,28 @@
         const itemService = services2.Item;
         const localization = services2.Localization;
         const notification = services2.Notification;
-        if (!isRecord13(itemService) || typeof itemService.list !== "function") {
+        if (!isRecord15(itemService) || typeof itemService.list !== "function") {
           missing.push("services.Item.list");
         }
-        if (!isRecord13(localization) || typeof localization.localize !== "function") {
+        if (!isRecord15(localization) || typeof localization.localize !== "function") {
           missing.push("services.Localization.localize");
         }
-        if (!isRecord13(notification) || typeof notification.queue !== "function") {
+        if (!isRecord15(notification) || typeof notification.queue !== "function") {
           missing.push("services.Notification.queue");
         }
-        if (!isRecord13(runtime)) {
+        if (!isRecord15(runtime)) {
           missing.push("itemRuntime");
         } else {
-          if (!isRecord13(runtime.UINotificationType) || runtime.UINotificationType.NEGATIVE === void 0) {
+          if (!isRecord15(runtime.UINotificationType) || runtime.UINotificationType.NEGATIVE === void 0) {
             missing.push("itemRuntime.UINotificationType.NEGATIVE");
           }
-          if (!isRecord13(runtime.NetworkErrorManager) || typeof runtime.NetworkErrorManager.checkCriticalStatus !== "function" || typeof runtime.NetworkErrorManager.handleStatus !== "function") {
+          if (!isRecord15(runtime.NetworkErrorManager) || typeof runtime.NetworkErrorManager.checkCriticalStatus !== "function" || typeof runtime.NetworkErrorManager.handleStatus !== "function") {
             missing.push("itemRuntime.NetworkErrorManager");
           }
-          if (!isRecord13(runtime.HttpStatusCode) || runtime.HttpStatusCode.FORBIDDEN === void 0) {
+          if (!isRecord15(runtime.HttpStatusCode) || runtime.HttpStatusCode.FORBIDDEN === void 0) {
             missing.push("itemRuntime.HttpStatusCode.FORBIDDEN");
           }
-          if (!isRecord13(runtime.UtasErrorCode)) {
+          if (!isRecord15(runtime.UtasErrorCode)) {
             missing.push("itemRuntime.UtasErrorCode");
           } else {
             for (const key of [
@@ -13768,13 +14929,13 @@
       }
       if (name === EA_CAPABILITIES.UNASSIGNED_RESET) {
         const itemService = services2.Item;
-        if (!isRecord13(itemService)) {
+        if (!isRecord15(itemService)) {
           return { name, supported: false, missing: ["services.Item"] };
         }
         const itemDao = itemService.itemDao;
-        const itemRepo = isRecord13(itemDao) ? itemDao.itemRepo : void 0;
-        const unassigned = isRecord13(itemRepo) ? itemRepo.unassigned : void 0;
-        if (!isRecord13(unassigned) || typeof unassigned.reset !== "function") {
+        const itemRepo = isRecord15(itemDao) ? itemDao.itemRepo : void 0;
+        const unassigned = isRecord15(itemRepo) ? itemRepo.unassigned : void 0;
+        if (!isRecord15(unassigned) || typeof unassigned.reset !== "function") {
           return {
             name,
             supported: false,
@@ -13784,11 +14945,11 @@
         return { name, supported: true, missing: [] };
       }
       const authentication = services2.Authentication;
-      if (!isRecord13(authentication)) {
+      if (!isRecord15(authentication)) {
         return { name, supported: false, missing: ["services.Authentication"] };
       }
       const session = authentication.utasSession;
-      if (!isRecord13(session) || session.id === void 0 || session.id === null || session.id === "") {
+      if (!isRecord15(session) || session.id === void 0 || session.id === null || session.id === "") {
         return {
           name,
           supported: false,
@@ -13811,11 +14972,11 @@
         return null;
       }
       const services2 = this.getServices();
-      if (!isRecord13(services2)) return null;
+      if (!isRecord15(services2)) return null;
       const authentication = services2.Authentication;
-      if (!isRecord13(authentication)) return null;
+      if (!isRecord15(authentication)) return null;
       const session = authentication.utasSession;
-      if (!isRecord13(session)) return null;
+      if (!isRecord15(session)) return null;
       return String(session.id);
     }
     /**
@@ -13825,19 +14986,19 @@
     createPlayerMarketSearch(definitionId) {
       if (!this.supports(EA_CAPABILITIES.MARKET_QUERY_MODEL)) return null;
       const runtime = this.getMarketRuntime();
-      if (!isRecord13(runtime)) return null;
+      if (!isRecord15(runtime)) return null;
       const CriteriaConstructor = runtime.UTSearchCriteriaDTO;
       const ModelConstructor = runtime.UTBucketedItemSearchViewModel;
       const searchType = runtime.SearchType;
       const searchCategory = runtime.SearchCategory;
       const itemSearchFeature = runtime.ItemSearchFeature;
-      if (typeof CriteriaConstructor !== "function" || typeof ModelConstructor !== "function" || !isRecord13(searchType) || !isRecord13(searchCategory) || !isRecord13(itemSearchFeature)) {
+      if (typeof CriteriaConstructor !== "function" || typeof ModelConstructor !== "function" || !isRecord15(searchType) || !isRecord15(searchCategory) || !isRecord15(itemSearchFeature)) {
         return null;
       }
       try {
         const criteria = Reflect.construct(CriteriaConstructor, []);
         const model = Reflect.construct(ModelConstructor, []);
-        if (!isRecord13(criteria) || !isRecord13(model) || !isRecord13(model.defaultSearchCriteria)) {
+        if (!isRecord15(criteria) || !isRecord15(model) || !isRecord15(model.defaultSearchCriteria)) {
           return null;
         }
         const update = model.updateSearchCriteria;
@@ -13865,7 +15026,7 @@
     incrementMarketPrice(value, direction) {
       if (!this.supports(EA_CAPABILITIES.CURRENCY_STEPS)) return null;
       const runtime = this.getMarketRuntime();
-      if (!isRecord13(runtime)) return null;
+      if (!isRecord15(runtime)) return null;
       const currencyInput = asPropertyBag2(runtime.UTCurrencyInputControl);
       if (!currencyInput) return null;
       const method = direction === "above" ? currencyInput.getIncrementAboveVal : currencyInput.getIncrementBelowVal;
@@ -13885,7 +15046,7 @@
       }
       const services2 = this.getServices();
       const runtime = this.getItemRuntime();
-      if (!isRecord13(services2) || !isRecord13(runtime)) {
+      if (!isRecord15(services2) || !isRecord15(runtime)) {
         return Promise.resolve(unavailableMoveResult(capability.name, ["services", "itemRuntime"]));
       }
       const itemService = services2.Item;
@@ -13894,7 +15055,7 @@
       const itemPile = runtime.ItemPile;
       const notificationType = runtime.UINotificationType;
       const networkErrorManager = runtime.NetworkErrorManager;
-      if (!isRecord13(itemService) || !isRecord13(localization) || !isRecord13(notification) || !isRecord13(itemPile) || !isRecord13(notificationType) || !isRecord13(networkErrorManager)) {
+      if (!isRecord15(itemService) || !isRecord15(localization) || !isRecord15(notification) || !isRecord15(itemPile) || !isRecord15(notificationType) || !isRecord15(networkErrorManager)) {
         return Promise.resolve(unavailableMoveResult(capability.name, capability.missing));
       }
       const move = itemService.move;
@@ -13906,7 +15067,7 @@
       }
       try {
         const observable = move.call(itemService, items, itemPile.CLUB);
-        if (!isRecord13(observable) || typeof observable.observe !== "function") {
+        if (!isRecord15(observable) || typeof observable.observe !== "function") {
           return Promise.resolve(
             unavailableMoveResult(capability.name, ["services.Item.move.observe"])
           );
@@ -13918,16 +15079,16 @@
             if (settled) return;
             settled = true;
             try {
-              if (isRecord13(sender) && typeof sender.unobserve === "function") {
+              if (isRecord15(sender) && typeof sender.unobserve === "function") {
                 sender.unobserve(observerContext);
               }
-              if (!isRecord13(response)) {
+              if (!isRecord15(response)) {
                 resolve(unavailableMoveResult(capability.name, ["move.response"]));
                 return;
               }
               if (response.success) {
                 const data2 = response.data;
-                const movedCount = isRecord13(data2) && Array.isArray(data2.itemIds) ? data2.itemIds.length : 0;
+                const movedCount = isRecord15(data2) && Array.isArray(data2.itemIds) ? data2.itemIds.length : 0;
                 const messageKey = movedCount > 1 ? "notification.item.allToClub" : "notification.item.oneToClub";
                 const message2 = movedCount > 1 ? localize.call(localization, messageKey, [movedCount]) : localize.call(localization, messageKey);
                 queue.call(notification, [message2, notificationType.NEUTRAL]);
@@ -13937,7 +15098,7 @@
               const message = localize.call(localization, "notification.item.moveFailed");
               queue.call(notification, [message, notificationType.NEGATIVE]);
               const data = response.data;
-              const untradeableSwap = Boolean(isRecord13(data) && data.untradeableSwap);
+              const untradeableSwap = Boolean(isRecord15(data) && data.untradeableSwap);
               if (!untradeableSwap) {
                 handleStatus.call(networkErrorManager, response.status);
               }
@@ -13977,7 +15138,7 @@
       }
       const services2 = this.getServices();
       const runtime = this.getItemRuntime();
-      if (!isRecord13(services2) || !isRecord13(runtime) || !isRecord13(item)) {
+      if (!isRecord15(services2) || !isRecord15(runtime) || !isRecord15(item)) {
         return Promise.resolve(unavailablePurchaseResult(["services", "itemRuntime", "item"]));
       }
       const itemService = services2.Item;
@@ -13985,7 +15146,7 @@
       const itemPile = runtime.ItemPile;
       const gameCurrency = runtime.GameCurrency;
       const utasErrorCode = runtime.UtasErrorCode;
-      if (!isRecord13(itemService) || !isRecord13(userService) || !isRecord13(itemPile) || !isRecord13(gameCurrency) || !isRecord13(utasErrorCode)) {
+      if (!isRecord15(itemService) || !isRecord15(userService) || !isRecord15(itemPile) || !isRecord15(gameCurrency) || !isRecord15(utasErrorCode)) {
         return Promise.resolve(unavailablePurchaseResult(capability.missing));
       }
       const getAuctionData = item.getAuctionData;
@@ -14005,7 +15166,7 @@
       try {
         const auction = getAuctionData.call(item);
         const user = getUser.call(userService);
-        if (!isRecord13(auction) || !isRecord13(user) || typeof user.getCurrency !== "function") {
+        if (!isRecord15(auction) || !isRecord15(user) || typeof user.getCurrency !== "function") {
           return Promise.resolve(
             unavailablePurchaseResult(["item.auctionData", "services.User.getUser().getCurrency"])
           );
@@ -14013,7 +15174,7 @@
         const currency = user.getCurrency(gameCurrency.COINS);
         const canBuy = auction.canBuy;
         const getSecondsRemaining = auction.getSecondsRemaining;
-        if (!isRecord13(currency) || typeof canBuy !== "function" || typeof getSecondsRemaining !== "function") {
+        if (!isRecord15(currency) || typeof canBuy !== "function" || typeof getSecondsRemaining !== "function") {
           return Promise.resolve(
             unavailablePurchaseResult([
               "user.currency.amount",
@@ -14030,7 +15191,7 @@
         }
         onBeforeBid();
         const bidObservable = bid.call(itemService, item, Number(price));
-        if (!isRecord13(bidObservable) || typeof bidObservable.observe !== "function") {
+        if (!isRecord15(bidObservable) || typeof bidObservable.observe !== "function") {
           return Promise.resolve(unavailablePurchaseResult(["services.Item.bid.observe"]));
         }
         const observeBid = bidObservable.observe;
@@ -14039,18 +15200,18 @@
           const onBid = (sender, bidResponse) => {
             if (settled) return;
             try {
-              if (isRecord13(sender) && typeof sender.unobserve === "function") {
+              if (isRecord15(sender) && typeof sender.unobserve === "function") {
                 sender.unobserve(observerContext);
               }
-              if (!isRecord13(bidResponse) || !bidResponse.success) {
+              if (!isRecord15(bidResponse) || !bidResponse.success) {
                 settled = true;
-                const error = isRecord13(bidResponse) ? bidResponse.error : void 0;
-                const permissionDenied = isRecord13(error) && error.code === utasErrorCode.PERMISSION_DENIED;
+                const error = isRecord15(bidResponse) ? bidResponse.error : void 0;
+                const permissionDenied = isRecord15(error) && error.code === utasErrorCode.PERMISSION_DENIED;
                 resolve({ success: false, reason: "bid-failed", permissionDenied });
                 return;
               }
               const moveObservable = move.call(itemService, item, itemPile.CLUB);
-              if (!isRecord13(moveObservable) || typeof moveObservable.observe !== "function") {
+              if (!isRecord15(moveObservable) || typeof moveObservable.observe !== "function") {
                 settled = true;
                 resolve(purchasedMoveFailure(price, ["services.Item.move.observe"]));
                 return;
@@ -14060,10 +15221,10 @@
                 if (settled) return;
                 settled = true;
                 try {
-                  if (isRecord13(moveSender) && typeof moveSender.unobserve === "function") {
+                  if (isRecord15(moveSender) && typeof moveSender.unobserve === "function") {
                     moveSender.unobserve(observerContext);
                   }
-                  if (isRecord13(moveResponse) && moveResponse.success) {
+                  if (isRecord15(moveResponse) && moveResponse.success) {
                     resolve({ success: true, price: Number(price) });
                   } else {
                     resolve(purchasedMoveFailure(price));
@@ -14081,7 +15242,7 @@
             } catch (error) {
               settled = true;
               resolve(
-                isRecord13(bidResponse) && bidResponse.success ? purchasedMoveFailure(price, [], error) : unavailablePurchaseResult([], error)
+                isRecord15(bidResponse) && bidResponse.success ? purchasedMoveFailure(price, [], error) : unavailablePurchaseResult([], error)
               );
             }
           };
@@ -14111,7 +15272,7 @@
       }
       const services2 = this.getServices();
       const runtime = this.getItemRuntime();
-      if (!isRecord13(services2) || !isRecord13(runtime)) {
+      if (!isRecord15(services2) || !isRecord15(runtime)) {
         return Promise.resolve(unavailableListingResult(["services", "itemRuntime"]));
       }
       const itemService = services2.Item;
@@ -14121,7 +15282,7 @@
       const networkErrorManager = runtime.NetworkErrorManager;
       const httpStatusCode = runtime.HttpStatusCode;
       const utasErrorCode = runtime.UtasErrorCode;
-      if (!isRecord13(itemService) || !isRecord13(localization) || !isRecord13(notification) || !isRecord13(notificationType) || !isRecord13(networkErrorManager) || !isRecord13(httpStatusCode) || !isRecord13(utasErrorCode)) {
+      if (!isRecord15(itemService) || !isRecord15(localization) || !isRecord15(notification) || !isRecord15(notificationType) || !isRecord15(networkErrorManager) || !isRecord15(httpStatusCode) || !isRecord15(utasErrorCode)) {
         return Promise.resolve(unavailableListingResult(capability.missing));
       }
       const list = itemService.list;
@@ -14140,7 +15301,7 @@
           Number(buyNowPrice),
           Number(durationSeconds)
         );
-        if (!isRecord13(observable) || typeof observable.observe !== "function") {
+        if (!isRecord15(observable) || typeof observable.observe !== "function") {
           return Promise.resolve(unavailableListingResult(["services.Item.list.observe"]));
         }
         const observe = observable.observe;
@@ -14150,10 +15311,10 @@
             if (settled) return;
             settled = true;
             try {
-              if (isRecord13(sender) && typeof sender.unobserve === "function") {
+              if (isRecord15(sender) && typeof sender.unobserve === "function") {
                 sender.unobserve(observerContext);
               }
-              if (!isRecord13(response)) {
+              if (!isRecord15(response)) {
                 resolve(unavailableListingResult(["listing.response"]));
                 return;
               }
@@ -14161,7 +15322,7 @@
                 resolve({ success: true });
                 return;
               }
-              const error = isRecord13(response.error) ? response.error : void 0;
+              const error = isRecord15(response.error) ? response.error : void 0;
               const code = error?.code ?? response.status;
               if (checkCriticalStatus.call(networkErrorManager, code)) {
                 handleStatus.call(networkErrorManager, code);
@@ -14211,13 +15372,13 @@
         return unavailableUnassignedResetResult(capability.missing);
       }
       const services2 = this.getServices();
-      if (!isRecord13(services2) || !isRecord13(services2.Item)) {
+      if (!isRecord15(services2) || !isRecord15(services2.Item)) {
         return unavailableUnassignedResetResult(["services.Item"]);
       }
       const itemDao = services2.Item.itemDao;
-      const itemRepo = isRecord13(itemDao) ? itemDao.itemRepo : void 0;
-      const unassigned = isRecord13(itemRepo) ? itemRepo.unassigned : void 0;
-      const reset = isRecord13(unassigned) ? unassigned.reset : void 0;
+      const itemRepo = isRecord15(itemDao) ? itemDao.itemRepo : void 0;
+      const unassigned = isRecord15(itemRepo) ? itemRepo.unassigned : void 0;
+      const reset = isRecord15(unassigned) ? unassigned.reset : void 0;
       if (typeof reset !== "function") {
         return unavailableUnassignedResetResult([
           "services.Item.itemDao.itemRepo.unassigned.reset"
@@ -14240,8 +15401,8 @@
         return unavailableItemRepositoryResult(capability.name, capability.missing);
       }
       const repositories2 = this.getRepositories();
-      const itemRepository = isRecord13(repositories2) ? repositories2.Item : void 0;
-      const getStaticDataByDefId = isRecord13(itemRepository) ? itemRepository.getStaticDataByDefId : void 0;
+      const itemRepository = isRecord15(repositories2) ? repositories2.Item : void 0;
+      const getStaticDataByDefId = isRecord15(itemRepository) ? itemRepository.getStaticDataByDefId : void 0;
       if (typeof getStaticDataByDefId !== "function") {
         return unavailableItemRepositoryResult(capability.name, capability.missing);
       }
@@ -14262,10 +15423,10 @@
       }
       const repositories2 = this.getRepositories();
       const runtime = this.getItemRuntime();
-      const itemRepository = isRecord13(repositories2) ? repositories2.Item : void 0;
-      const itemPile = isRecord13(runtime) ? runtime.ItemPile : void 0;
-      const numItemsInCache = isRecord13(itemRepository) ? itemRepository.numItemsInCache : void 0;
-      if (!isRecord13(itemPile) || typeof numItemsInCache !== "function") {
+      const itemRepository = isRecord15(repositories2) ? repositories2.Item : void 0;
+      const itemPile = isRecord15(runtime) ? runtime.ItemPile : void 0;
+      const numItemsInCache = isRecord15(itemRepository) ? itemRepository.numItemsInCache : void 0;
+      if (!isRecord15(itemPile) || typeof numItemsInCache !== "function") {
         return unavailableItemRepositoryResult(capability.name, capability.missing);
       }
       try {
@@ -14287,15 +15448,15 @@
         return unavailableItemRepositoryResult(capability.name, capability.missing);
       }
       const repositories2 = this.getRepositories();
-      const itemRepository = isRecord13(repositories2) ? repositories2.Item : void 0;
-      if (!isRecord13(itemRepository)) {
+      const itemRepository = isRecord15(repositories2) ? repositories2.Item : void 0;
+      if (!isRecord15(itemRepository)) {
         return unavailableItemRepositoryResult(capability.name, capability.missing);
       }
       const transfer = itemRepository.transfer;
       const unassigned = itemRepository.unassigned;
       const club = itemRepository.club;
-      const clubItems = isRecord13(club) ? club.items : void 0;
-      if (!isRecord13(transfer) || !isRecord13(unassigned) || !isRecord13(clubItems) || typeof transfer.get !== "function" || typeof unassigned.get !== "function" || typeof clubItems.get !== "function" || !isRecord13(transfer._collection)) {
+      const clubItems = isRecord15(club) ? club.items : void 0;
+      if (!isRecord15(transfer) || !isRecord15(unassigned) || !isRecord15(clubItems) || typeof transfer.get !== "function" || typeof unassigned.get !== "function" || typeof clubItems.get !== "function" || !isRecord15(transfer._collection)) {
         return unavailableItemRepositoryResult(capability.name, capability.missing);
       }
       try {
@@ -14317,11 +15478,11 @@
       }
       const repositories2 = this.getRepositories();
       const runtime = this.getItemRuntime();
-      const itemRepository = isRecord13(repositories2) ? repositories2.Item : void 0;
-      const itemPile = isRecord13(runtime) ? runtime.ItemPile : void 0;
-      const getPileSize = isRecord13(itemRepository) ? itemRepository.getPileSize : void 0;
-      const numItemsInCache = isRecord13(itemRepository) ? itemRepository.numItemsInCache : void 0;
-      if (!isRecord13(itemPile) || typeof getPileSize !== "function" || typeof numItemsInCache !== "function") {
+      const itemRepository = isRecord15(repositories2) ? repositories2.Item : void 0;
+      const itemPile = isRecord15(runtime) ? runtime.ItemPile : void 0;
+      const getPileSize = isRecord15(itemRepository) ? itemRepository.getPileSize : void 0;
+      const numItemsInCache = isRecord15(itemRepository) ? itemRepository.numItemsInCache : void 0;
+      if (!isRecord15(itemPile) || typeof getPileSize !== "function" || typeof numItemsInCache !== "function") {
         return unavailableItemRepositoryResult(capability.name, capability.missing);
       }
       try {
@@ -14337,7 +15498,7 @@
         return false;
       }
       const services2 = this.getServices();
-      if (!isRecord13(services2) || !isRecord13(services2.Item)) return false;
+      if (!isRecord15(services2) || !isRecord15(services2.Item)) return false;
       const clear = services2.Item.clearTransferMarketCache;
       if (typeof clear !== "function") return false;
       clear.call(services2.Item);
@@ -14355,7 +15516,7 @@
         return Promise.resolve(unavailableResult(capability.name, capability.missing));
       }
       const services2 = this.getServices();
-      if (!isRecord13(services2) || !isRecord13(services2.Item)) {
+      if (!isRecord15(services2) || !isRecord15(services2.Item)) {
         return Promise.resolve(unavailableResult(capability.name, ["services.Item"]));
       }
       const search = services2.Item.searchTransferMarket;
@@ -14366,7 +15527,7 @@
       }
       try {
         const observable = search.call(services2.Item, criteria, type);
-        if (!isRecord13(observable)) {
+        if (!isRecord15(observable)) {
           return Promise.resolve(
             unavailableResult(capability.name, ["services.Item.searchTransferMarket.observe"])
           );
@@ -14389,7 +15550,7 @@
 
   // src/fsu/domain/MarketResults.js
   var MARKET_RESULT_INVALID = "MARKET_RESULT_INVALID";
-  function isRecord14(value) {
+  function isRecord16(value) {
     return value !== null && typeof value === "object" && !Array.isArray(value);
   }
   function invalidError(operation, issues) {
@@ -14400,7 +15561,7 @@
     };
   }
   function normalizeAuctionLookupResult(value) {
-    if (!isRecord14(value) || !Array.isArray(value.auctionInfo)) {
+    if (!isRecord16(value) || !Array.isArray(value.auctionInfo)) {
       return {
         success: false,
         data: { auctions: [] },
@@ -14409,7 +15570,7 @@
     }
     const auctions = [];
     for (const auction of value.auctionInfo) {
-      if (!isRecord14(auction) || !Number.isFinite(auction.buyNowPrice) || Number(auction.buyNowPrice) < 0) {
+      if (!isRecord16(auction) || !Number.isFinite(auction.buyNowPrice) || Number(auction.buyNowPrice) < 0) {
         return {
           success: false,
           data: { auctions: [] },
@@ -14423,7 +15584,7 @@
     return { success: true, data: { auctions } };
   }
   function normalizeMarketSearchResult(value) {
-    if (!isRecord14(value) || typeof value.success !== "boolean") {
+    if (!isRecord16(value) || typeof value.success !== "boolean") {
       return {
         success: false,
         data: { items: [] },
@@ -14431,7 +15592,7 @@
       };
     }
     if (!value.success) {
-      if (!isRecord14(value.error)) {
+      if (!isRecord16(value.error)) {
         return {
           success: false,
           data: { items: [] },
@@ -14440,7 +15601,7 @@
       }
       return { success: false, data: { items: [] }, error: value.error };
     }
-    if (!isRecord14(value.data) || !Array.isArray(value.data.items)) {
+    if (!isRecord16(value.data) || !Array.isArray(value.data.items)) {
       return {
         success: false,
         data: { items: [] },
@@ -14450,7 +15611,7 @@
     return { success: true, data: { items: value.data.items } };
   }
   function normalizeMarketPurchaseResult(value) {
-    if (!isRecord14(value) || typeof value.success !== "boolean") {
+    if (!isRecord16(value) || typeof value.success !== "boolean") {
       return {
         success: false,
         purchased: false,
@@ -14464,7 +15625,7 @@
     const price = Number.isFinite(value.price) ? Number(value.price) : null;
     const reason = typeof value.reason === "string" ? value.reason : null;
     const permissionDenied = value.permissionDenied === true;
-    const error = isRecord14(value.error) ? value.error : void 0;
+    const error = isRecord16(value.error) ? value.error : void 0;
     if (!value.success && reason === null && !error) {
       return {
         success: false,
@@ -14487,14 +15648,14 @@
     };
   }
   function normalizeMarketListingResult(value) {
-    if (!isRecord14(value) || typeof value.success !== "boolean") {
+    if (!isRecord16(value) || typeof value.success !== "boolean") {
       return {
         success: false,
         error: invalidError("market-listing", ["success must be a boolean"])
       };
     }
     const isKnownEaFailure = typeof value.critical === "boolean" && (typeof value.code === "string" || typeof value.code === "number");
-    if (!value.success && !isRecord14(value.error) && !isKnownEaFailure) {
+    if (!value.success && !isRecord16(value.error) && !isKnownEaFailure) {
       return {
         success: false,
         error: invalidError("market-listing", ["failed result must include an error object"])
@@ -14502,7 +15663,7 @@
     }
     return {
       success: value.success,
-      ...isRecord14(value.error) ? { error: value.error } : {}
+      ...isRecord16(value.error) ? { error: value.error } : {}
     };
   }
   function summarizeAuctionPrices(prices, limit = 3) {
@@ -16446,10 +17607,10 @@
 
   // src/fsu/domain/SbcSnapshotResults.js
   var SBC_SNAPSHOT_INVALID = "SBC_SNAPSHOT_INVALID";
-  function isRecord15(value) {
+  function isRecord17(value) {
     return value !== null && typeof value === "object" && !Array.isArray(value);
   }
-  function invalid2(provider, issues) {
+  function invalid3(provider, issues) {
     return {
       success: false,
       error: {
@@ -16466,21 +17627,21 @@
   }
   function positiveInteger(value, label) {
     const result = finiteNumber2(value);
-    return result !== null && Number.isInteger(result) && result > 0 ? { success: true, data: result } : invalid2("futbin-squad", [label]);
+    return result !== null && Number.isInteger(result) && result > 0 ? { success: true, data: result } : invalid3("futbin-squad", [label]);
   }
   function parseFutbinTopSquads(response) {
-    if (!isRecord15(response) || !Array.isArray(response.data)) {
-      return invalid2("futbin-top-squads", ["data"]);
+    if (!isRecord17(response) || !Array.isArray(response.data)) {
+      return invalid3("futbin-top-squads", ["data"]);
     }
     const squads = [];
     for (const [index, item] of response.data.entries()) {
-      if (!isRecord15(item)) {
-        return invalid2("futbin-top-squads", [`data[${index}]`]);
+      if (!isRecord17(item)) {
+        return invalid3("futbin-top-squads", [`data[${index}]`]);
       }
       const id = positiveInteger(item.id, `data[${index}].id`);
       const likes = finiteNumber2(item.likes);
       if (!id.success || likes === null) {
-        return invalid2("futbin-top-squads", [
+        return invalid3("futbin-top-squads", [
           !id.success ? `data[${index}].id` : `data[${index}].likes`
         ]);
       }
@@ -16502,23 +17663,23 @@
     for (const field of integerFields) {
       const value = finiteNumber2(item[field]);
       if (value === null || !Number.isInteger(value) || value < 0) {
-        return invalid2("futbin-squad", [`${label}.${field}`]);
+        return invalid3("futbin-squad", [`${label}.${field}`]);
       }
       normalized[field] = value;
     }
     if (Number(normalized.Player_Resource) <= 0 || Number(normalized.id) <= 0 || typeof item.org_pos !== "string" || !Array.isArray(item.alternativePositions) || !item.alternativePositions.every((position) => typeof position === "string")) {
-      return invalid2("futbin-squad", [`${label}.shape`]);
+      return invalid3("futbin-squad", [`${label}.shape`]);
     }
     const price = finiteNumber2(item.price);
     if (price === null || price < 0) {
-      return invalid2("futbin-squad", [`${label}.price`]);
+      return invalid3("futbin-squad", [`${label}.price`]);
     }
     normalized.price = price;
     return { success: true, data: normalized };
   }
   function parseFutbinSquad(response) {
-    if (!isRecord15(response) || !isRecord15(response.squad_data) || typeof response.squad_data.Formation !== "string") {
-      return invalid2("futbin-squad", ["squad_data"]);
+    if (!isRecord17(response) || !isRecord17(response.squad_data) || typeof response.squad_data.Formation !== "string") {
+      return invalid3("futbin-squad", ["squad_data"]);
     }
     const squad = { ...response.squad_data };
     const mappings = [];
@@ -16526,11 +17687,11 @@
       ([key]) => /^cardlid\d+$/.test(key)
     );
     if (playerEntries.length === 0) {
-      return invalid2("futbin-squad", ["squad_data.cardlid"]);
+      return invalid3("futbin-squad", ["squad_data.cardlid"]);
     }
     for (const [key, item] of playerEntries) {
-      if (!isRecord15(item)) {
-        return invalid2("futbin-squad", [`squad_data.${key}`]);
+      if (!isRecord17(item)) {
+        return invalid3("futbin-squad", [`squad_data.${key}`]);
       }
       const parsed = parseFutbinSquadPlayer(item, `squad_data.${key}`);
       if (!parsed.success) return parsed;
@@ -16540,16 +17701,16 @@
     return { success: true, data: squad, mappings };
   }
   function parseFutGgSquad(response) {
-    if (!isRecord15(response) || !isRecord15(response.data) || !isRecord15(response.data.data)) {
-      return invalid2("futgg-squad", ["data.data"]);
+    if (!isRecord17(response) || !isRecord17(response.data) || !isRecord17(response.data.data)) {
+      return invalid3("futgg-squad", ["data.data"]);
     }
     const positions = response.data.data.activeGroupPositions;
-    if (!Array.isArray(positions) && !isRecord15(positions)) {
-      return invalid2("futgg-squad", ["data.data.activeGroupPositions"]);
+    if (!Array.isArray(positions) && !isRecord17(positions)) {
+      return invalid3("futgg-squad", ["data.data.activeGroupPositions"]);
     }
     for (const [key, position] of Object.entries(positions)) {
-      if (!isRecord15(position) || !Number.isInteger(Number(position.playerEaId)) || Number(position.playerEaId) <= 0) {
-        return invalid2("futgg-squad", [
+      if (!isRecord17(position) || !Number.isInteger(Number(position.playerEaId)) || Number(position.playerEaId) <= 0) {
+        return invalid3("futgg-squad", [
           `data.data.activeGroupPositions.${key}`
         ]);
       }
@@ -16560,7 +17721,7 @@
     if (type === 1) return parseFutbinTopSquads(response);
     if (type === 2) return parseFutbinSquad(response);
     if (type === 3) return parseFutGgSquad(response);
-    return invalid2("sbc-squad", ["type"]);
+    return invalid3("sbc-squad", ["type"]);
   }
 
   // src/fsu/domain/SbcUndoHistoryService.js
@@ -16624,7 +17785,7 @@
   var SBC_FILL_CAPABILITIES = Object.freeze({
     VIRTUAL_CHALLENGE: "sbc.virtual-challenge"
   });
-  function isRecord16(value) {
+  function isRecord18(value) {
     return value !== null && typeof value === "object";
   }
   function unavailable3(missing) {
@@ -16646,7 +17807,7 @@
     }
     /** @param {unknown} challenge */
     create(challenge) {
-      if (!isRecord16(challenge) || !isRecord16(challenge.squad) || typeof challenge.squad.getFormation !== "function" || typeof challenge.squad.getPlayers !== "function" || !Array.isArray(challenge.eligibilityRequirements)) {
+      if (!isRecord18(challenge) || !isRecord18(challenge.squad) || typeof challenge.squad.getFormation !== "function" || typeof challenge.squad.getPlayers !== "function" || !Array.isArray(challenge.eligibilityRequirements)) {
         return unavailable3(["challenge.squad", "challenge.requirements"]);
       }
       let runtime;
@@ -16655,11 +17816,11 @@
       } catch {
         return unavailable3(["sbc.virtual-challenge.runtime"]);
       }
-      if (!isRecord16(runtime)) {
+      if (!isRecord18(runtime)) {
         return unavailable3(["sbc.virtual-challenge.runtime"]);
       }
       const sourceSquad = challenge.squad;
-      if (!isRecord16(sourceSquad)) {
+      if (!isRecord18(sourceSquad)) {
         return unavailable3(["challenge.squad"]);
       }
       const ChallengeEntity = (
@@ -16729,8 +17890,8 @@
         }
         const formation = getFormation.call(sourceSquad);
         const sourceSlots = getPlayers.call(sourceSquad);
-        if (!isRecord16(formation) || typeof formation.name !== "string" || !Array.isArray(sourceSlots) || !sourceSlots.every(
-          (slot) => isRecord16(slot) && typeof slot.getItem === "function"
+        if (!isRecord18(formation) || typeof formation.name !== "string" || !Array.isArray(sourceSlots) || !sourceSlots.every(
+          (slot) => isRecord18(slot) && typeof slot.getItem === "function"
         )) {
           return unavailable3(["challenge.squad.snapshot"]);
         }
@@ -16776,7 +17937,7 @@
           runtime.squadDao,
           new ChemistryUtils(runtime.chemistryService, runtime.teamConfig)
         );
-        if (!isRecord16(newSquad) || typeof newSquad.setPlayers !== "function" || !isRecord16(newChallenge)) {
+        if (!isRecord18(newSquad) || typeof newSquad.setPlayers !== "function" || !isRecord18(newChallenge)) {
           return unavailable3(["sbc.virtual-challenge.result"]);
         }
         newSquad.setPlayers(
@@ -17578,18 +18739,18 @@
   }
 
   // src/fsu/ui/PlayerDetailsRenderer.js
-  function isRecord17(value) {
+  function isRecord19(value) {
     return value !== null && typeof value === "object";
   }
   function resolvePlayerDetailsTarget(options) {
     const candidate = options.isPhone ? options.currentController : options.rightController;
-    if (!isRecord17(candidate)) return null;
-    const controller = "rootController" in candidate && isRecord17(candidate.rootController) ? candidate.rootController : candidate;
+    if (!isRecord19(candidate)) return null;
+    const controller = "rootController" in candidate && isRecord19(candidate.rootController) ? candidate.rootController : candidate;
     const panelView = controller.panelView ?? controller.panel;
     return panelView ? { controller, panelView } : null;
   }
   function resolvePlayerDetailsItem(value) {
-    if (!isRecord17(value) || typeof value.isPlayer !== "function" || !Number.isInteger(value.definitionId) || Number(value.definitionId) < 0) {
+    if (!isRecord19(value) || typeof value.isPlayer !== "function" || !Number.isInteger(value.definitionId) || Number(value.definitionId) < 0) {
       return null;
     }
     try {
@@ -17986,32 +19147,32 @@
 
   // src/fsu/domain/PlayerMetadataResults.js
   var PLAYER_METADATA_INVALID = "PLAYER_METADATA_INVALID";
-  function isRecord18(value) {
+  function isRecord20(value) {
     return value !== null && typeof value === "object" && !Array.isArray(value);
   }
-  function invalid3(provider, issues) {
+  function invalid4(provider, issues) {
     return {
       success: false,
       error: { code: PLAYER_METADATA_INVALID, provider, issues }
     };
   }
   function parsePlayerMetaConfig(value) {
-    if (!isRecord18(value)) return invalid3("meta", ["response must be an object"]);
+    if (!isRecord20(value)) return invalid4("meta", ["response must be an object"]);
     const bodyTypeSource = value.bodyType;
     const baseBodyType = value.baseBodyType;
     const realFace = value.realFace;
-    if (!isRecord18(bodyTypeSource) || !isRecord18(baseBodyType) || !Array.isArray(realFace)) {
-      return invalid3("meta", ["bodyType", "baseBodyType", "realFace"]);
+    if (!isRecord20(bodyTypeSource) || !isRecord20(baseBodyType) || !Array.isArray(realFace)) {
+      return invalid4("meta", ["bodyType", "baseBodyType", "realFace"]);
     }
     const bodyType = {};
     for (const [typeKey, ids] of Object.entries(bodyTypeSource)) {
       const type = Number(typeKey);
       if (!Number.isInteger(type) || !Array.isArray(ids)) {
-        return invalid3("meta", [`bodyType.${typeKey}`]);
+        return invalid4("meta", [`bodyType.${typeKey}`]);
       }
       for (const id of ids) {
         if (!Number.isInteger(id) || Number(id) <= 0) {
-          return invalid3("meta", [`bodyType.${typeKey}.id`]);
+          return invalid4("meta", [`bodyType.${typeKey}.id`]);
         }
         bodyType[String(id)] = type;
       }
@@ -18019,12 +19180,12 @@
     const normalizedBaseBodyType = {};
     for (const [id, typeValue] of Object.entries(baseBodyType)) {
       if (!Number.isInteger(Number(id)) || !Number.isInteger(typeValue)) {
-        return invalid3("meta", [`baseBodyType.${id}`]);
+        return invalid4("meta", [`baseBodyType.${id}`]);
       }
       normalizedBaseBodyType[id] = Number(typeValue);
     }
     if (!realFace.every((id) => Number.isInteger(id) && Number(id) > 0)) {
-      return invalid3("meta", ["realFace"]);
+      return invalid4("meta", ["realFace"]);
     }
     return {
       success: true,
@@ -18032,30 +19193,30 @@
     };
   }
   function parseGgRatingConfig(value) {
-    if (!isRecord18(value) || !isRecord18(value.rank)) {
-      return invalid3("ggrating", ["rank must be an object"]);
+    if (!isRecord20(value) || !isRecord20(value.rank)) {
+      return invalid4("ggrating", ["rank must be an object"]);
     }
     for (const [role, thresholds] of Object.entries(value.rank)) {
       if (!Array.isArray(thresholds) || !thresholds.every((threshold) => Number.isFinite(threshold))) {
-        return invalid3("ggrating", [`rank.${role}`]);
+        return invalid4("ggrating", [`rank.${role}`]);
       }
     }
     return { success: true, data: value };
   }
   function parseEvolutionMetadata(value) {
-    if (!isRecord18(value) || !Array.isArray(value.new) || !value.new.every((id) => Number.isInteger(id) && Number(id) > 0)) {
-      return invalid3("evolutions", ["new must be an array of positive integers"]);
+    if (!isRecord20(value) || !Array.isArray(value.new) || !value.new.every((id) => Number.isInteger(id) && Number(id) > 0)) {
+      return invalid4("evolutions", ["new must be an array of positive integers"]);
     }
     return { success: true, data: { new: [...value.new] } };
   }
   function parsePlayerMetadataRows(value) {
     if (!Array.isArray(value)) {
-      return invalid3("playermeta", ["response must be an array"]);
+      return invalid4("playermeta", ["response must be an array"]);
     }
     const players = {};
     for (const [index, row] of value.entries()) {
       if (!Array.isArray(row) || row.length !== 4 || !row.every((entry) => Number.isFinite(entry)) || !Number.isInteger(row[0]) || Number(row[0]) <= 0) {
-        return invalid3("playermeta", [`row[${index}]`]);
+        return invalid4("playermeta", [`row[${index}]`]);
       }
       players[String(row[0])] = {
         badytype: Number(row[1]),
@@ -18095,10 +19256,10 @@
     "playermeta",
     "lowprice"
   ]);
-  function isRecord19(value) {
+  function isRecord21(value) {
     return value !== null && typeof value === "object" && !Array.isArray(value);
   }
-  function invalid4(provider, issues) {
+  function invalid5(provider, issues) {
     return {
       success: false,
       error: {
@@ -18148,7 +19309,7 @@
         (item, index) => cloneSafeConfigValue(item, `${issuePath}.${index}`, issues, depth + 1)
       );
     }
-    if (isRecord19(value)) {
+    if (isRecord21(value)) {
       const entries = Object.entries(value);
       if (entries.length > MAX_OBJECT_KEYS) {
         issues.push(`${issuePath}.size`);
@@ -18173,46 +19334,46 @@
     return void 0;
   }
   function parseUpdataConfig(value) {
-    if (!isRecord19(value)) {
-      return invalid4("updata", ["response must be an object"]);
+    if (!isRecord21(value)) {
+      return invalid5("updata", ["response must be an object"]);
     }
     const version = value.version;
     if (version !== void 0 && !isFiniteInRange(version, 0, 1e9)) {
-      return invalid4("updata", ["version"]);
+      return invalid5("updata", ["version"]);
     }
     let updateURL = "";
     if (value.updateURL !== void 0) {
       if (typeof value.updateURL !== "string" || value.updateURL.length > 2048) {
-        return invalid4("updata", ["updateURL"]);
+        return invalid5("updata", ["updateURL"]);
       }
       try {
         const parsed = new URL(value.updateURL);
         if (parsed.protocol !== "https:") {
-          return invalid4("updata", ["updateURL must be https"]);
+          return invalid5("updata", ["updateURL must be https"]);
         }
         updateURL = parsed.href;
       } catch {
-        return invalid4("updata", ["updateURL"]);
+        return invalid5("updata", ["updateURL"]);
       }
     }
     const api = /* @__PURE__ */ Object.create(null);
     if (value.api !== void 0) {
-      if (!isRecord19(value.api)) {
-        return invalid4("updata", ["api must be an object"]);
+      if (!isRecord21(value.api)) {
+        return invalid5("updata", ["api must be an object"]);
       }
       const entries = Object.entries(value.api);
       if (entries.length > 32) {
-        return invalid4("updata", ["api too large"]);
+        return invalid5("updata", ["api too large"]);
       }
       for (const [key, token] of entries) {
         if (isForbiddenKey(key) || !KNOWN_API_KEYS.has(key)) {
-          return invalid4("updata", [`api.${key}`]);
+          return invalid5("updata", [`api.${key}`]);
         }
         if (typeof token !== "string" || token.length > MAX_API_TOKEN_LENGTH) {
-          return invalid4("updata", [`api.${key}.token`]);
+          return invalid5("updata", [`api.${key}.token`]);
         }
         if (!API_TOKEN_PATTERN.test(token)) {
-          return invalid4("updata", [`api.${key}.charset`]);
+          return invalid5("updata", [`api.${key}.charset`]);
         }
         api[key] = token;
       }
@@ -18227,48 +19388,48 @@
     };
   }
   function parseFastSbcConfig(value, nowSeconds) {
-    if (!isRecord19(value)) {
-      return invalid4("fastsbc", ["response must be an object"]);
+    if (!isRecord21(value)) {
+      return invalid5("fastsbc", ["response must be an object"]);
     }
     const entries = Object.entries(value);
     if (entries.length > MAX_OBJECT_KEYS) {
-      return invalid4("fastsbc", ["too many keys"]);
+      return invalid5("fastsbc", ["too many keys"]);
     }
     const active = /* @__PURE__ */ Object.create(null);
     for (const [key, item] of entries) {
       if (isForbiddenKey(key)) {
-        return invalid4("fastsbc", [`forbidden key ${key}`]);
+        return invalid5("fastsbc", [`forbidden key ${key}`]);
       }
-      if (!isRecord19(item)) {
-        return invalid4("fastsbc", [`${key} must be object`]);
+      if (!isRecord21(item)) {
+        return invalid5("fastsbc", [`${key} must be object`]);
       }
       if (!isFiniteInRange(item.t, 0, 1e12)) {
-        return invalid4("fastsbc", [`${key}.t`]);
+        return invalid5("fastsbc", [`${key}.t`]);
       }
       if (!Array.isArray(item.g) || item.g.length > 100) {
-        return invalid4("fastsbc", [`${key}.g`]);
+        return invalid5("fastsbc", [`${key}.g`]);
       }
       const plan = [];
       for (let index = 0; index < item.g.length; index++) {
         const group = item.g[index];
-        if (!isRecord19(group) || !isPositiveInt(group.c, 1, 100) || !isRecord19(group.t)) {
-          return invalid4("fastsbc", [`${key}.g.${index}`]);
+        if (!isRecord21(group) || !isPositiveInt(group.c, 1, 100) || !isRecord21(group.t)) {
+          return invalid5("fastsbc", [`${key}.g.${index}`]);
         }
         const target = /* @__PURE__ */ Object.create(null);
         if (group.t.rating !== void 0) {
           if (!isPositiveInt(group.t.rating, 0, 99)) {
-            return invalid4("fastsbc", [`${key}.g.${index}.t.rating`]);
+            return invalid5("fastsbc", [`${key}.g.${index}.t.rating`]);
           }
           target.rating = group.t.rating;
         } else {
           if (group.t.gs !== void 0 && !isPositiveInt(group.t.gs, 0, 1)) {
-            return invalid4("fastsbc", [`${key}.g.${index}.t.gs`]);
+            return invalid5("fastsbc", [`${key}.g.${index}.t.gs`]);
           }
           if (group.t.rs !== void 0 && !isPositiveInt(group.t.rs, 0, 20)) {
-            return invalid4("fastsbc", [`${key}.g.${index}.t.rs`]);
+            return invalid5("fastsbc", [`${key}.g.${index}.t.rs`]);
           }
           if (group.t.gs === void 0 && group.t.rs === void 0) {
-            return invalid4("fastsbc", [`${key}.g.${index}.t`]);
+            return invalid5("fastsbc", [`${key}.g.${index}.t`]);
           }
           if (group.t.gs !== void 0) target.gs = group.t.gs;
           if (group.t.rs !== void 0) target.rs = group.t.rs;
@@ -18282,39 +19443,39 @@
     return { success: true, data: active };
   }
   function parsePackConfig(value) {
-    if (!isRecord19(value)) {
-      return invalid4("pack", ["response must be an object"]);
+    if (!isRecord21(value)) {
+      return invalid5("pack", ["response must be an object"]);
     }
     const entries = Object.entries(value);
     if (entries.length > MAX_OBJECT_KEYS) {
-      return invalid4("pack", ["too many keys"]);
+      return invalid5("pack", ["too many keys"]);
     }
     const oddo = /* @__PURE__ */ Object.create(null);
     for (const [key, price] of entries) {
       if (isForbiddenKey(key)) {
-        return invalid4("pack", ["forbidden key"]);
+        return invalid5("pack", ["forbidden key"]);
       }
       if (!isFiniteInRange(price, 0, 1e12)) {
-        return invalid4("pack", [`${key}.price`]);
+        return invalid5("pack", [`${key}.price`]);
       }
       oddo[key] = Number(price);
     }
     return { success: true, data: oddo };
   }
   function parseSbcConfig(value) {
-    if (!isRecord19(value)) {
-      return invalid4("sbc", ["response must be an object"]);
+    if (!isRecord21(value)) {
+      return invalid5("sbc", ["response must be an object"]);
     }
     const reward = value.reward;
     const newest = value.new;
     if (reward !== void 0) {
       if (!Array.isArray(reward) || reward.length > 100 || !reward.every((item) => isPositiveInt(item, 0, 10))) {
-        return invalid4("sbc", ["reward"]);
+        return invalid5("sbc", ["reward"]);
       }
     }
     if (newest !== void 0) {
       if (!Array.isArray(newest) || newest.length > MAX_ARRAY_LENGTH || !newest.every((item) => isPositiveInt(item))) {
-        return invalid4("sbc", ["new"]);
+        return invalid5("sbc", ["new"]);
       }
     }
     return {
@@ -18326,19 +19487,19 @@
     };
   }
   function parseInpacksConfig(value) {
-    if (!isRecord19(value)) {
-      return invalid4("inpacks", ["response must be an object"]);
+    if (!isRecord21(value)) {
+      return invalid5("inpacks", ["response must be an object"]);
     }
     const defIds = value.defIds;
     const rarityIds = value.rarityIds;
     if (defIds !== void 0) {
       if (!Array.isArray(defIds) || defIds.length > MAX_ARRAY_LENGTH || !defIds.every((id) => isPositiveInt(id))) {
-        return invalid4("inpacks", ["defIds"]);
+        return invalid5("inpacks", ["defIds"]);
       }
     }
     if (rarityIds !== void 0) {
       if (!Array.isArray(rarityIds) || rarityIds.length > MAX_ARRAY_LENGTH || !rarityIds.every((id) => isPositiveInt(id, 0))) {
-        return invalid4("inpacks", ["rarityIds"]);
+        return invalid5("inpacks", ["rarityIds"]);
       }
     }
     return {
@@ -18350,35 +19511,35 @@
     };
   }
   function parseOtherConfig(value) {
-    if (!isRecord19(value)) {
-      return invalid4("other", ["response must be an object"]);
+    if (!isRecord21(value)) {
+      return invalid5("other", ["response must be an object"]);
     }
     const dynamic = value.dynamic ?? {};
     const chem = value.chem ?? {};
-    if (!isRecord19(dynamic) || !isRecord19(chem)) {
-      return invalid4("other", ["dynamic/chem must be objects"]);
+    if (!isRecord21(dynamic) || !isRecord21(chem)) {
+      return invalid5("other", ["dynamic/chem must be objects"]);
     }
     const dynamicEntries = Object.entries(dynamic);
     const chemEntries = Object.entries(chem);
     if (dynamicEntries.length > MAX_OBJECT_KEYS || chemEntries.length > MAX_OBJECT_KEYS) {
-      return invalid4("other", ["too many keys"]);
+      return invalid5("other", ["too many keys"]);
     }
     const normalizedDynamic = /* @__PURE__ */ Object.create(null);
     for (const [key, entry] of dynamicEntries) {
       if (isForbiddenKey(key) || !isPositiveInt(Number(key), 0)) {
-        return invalid4("other", [`dynamic.${key}`]);
+        return invalid5("other", [`dynamic.${key}`]);
       }
-      if (!isRecord19(entry)) {
-        return invalid4("other", [`dynamic.${key}.shape`]);
+      if (!isRecord21(entry)) {
+        return invalid5("other", [`dynamic.${key}.shape`]);
       }
       if (!isFiniteInRange(entry.exp, 0, 1e12)) {
-        return invalid4("other", [`dynamic.${key}.exp`]);
+        return invalid5("other", [`dynamic.${key}.exp`]);
       }
       if (!Array.isArray(entry.change) || entry.change.length > 20 || !entry.change.every((id) => isPositiveInt(id, 1, 100))) {
-        return invalid4("other", [`dynamic.${key}.change`]);
+        return invalid5("other", [`dynamic.${key}.change`]);
       }
       if (!isSafeFutbinPath(entry.url)) {
-        return invalid4("other", [`dynamic.${key}.url`]);
+        return invalid5("other", [`dynamic.${key}.url`]);
       }
       normalizedDynamic[key] = {
         exp: Number(entry.exp),
@@ -18389,21 +19550,21 @@
     const normalizedChem = /* @__PURE__ */ Object.create(null);
     for (const [key, entry] of chemEntries) {
       if (isForbiddenKey(key) || !isPositiveInt(Number(key), 0)) {
-        return invalid4("other", [`chem.${key}`]);
+        return invalid5("other", [`chem.${key}`]);
       }
-      if (!isRecord19(entry)) {
-        return invalid4("other", [`chem.${key}.shape`]);
+      if (!isRecord21(entry)) {
+        return invalid5("other", [`chem.${key}.shape`]);
       }
       const normalizedEntry = /* @__PURE__ */ Object.create(null);
       for (const chemKey of EXTRA_CHEM_KEYS) {
         const amount = entry[chemKey] ?? 0;
         if (!isPositiveInt(amount, 0, 100)) {
-          return invalid4("other", [`chem.${key}.${chemKey}`]);
+          return invalid5("other", [`chem.${key}.${chemKey}`]);
         }
         normalizedEntry[chemKey] = amount;
       }
       if (!isSafeFutbinPath(entry.url)) {
-        return invalid4("other", [`chem.${key}.url`]);
+        return invalid5("other", [`chem.${key}.url`]);
       }
       normalizedEntry.url = entry.url;
       normalizedChem[key] = normalizedEntry;
@@ -18417,20 +19578,20 @@
     };
   }
   function parseFgConfig(value) {
-    if (!isRecord19(value)) {
-      return invalid4("fgconfig", ["response must be an object"]);
+    if (!isRecord21(value)) {
+      return invalid5("fgconfig", ["response must be an object"]);
     }
     const attribute = value.attribute;
     const roles = value.roles;
     const height = value.height;
     const weight = value.weight;
-    if (!isRecord19(attribute) || !Array.isArray(roles) || !isRecord19(value.weakFoot) || !isRecord19(value.skillMoves) || !isRecord19(value.foot) || !isRecord19(value.playStyle) || !isRecord19(value.plusPlayStyle) || !isRecord19(height) || !isRecord19(weight)) {
-      return invalid4("fgconfig", ["attribute/roles"]);
+    if (!isRecord21(attribute) || !Array.isArray(roles) || !isRecord21(value.weakFoot) || !isRecord21(value.skillMoves) || !isRecord21(value.foot) || !isRecord21(value.playStyle) || !isRecord21(value.plusPlayStyle) || !isRecord21(height) || !isRecord21(weight)) {
+      return invalid5("fgconfig", ["attribute/roles"]);
     }
     if (Object.keys(attribute).length > MAX_OBJECT_KEYS || roles.length > 200 || !roles.every(
-      (role) => isRecord19(role) && isPositiveInt(role.posId, 0, 100) && isPositiveInt(role.role, 0, 100) && isRecord19(role.factors) && isFiniteInRange(role.multiplier, 0, 100)
+      (role) => isRecord21(role) && isPositiveInt(role.posId, 0, 100) && isPositiveInt(role.role, 0, 100) && isRecord21(role.factors) && isFiniteInRange(role.multiplier, 0, 100)
     )) {
-      return invalid4("fgconfig", ["size"]);
+      return invalid5("fgconfig", ["size"]);
     }
     for (const key of [
       "minExpectedScore",
@@ -18442,19 +19603,19 @@
       "special2"
     ]) {
       if (!isFiniteInRange(value[key], -1e9, 1e9)) {
-        return invalid4("fgconfig", [key]);
+        return invalid5("fgconfig", [key]);
       }
     }
     const ranges = [["height", height], ["weight", weight]];
     for (const [rangeKey, range] of ranges) {
-      if (!isRecord19(range) || !isRecord19(range.min) || !isRecord19(range.max) || !isFiniteInRange(range.min.value, 0, 1e3) || !isFiniteInRange(range.max.value, 0, 1e3) || !isFiniteInRange(range.min.id, -1e6, 1e6) || !isFiniteInRange(range.max.id, -1e6, 1e6)) {
-        return invalid4("fgconfig", [rangeKey]);
+      if (!isRecord21(range) || !isRecord21(range.min) || !isRecord21(range.max) || !isFiniteInRange(range.min.value, 0, 1e3) || !isFiniteInRange(range.max.value, 0, 1e3) || !isFiniteInRange(range.min.id, -1e6, 1e6) || !isFiniteInRange(range.max.id, -1e6, 1e6)) {
+        return invalid5("fgconfig", [rangeKey]);
       }
     }
     const issues = [];
     const cloned = cloneSafeConfigValue(value, "fgconfig", issues);
-    if (issues.length || !isRecord19(cloned)) {
-      return invalid4("fgconfig", issues.length ? issues : ["clone"]);
+    if (issues.length || !isRecord21(cloned)) {
+      return invalid5("fgconfig", issues.length ? issues : ["clone"]);
     }
     return {
       success: true,
@@ -18462,32 +19623,32 @@
     };
   }
   function parseLowpriceConfig(value) {
-    if (!isRecord19(value)) {
-      return invalid4("lowprice", ["response must be an object"]);
+    if (!isRecord21(value)) {
+      return invalid5("lowprice", ["response must be an object"]);
     }
     const platforms = /* @__PURE__ */ Object.create(null);
     for (const [platform, entries] of Object.entries(value)) {
       if (isForbiddenKey(platform)) {
-        return invalid4("lowprice", ["forbidden key"]);
+        return invalid5("lowprice", ["forbidden key"]);
       }
-      if (!isRecord19(entries)) {
-        return invalid4("lowprice", [`${platform} must be object`]);
+      if (!isRecord21(entries)) {
+        return invalid5("lowprice", [`${platform} must be object`]);
       }
       const platformEntries = Object.entries(entries);
       if (platformEntries.length > 200) {
-        return invalid4("lowprice", [`${platform} too large`]);
+        return invalid5("lowprice", [`${platform} too large`]);
       }
       const prices = /* @__PURE__ */ Object.create(null);
       for (const [ratingKey, price] of platformEntries) {
         if (isForbiddenKey(ratingKey)) {
-          return invalid4("lowprice", [`${platform}.forbidden`]);
+          return invalid5("lowprice", [`${platform}.forbidden`]);
         }
         const rating = Number(ratingKey);
         if (!Number.isInteger(rating) || rating < 0 || rating > 99) {
-          return invalid4("lowprice", [`${platform}.${ratingKey}`]);
+          return invalid5("lowprice", [`${platform}.${ratingKey}`]);
         }
         if (!isFiniteInRange(Number(price), 0, 1e12)) {
-          return invalid4("lowprice", [`${platform}.${ratingKey}.price`]);
+          return invalid5("lowprice", [`${platform}.${ratingKey}.price`]);
         }
         prices[String(rating)] = Number(price);
       }
@@ -19077,7 +20238,7 @@
 
   // src/fsu/core/PatchLifecycleRegistry.js
   var SAFE_DIAGNOSTIC_MEMBER = /^[A-Za-z0-9_$.[\]:-]{1,160}$/;
-  function isRecord20(value) {
+  function isRecord22(value) {
     return value !== null && typeof value === "object";
   }
   function sanitizeMissing(values) {
@@ -19088,7 +20249,7 @@
     ).slice(0, 20);
   }
   function isPatchTarget(value) {
-    if (!isRecord20(value)) return false;
+    if (!isRecord22(value)) return false;
     const owner = value.owner;
     const hasOwner = typeof owner === "object" && owner !== null || typeof owner === "function";
     return hasOwner && (typeof value.key === "string" || typeof value.key === "symbol");
@@ -19150,7 +20311,7 @@
      * @returns {PatchDiagnostic}
      */
     install(descriptorValue) {
-      if (!isRecord20(descriptorValue)) {
+      if (!isRecord22(descriptorValue)) {
         return this.record("invalid-patch", "unknown", "invalid-descriptor");
       }
       const id = typeof descriptorValue.id === "string" && SAFE_DIAGNOSTIC_MEMBER.test(descriptorValue.id) ? descriptorValue.id : "invalid-patch";
@@ -19213,9 +20374,9 @@
             "verify-threw"
           ]);
         }
-        const verificationPassed = verification === true || isRecord20(verification) && verification.ok === true;
+        const verificationPassed = verification === true || isRecord22(verification) && verification.ok === true;
         if (!verificationPassed) {
-          const missing = isRecord20(verification) && verification.ok === false ? verification.missing : [];
+          const missing = isRecord22(verification) && verification.ok === false ? verification.missing : [];
           return this.record(
             descriptor.id,
             descriptor.phase,
@@ -19548,7 +20709,7 @@
     REJECTED: "SBC_SAVE_REJECTED",
     INVALID_RESPONSE: "SBC_SAVE_INVALID_RESPONSE"
   });
-  function isRecord21(value) {
+  function isRecord23(value) {
     return value !== null && typeof value === "object";
   }
   function sbcSaveFailure(code, stage, issues) {
@@ -19558,7 +20719,7 @@
     };
   }
   function parseSbcSaveResponse(response) {
-    if (!isRecord21(response) || typeof response.success !== "boolean") {
+    if (!isRecord23(response) || typeof response.success !== "boolean") {
       return sbcSaveFailure(
         SBC_SAVE_ERROR_CODES.INVALID_RESPONSE,
         "save",
@@ -19570,7 +20731,7 @@
     ]);
   }
   function parseSbcLoadedSquad(response) {
-    if (!isRecord21(response) || !isRecord21(response.response) || !isRecord21(response.response.squad) || !Array.isArray(response.response.squad._players)) {
+    if (!isRecord23(response) || !isRecord23(response.response) || !isRecord23(response.response.squad) || !Array.isArray(response.response.squad._players)) {
       return sbcSaveFailure(
         SBC_SAVE_ERROR_CODES.INVALID_RESPONSE,
         "load",
@@ -19588,7 +20749,7 @@
     }
     const players = [];
     for (const [index, slot] of loadedSlots.entries()) {
-      if (!isRecord21(slot) || !("_item" in slot)) {
+      if (!isRecord23(slot) || !("_item" in slot)) {
         return sbcSaveFailure(
           SBC_SAVE_ERROR_CODES.INVALID_RESPONSE,
           "load",
@@ -20221,6 +21382,9 @@
       }
       if (info.run.bulkbuy) {
         info.run.bulkbuy = false;
+      }
+      if (typeof events.isBulkPackOpenRunning === "function" && events.isBulkPackOpenRunning()) {
+        events.cancelBulkPackOpen();
       }
     };
   }

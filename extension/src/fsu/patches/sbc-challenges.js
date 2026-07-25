@@ -53,11 +53,34 @@ function createChallengesViewDescriptor(deps) {
               if (!li) return;
 
               let btn;
-              if (item.isItem && item.item.isPlayer()) {
+              if (item.isItem) {
+                if (item.item.isPlayer()) {
+                  btn = events.createButton(
+                    new UTStandardButtonControl(),
+                    localize("sbc.watchplayer"),
+                    (event) =>
+                      events.openFutbinPlayerUrl(event, item.item),
+                    "mini"
+                  );
+                } else if (item.item.isPlayerPickItem()) {
+                  btn = events.createButton(
+                    new UTStandardButtonControl(),
+                    localize("sbc.watchplayer"),
+                    () => events.fixedPickPopup(item.item),
+                    "mini"
+                  );
+                }
+              } else if (item.isPack) {
                 btn = events.createButton(
                   new UTStandardButtonControl(),
-                  localize("sbc.watchplayer"),
-                  (event) => events.openFutbinPlayerUrl(event, item.item),
+                  localize("trypack.button.subtext"),
+                  () =>
+                    events.tryPack({
+                      id: item.value,
+                      odds: false,
+                      packName: `FUT_STORE_PACK_${item.value}_NAME`,
+                      tradable: item.tradable
+                    }),
                   "mini"
                 );
               }

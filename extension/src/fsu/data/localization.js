@@ -390,6 +390,7 @@ export const LOCALIZATION_STRINGS = {
             "openpack.storebtn.subtext":["自动分配球员","自動分配球員","Auto Assign Players"],
             "openpack.storebtn.popupt":["批量打开提示 - %1","批量開啟提示 - %1","Bulk Open Notice - %1"],
             "openpack.storebtn.popupm":["批量开启将会自动开启指定球员包，非重复球员保存至俱乐部，重复且评分高于 %1(黄金范围) 的球员保存至SBC仓库，无法分配则弹出未分配列表并停止程序。<br><br>批量开启数量（默认为全部）：","批量開啟將會自動開啟指定的球員包，非重複球員將保存至俱樂部，重複且評分高於 %1（黃金範圍） 的球員將保存至 SBC 倉庫，若無法分配，將彈出未分配列表並停止程序。<br><br>批量開啟數量（預設為全部）：","Bulk opening will automatically open the selected player packs.<br>Non-duplicate players will be sent to your Club.<br>Duplicate players with a rating above %1 (Gold range) will be sent to SBC storage.<br>If any players cannot be assigned, the unassigned list will be displayed and the process will stop.<br><br>Number of packs to open (default is all):"],
+            "openpack.storebtn.popupm.safe":["将依序开启最多 %1 个球员包。非重复球员会移至俱乐部，重复球员会在有容量时移至 SBC 仓库；若有未分配球员、容量不足或移动失败，程序会立即停止。","將依序開啟最多 %1 個球員包。非重複球員會移至俱樂部，重複球員會在有容量時移至 SBC 倉庫；若有未分配球員、容量不足或移動失敗，程序會立即停止。","Up to %1 player packs will be opened sequentially. Non-duplicates go to the Club and duplicates go to SBC storage when capacity allows. The run stops immediately if items are unassigned, capacity is insufficient, or a move fails."],
             "sort.desc":["由高到低","由高至低","Descending"],
             "sort.asc":["由低到高","由低至高","Ascending"],
             "packssort.switch.notice":["切换 %1 排序为按包回报价值 %2 排序","切換 %1 排序為依據包回報價值的 %2 排序","Switch %1 sorting to %2 sorting based on pack returns"],

@@ -386,6 +386,20 @@ export function registerSbcInfoFillEvent(deps) {
           e.__mainReward.querySelector(".ut-pack-graphic-view").appendChild(packBox);
         }
       }
+      const pickItem = e.data.awards[0]?.item;
+      if (
+        pickItem?.isPlayerPickItem?.() &&
+        e._infoBtn?.getRootElement?.().style.display !== "none" &&
+        !e._fsuPickPreview
+      ) {
+        e._infoBtn.removeTarget(e, e._eCheckMoreInfo, EventType.TAP);
+        e._infoBtn.addTarget(
+          e,
+          () => events.fixedPickPopup(pickItem),
+          EventType.TAP
+        );
+        e._fsuPickPreview = true;
+      }
     }
   };
 }

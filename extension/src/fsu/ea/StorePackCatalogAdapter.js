@@ -19,6 +19,20 @@ function failure(code, issues) {
   return { success: false, error: { code, issues } };
 }
 
+/**
+ * EA has used both singular and plural values for player-only pack content.
+ * @param {unknown} value
+ */
+export function isPlayerPackContentType(value) {
+  const normalized = String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z]/g, "");
+  return ["player", "players", "playeritem", "playeritems"].includes(
+    normalized
+  );
+}
+
 export class StorePackCatalogAdapter {
   /**
    * @param {{
@@ -82,15 +96,22 @@ export class StorePackCatalogAdapter {
         "store.localization"
       ]);
     }
-    if (
-      !Number.isFinite(value) ||
-      value < 0 ||
-      typeof localizedName !== "string"
-    ) {
+    if (typeof localizedName !== "string") {
       return failure(STORE_PACK_ARTICLE_ERROR_CODES.INVALID, [
-        "article.value",
         "article.localizedName"
       ]);
+    }
+    if (!Number.isFinite(value) || value < 0) {
+      if (isMyPacks) {
+        // Pack-return data is optional for owned packs. The original feature
+        // still grouped and opened new/unknown packs before an estimate
+        // became available.
+        value = 0;
+      } else {
+        return failure(STORE_PACK_ARTICLE_ERROR_CODES.INVALID, [
+          "article.value"
+        ]);
+      }
     }
 
     let coinsPrice = 0;
@@ -154,7 +175,7 @@ export class StorePackCatalogAdapter {
         article,
         id: Number(id),
         tradable,
-        isPlayers: contentType === "players",
+        isPlayers: isPlayerPackContentType(contentType),
         name,
         fullName,
         value,

@@ -330,6 +330,9 @@ optional `restore` hook。
 5. `完成`：最後遷移 store hub/category/reveal UI patch family，逐個 descriptor 停用與
    restore；pack animation timing hook 也歸入此 UI family，不以單一 store
    feature flag 隱藏部分失敗。
+6. `完成`：補回原始碼中的 pack/player-pick 模擬、真實機率、My Packs badge 與
+   批次開包；遠端預覽走精確 GET allowlist，批次開包限制 50 包、單一 active run、
+   可取消且逐包指派至 club/storage。
 
 完成條件：
 
@@ -340,6 +343,8 @@ optional `restore` hook。
   timeout/duplicate fixture。
 - `完成`：sanitized EA shell 已覆蓋 `store.pack-list` 與
   `store.pack-animation` 的 install/disable/reinstall/restore。
+- `完成`：bulk-open service 有 input、precondition、cancel、partial result 與
+  assign failure fixtures；hub badge descriptor 有 install/idempotence/restore fixture。
 
 ## 持續軌
 

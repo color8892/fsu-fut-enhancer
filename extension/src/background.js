@@ -10,6 +10,33 @@
     return error;
   }
 
+  function isSafeEncodedSlug(slug) {
+    if (!slug || slug.length > 192) return false;
+    if (!/^(?:[A-Za-z0-9&._-]|%[0-9A-Fa-f]{2})+$/.test(slug)) {
+      return false;
+    }
+    const encodedBytes = [...slug.matchAll(/%([0-9A-Fa-f]{2})/g)].map(
+      (match) => Number.parseInt(match[1], 16)
+    );
+    if (
+      encodedBytes.some(
+        (byte) =>
+          byte === 0x2f ||
+          byte === 0x5c ||
+          byte <= 0x1f ||
+          byte === 0x7f
+      )
+    ) {
+      return false;
+    }
+    try {
+      const decoded = decodeURIComponent(slug);
+      return decoded !== "." && decoded !== "..";
+    } catch {
+      return false;
+    }
+  }
+
   const REQUEST_RULES = [
     {
       origin: "https://api.fut.to",
@@ -29,6 +56,15 @@
     {
       origin: "https://enhancer-api.futnext.com",
       path: /^\/players\/prices$/,
+      credentials: "omit"
+    },
+    {
+      origin: "https://www.futnext.com",
+      path: /^\/(?:pack|playerpick)\/[A-Za-z0-9%&._-]{1,192}\/\d+\/(?:open)?$/,
+      validatePath: (pathname) => {
+        const parts = pathname.split("/");
+        return isSafeEncodedSlug(parts[2]);
+      },
       credentials: "omit"
     },
     {
@@ -58,7 +94,10 @@
 
       const method = String(details.method || "GET").toUpperCase();
       const rule = this.rules.find(
-        (candidate) => candidate.origin === url.origin && candidate.path.test(url.pathname)
+        (candidate) =>
+          candidate.origin === url.origin &&
+          candidate.path.test(url.pathname) &&
+          (!candidate.validatePath || candidate.validatePath(url.pathname))
       );
 
       if (!rule || method !== "GET") {
