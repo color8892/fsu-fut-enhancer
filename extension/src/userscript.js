@@ -15791,6 +15791,11 @@
     return object !== null && typeof object === "object" && Object.prototype.hasOwnProperty.call(object, key);
   }
   var MarketActionService = class {
+    /**
+     * @param {any} i
+     * @param {any} p
+     * @param {any} helpers
+     */
     _getAuctionPriceResult(i, p, helpers) {
       const { debug: debug2 = { log: () => {
       } }, ea, getInfo, notice, xmlHttpRequest } = helpers;
@@ -15803,7 +15808,7 @@
             "Content-type": "application/json",
             "X-UT-SID": info.base.sId
           },
-          onload: function(response) {
+          onload: (response) => {
             if (response.status == 404 || response.status == 401) {
               const refreshedSessionId = ea?.getUtasSessionId() || null;
               if (refreshedSessionId) {
@@ -15840,10 +15845,20 @@
         });
       });
     }
+    /**
+     * @param {any} i
+     * @param {any} p
+     * @param {any} helpers
+     */
     async _getAuctionPrice(i, p, helpers) {
       const result = await this._getAuctionPriceResult(i, p, helpers);
       return result.data.auctions;
     }
+    /**
+     * @param {any} e
+     * @param {any} player
+     * @param {any} helpers
+     */
     async getAuction(e2, player, helpers) {
       const {
         fy: fy2,
@@ -15865,7 +15880,7 @@
       }
       let price = getCachePrice(defId, 1).num;
       let result = await this._getAuctionPrice(defId, price, helpers);
-      let priceList = result.map((i) => i.buyNowPrice) || [];
+      let priceList = (result || []).map((i) => i.buyNowPrice);
       if (result.length == 0) {
         for (let i = 0; i < 5; i++) {
           const nextPrice = helpers.ea.incrementMarketPrice(price, "above");
@@ -15873,8 +15888,8 @@
           price = nextPrice;
           debug2.log(`升价第${i}次循环，当前查询价格${price}`);
           let tempResult = await this._getAuctionPrice(defId, price, helpers);
-          tempResult.map((i2) => {
-            priceList.push(i2.buyNowPrice);
+          (tempResult || []).map((item) => {
+            priceList.push(item.buyNowPrice);
           });
           if (tempResult.length > 0) {
             break;
@@ -15887,8 +15902,8 @@
           price = nextPrice;
           debug2.log(`降价第${i}次循环，当前查询价格${price}`);
           let tempResult = await this._getAuctionPrice(defId, price, helpers);
-          tempResult.map((i2) => {
-            priceList.push(i2.buyNowPrice);
+          (tempResult || []).map((item) => {
+            priceList.push(item.buyNowPrice);
           });
           if (tempResult.length < 21) {
             break;
@@ -15897,14 +15912,22 @@
       }
       if (priceList.length) {
         const displayPrices = summarizeAuctionPrices(priceList);
-        pdb[defId] = displayPrices[0].price.toLocaleString();
-        e2.setSubtext(pdb[defId]);
-        e2.displayCurrencyIcon(true);
-        renderAuctionPrices(e2, displayPrices);
+        if (displayPrices.length > 0 && displayPrices[0]) {
+          pdb[defId] = displayPrices[0].price.toLocaleString();
+          e2.setSubtext(pdb[defId]);
+          e2.displayCurrencyIcon(true);
+          renderAuctionPrices(e2, displayPrices);
+        }
       } else {
         e2.setSubtext(fy2("buyplayer.error.child3").slice(0, -1));
       }
     }
+    /**
+     * @param {any} players
+     * @param {any} view
+     * @param {any} helpers
+     * @returns {Promise<any>}
+     */
     async buyConceptPlayer(players, view, helpers) {
       const {
         getInfo,
@@ -16071,6 +16094,12 @@
         hideLoader();
       }
     }
+    /**
+     * @param {any} player
+     * @param {any} view
+     * @param {any} helpers
+     * @returns {Promise<any>}
+     */
     async buyPlayer(player, view, helpers) {
       const {
         showLoader,
@@ -16180,6 +16209,13 @@
       }
       hideLoader();
     }
+    /**
+     * @param {any} player
+     * @param {any} price
+     * @param {any} loadingInfo
+     * @param {any} helpers
+     * @returns {Promise<any[]>}
+     */
     async readAuctionPrices(player, price, loadingInfo, helpers) {
       const {
         getInfo,
@@ -16261,11 +16297,23 @@
       }
       return result;
     }
+    /**
+     * @param {any} criteria
+     * @param {any} type
+     * @param {any} helpers
+     * @returns {Promise<any>}
+     */
     async searchTransferMarket(criteria, type, helpers) {
       return normalizeMarketSearchResult(
         await helpers.ea.searchTransferMarket(criteria, type, this)
       );
     }
+    /**
+     * @param {any} controller
+     * @param {any} list
+     * @param {any} helpers
+     * @returns {Promise<void>}
+     */
     async transferToClub(controller, list, helpers) {
       const { notice, isPhone: isPhone2, ea, debug: debug2 } = helpers;
       const result = await ea.moveItemsToClub(list, controller);
@@ -16281,6 +16329,13 @@
         notice("notice.loaderror", 2);
       }
     }
+    /**
+     * @param {any} d
+     * @param {any} p
+     * @param {any} time
+     * @param {any} helpers
+     * @returns {Promise<any>}
+     */
     async playerToAuction(d, p, time, helpers) {
       const {
         futbinId,
@@ -16309,7 +16364,7 @@
             await futbinId.getId(i);
           }
         } catch {
-          return;
+          return false;
         }
         const price = getCachePrice(i.definitionId, 1).num;
         const listingCapacity = ea.hasTransferListingCapacity();
@@ -16323,7 +16378,7 @@
           if (i.hasPriceLimits()) {
             if (p < i._itemPriceLimits.minimum || p > i._itemPriceLimits.maximum) {
               notice(["notice.auctionlimits", i._staticData.name], 2);
-              return;
+              return false;
             }
           }
           const startingPrice = ea.incrementMarketPrice(price, "below");
@@ -16359,8 +16414,15 @@
         }
       } else {
         notice(["notice.auctionnoplayer", d], 2);
+        return false;
       }
     }
+    /**
+     * @param {any} e
+     * @param {any} t
+     * @param {any} helpers
+     * @returns {Promise<any>}
+     */
     async losAuctionSell(e2, t, helpers) {
       const {
         getInfo,
@@ -16466,6 +16528,11 @@
         e2.setInteractionState(e2._parent._fsuAkbCurrent);
       }
     }
+    /**
+     * @param {any} e
+     * @param {any} t
+     * @param {any} helpers
+     */
     losAuctionCount(e2, t, helpers) {
       const { getCachePrice } = helpers;
       if (e2.hasOwnProperty("_fsuAkbCurrent") && e2.hasOwnProperty("_fsuAkbNumber") && e2.hasOwnProperty("_fsuAkbArray")) {

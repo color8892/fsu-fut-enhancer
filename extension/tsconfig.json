@@ -20,6 +20,7 @@
     "src/fsu/core/OperationScope.js",
     "src/fsu/core/TtlCache.js",
     "src/fsu/domain/MarketResults.js",
+    "src/fsu/domain/MarketActionService.js",
     "src/fsu/domain/InPacksSearchResults.js",
     "src/fsu/domain/InPacksSearchService.js",
     "src/fsu/domain/BulkPackOpenService.js",

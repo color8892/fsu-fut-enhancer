@@ -9,6 +9,10 @@ import {
   summarizeAuctionPrices
 } from "./MarketResults.js";
 
+/**
+ * @param {any} object
+ * @param {string|number} key
+ */
 function hasOwn(object, key) {
   return object !== null &&
     typeof object === "object" &&
@@ -16,6 +20,11 @@ function hasOwn(object, key) {
 }
 
 export class MarketActionService {
+  /**
+   * @param {any} i
+   * @param {any} p
+   * @param {any} helpers
+   */
   _getAuctionPriceResult(i, p, helpers) {
     const { debug = { log: () => {} }, ea, getInfo, notice, xmlHttpRequest } = helpers;
     const info = getInfo();
@@ -27,7 +36,7 @@ export class MarketActionService {
           "Content-type": "application/json",
           "X-UT-SID": info.base.sId
         },
-        onload: function (response) {
+        onload: (/** @type {any} */ response) => {
           if (response.status == 404 || response.status == 401) {
             const refreshedSessionId = ea?.getUtasSessionId() || null;
             if (refreshedSessionId) {
@@ -65,11 +74,21 @@ export class MarketActionService {
     });
   }
 
+  /**
+   * @param {any} i
+   * @param {any} p
+   * @param {any} helpers
+   */
   async _getAuctionPrice(i, p, helpers) {
     const result = await this._getAuctionPriceResult(i, p, helpers);
     return result.data.auctions;
   }
 
+  /**
+   * @param {any} e
+   * @param {any} player
+   * @param {any} helpers
+   */
   async getAuction(e, player, helpers) {
     const {
       fy,
@@ -92,7 +111,7 @@ export class MarketActionService {
     }
     let price = getCachePrice(defId, 1).num;
     let result = await this._getAuctionPrice(defId, price, helpers);
-    let priceList = result.map((i) => i.buyNowPrice) || [];
+    let priceList = (result || []).map((/** @type {any} */ i) => i.buyNowPrice);
     if (result.length == 0) {
       for (let i = 0; i < 5; i++) {
         const nextPrice = helpers.ea.incrementMarketPrice(price, "above");
@@ -100,8 +119,8 @@ export class MarketActionService {
         price = nextPrice;
         debug.log(`升价第${i}次循环，当前查询价格${price}`);
         let tempResult = await this._getAuctionPrice(defId, price, helpers);
-        tempResult.map((i) => {
-          priceList.push(i.buyNowPrice);
+        (tempResult || []).map((/** @type {any} */ item) => {
+          priceList.push(item.buyNowPrice);
         });
         if (tempResult.length > 0) {
           break;
@@ -114,8 +133,8 @@ export class MarketActionService {
         price = nextPrice;
         debug.log(`降价第${i}次循环，当前查询价格${price}`);
         let tempResult = await this._getAuctionPrice(defId, price, helpers);
-        tempResult.map((i) => {
-          priceList.push(i.buyNowPrice);
+        (tempResult || []).map((/** @type {any} */ item) => {
+          priceList.push(item.buyNowPrice);
         });
         if (tempResult.length < 21) {
           break;
@@ -124,15 +143,23 @@ export class MarketActionService {
     }
     if (priceList.length) {
       const displayPrices = summarizeAuctionPrices(priceList);
-      pdb[defId] = displayPrices[0].price.toLocaleString();
-      e.setSubtext(pdb[defId]);
-      e.displayCurrencyIcon(!0);
-      renderAuctionPrices(e, displayPrices);
+      if (displayPrices.length > 0 && displayPrices[0]) {
+        pdb[defId] = displayPrices[0].price.toLocaleString();
+        e.setSubtext(pdb[defId]);
+        e.displayCurrencyIcon(!0);
+        renderAuctionPrices(e, displayPrices);
+      }
     } else {
       e.setSubtext(fy("buyplayer.error.child3").slice(0, -1));
     }
   }
 
+  /**
+   * @param {any} players
+   * @param {any} view
+   * @param {any} helpers
+   * @returns {Promise<any>}
+   */
   async buyConceptPlayer(players, view, helpers) {
     const {
       getInfo,
@@ -317,6 +344,12 @@ export class MarketActionService {
     }
   }
 
+  /**
+   * @param {any} player
+   * @param {any} view
+   * @param {any} helpers
+   * @returns {Promise<any>}
+   */
   async buyPlayer(player, view, helpers) {
     const {
       showLoader,
@@ -429,6 +462,13 @@ export class MarketActionService {
     hideLoader();
   }
 
+  /**
+   * @param {any} player
+   * @param {any} price
+   * @param {any} loadingInfo
+   * @param {any} helpers
+   * @returns {Promise<any[]>}
+   */
   async readAuctionPrices(player, price, loadingInfo, helpers) {
     const {
       getInfo,
@@ -457,7 +497,9 @@ export class MarketActionService {
       notice("readauction.error", 2);
       return [];
     }
+    /** @type {any[]} */
     let result = [];
+    /** @type {any[]} */
     let queried = [];
     if (price) {
       marketSearch.setMaxBuy(Number(price));
@@ -516,12 +558,24 @@ export class MarketActionService {
     return result;
   }
 
+  /**
+   * @param {any} criteria
+   * @param {any} type
+   * @param {any} helpers
+   * @returns {Promise<any>}
+   */
   async searchTransferMarket(criteria, type, helpers) {
     return normalizeMarketSearchResult(
       await helpers.ea.searchTransferMarket(criteria, type, this)
     );
   }
 
+  /**
+   * @param {any} controller
+   * @param {any} list
+   * @param {any} helpers
+   * @returns {Promise<void>}
+   */
   async transferToClub(controller, list, helpers) {
     const { notice, isPhone, ea, debug } = helpers;
     const result = await ea.moveItemsToClub(list, controller);
@@ -538,6 +592,13 @@ export class MarketActionService {
     }
   }
 
+  /**
+   * @param {any} d
+   * @param {any} p
+   * @param {any} time
+   * @param {any} helpers
+   * @returns {Promise<any>}
+   */
   async playerToAuction(d, p, time, helpers) {
     const {
       futbinId,
@@ -568,7 +629,7 @@ export class MarketActionService {
           await futbinId.getId(i);
         }
       } catch {
-        return;
+        return false;
       }
       const price = getCachePrice(i.definitionId, 1).num;
 
@@ -583,7 +644,7 @@ export class MarketActionService {
         if (i.hasPriceLimits()) {
           if (p < i._itemPriceLimits.minimum || p > i._itemPriceLimits.maximum) {
             notice(["notice.auctionlimits", i._staticData.name], 2);
-            return;
+            return false;
           }
         }
         const startingPrice = ea.incrementMarketPrice(price, "below");
@@ -619,9 +680,16 @@ export class MarketActionService {
       }
     } else {
       notice(["notice.auctionnoplayer", d], 2);
+      return false;
     }
   }
 
+  /**
+   * @param {any} e
+   * @param {any} t
+   * @param {any} helpers
+   * @returns {Promise<any>}
+   */
   async losAuctionSell(e, t, helpers) {
     const {
       getInfo,
@@ -743,6 +811,11 @@ export class MarketActionService {
     }
   }
 
+  /**
+   * @param {any} e
+   * @param {any} t
+   * @param {any} helpers
+   */
   losAuctionCount(e, t, helpers) {
     const { getCachePrice } = helpers;
 
@@ -778,3 +851,4 @@ export class MarketActionService {
     }
   }
 }
+

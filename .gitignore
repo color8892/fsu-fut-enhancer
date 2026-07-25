@@ -7,6 +7,7 @@ extension/dist/
 # Local EA bundle snapshots (compiled_*.js from FUT Network; not committed)
 extension/data/ea-bundles/
 futwebapp/
+origin.md
 *.har
 
 # OS / editor
