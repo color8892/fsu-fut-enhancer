@@ -1,13 +1,27 @@
 const STORAGE_KEY = "lock_26";
 
+/**
+ * Service for locking and unlocking player cards to prevent accidental disposal.
+ */
 export class PlayerLockService {
+  /**
+   * @param {{
+   *   store: { getArray: (key: string, fallback: any[]) => any[], setJson: (key: string, val: any) => void },
+   *   getInfo: () => any,
+   *   debug: { log: (...args: any[]) => void }
+   * }} options
+   */
   constructor({ store, getInfo, debug }) {
     this.store = store;
     this.getInfo = getInfo;
     this.debug = debug;
+    /** @type {((action: "lock" | "unlock") => void) | null} */
     this.onToggle = null;
   }
 
+  /**
+   * @param {(action: "lock" | "unlock") => void} callback
+   */
   setOnToggle(callback) {
     this.onToggle = callback;
   }
@@ -19,6 +33,9 @@ export class PlayerLockService {
     info.lock = locked;
   }
 
+  /**
+   * @param {number|string} playerId
+   */
   toggle(playerId) {
     const info = this.getInfo();
     const isLocked = info.lock.includes(playerId);
@@ -41,7 +58,7 @@ export class PlayerLockService {
   createFacade() {
     return {
       init: () => this.init(),
-      save: (playerId) => this.toggle(playerId)
+      save: (/** @type {number|string} */ playerId) => this.toggle(playerId)
     };
   }
 }

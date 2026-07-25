@@ -136,21 +136,35 @@
   // src/fsu/domain/BuildPreferencesService.js
   var STORAGE_KEY = "build";
   var BuildPreferencesService = class {
+    /**
+     * @param {{
+     *   store: { getObject: (key: string, fallback: any) => any, setJson: (key: string, val: any) => void },
+     *   getInfo: () => any,
+     *   debug: { log: (...args: any[]) => void }
+     * }} options
+     */
     constructor({ store, getInfo, debug: debug2 }) {
       this.store = store;
       this.getInfo = getInfo;
       this.debug = debug2;
       this.onSave = null;
     }
+    /**
+     * @param {() => void} callback
+     */
     setOnSave(callback) {
       this.onSave = callback;
     }
     init() {
       const info = this.getInfo();
       const stored = this.store.getObject(STORAGE_KEY, {});
-      _.merge(info.build, stored);
+      info.build = { ...info.build, ...stored };
       this.debug.log(info.build);
     }
+    /**
+     * @param {string} key
+     * @param {any} value
+     */
     set(key, value) {
       const info = this.getInfo();
       info.build[key] = value;
@@ -254,12 +268,22 @@
   // src/fsu/domain/PlayerLockService.js
   var STORAGE_KEY2 = "lock_26";
   var PlayerLockService = class {
+    /**
+     * @param {{
+     *   store: { getArray: (key: string, fallback: any[]) => any[], setJson: (key: string, val: any) => void },
+     *   getInfo: () => any,
+     *   debug: { log: (...args: any[]) => void }
+     * }} options
+     */
     constructor({ store, getInfo, debug: debug2 }) {
       this.store = store;
       this.getInfo = getInfo;
       this.debug = debug2;
       this.onToggle = null;
     }
+    /**
+     * @param {(action: "lock" | "unlock") => void} callback
+     */
     setOnToggle(callback) {
       this.onToggle = callback;
     }
@@ -269,6 +293,9 @@
       this.debug.log(locked);
       info.lock = locked;
     }
+    /**
+     * @param {number|string} playerId
+     */
     toggle(playerId) {
       const info = this.getInfo();
       const isLocked = info.lock.includes(playerId);
@@ -1061,6 +1088,13 @@
   // src/fsu/domain/SbcCountService.js
   var STORAGE_KEY3 = "SBCCount";
   var SbcCountService = class {
+    /**
+     * @param {{
+     *   store: { getObject: (key: string, fallback: any) => any, setJson: (key: string, val: any) => void },
+     *   getInfo: () => any,
+     *   debug: { log: (...args: any[]) => void }
+     * }} options
+     */
     constructor({ store, getInfo, debug: debug2 }) {
       this.store = store;
       this.getInfo = getInfo;
@@ -1082,6 +1116,9 @@
       this.debug.log(state);
       info.SBCCount = state;
     }
+    /**
+     * @returns {number}
+     */
     getStartOfDayTimestamp() {
       const now = /* @__PURE__ */ new Date();
       now.setHours(0, 0, 0, 0);
@@ -1099,21 +1136,30 @@
       this.store.setJson(STORAGE_KEY3, info.SBCCount);
       return info.SBCCount;
     }
+    /**
+     * @param {any} ui
+     */
     updateNavLabel(ui) {
       const info = this.getInfo();
-      if (!_.has(info.nave, "SBCCount")) {
+      if (!info.nave || !Object.prototype.hasOwnProperty.call(info.nave, "SBCCount")) {
         return;
       }
       const label = ui.isPhone() ? String(info.SBCCount.count) : ui.fy(["sbccount.btntext", info.SBCCount.count]);
       info.nave.SBCCount.setText(label);
     }
+    /**
+     * @param {any} navElement
+     * @param {any} ui
+     */
     mountNavButton(navElement, ui) {
       const info = this.getInfo();
       info.nave = navElement;
-      if (!_.has(info.nave, "SBCCount")) {
+      if (!Object.prototype.hasOwnProperty.call(info.nave, "SBCCount")) {
         const label = ui.isPhone() ? String(info.SBCCount.count) : ui.fy(["sbccount.btntext", info.SBCCount.count]);
         info.nave.SBCCount = ui.createButton(
-          new UTButtonControl(),
+          new /** @type {any} */
+          (window.UTButtonControl || function() {
+          })(),
           label,
           async () => {
             ui.popup(ui.fy("sbccount.popupt"), ui.fy("sbccount.popupm"), () => {
@@ -1137,6 +1183,9 @@
         info.nave.SBCCount.getRootElement().innerText = label;
       }
     }
+    /**
+     * @param {any} ui
+     */
     createFacade(ui) {
       return {
         init: () => this.init(),
@@ -1149,15 +1198,28 @@
   // src/fsu/domain/SettingsService.js
   var STORAGE_KEY4 = "set";
   var SettingsService = class {
+    /**
+     * @param {{
+     *   store: { getObject: (key: string, fallback: any) => any, setJson: (key: string, val: any) => void },
+     *   getInfo: () => any,
+     *   debug: { log: (...args: any[]) => void }
+     * }} options
+     */
     constructor({ store, getInfo, debug: debug2 }) {
       this.store = store;
       this.getInfo = getInfo;
       this.debug = debug2;
       this.onSave = null;
     }
+    /**
+     * @param {() => void} callback
+     */
     setOnSave(callback) {
       this.onSave = callback;
     }
+    /**
+     * @param {boolean} [isPhone]
+     */
     init(isPhone2 = false) {
       const info = this.getInfo();
       const defaults = this.buildDefaults(info.setfield, isPhone2);
@@ -1170,10 +1232,16 @@
       this.debug.log(stored);
       info.set = stored;
     }
+    /**
+     * @param {Record<string, string[]>} setfield
+     * @param {boolean} isPhone
+     * @returns {Record<string, any>}
+     */
     buildDefaults(setfield, isPhone2) {
       const defaults = { card_style: 2 };
       for (const group in setfield) {
-        for (const item of setfield[group]) {
+        const items = setfield[group] || [];
+        for (const item of items) {
           defaults[`${group}_${item}`] = true;
         }
       }
@@ -1184,6 +1252,10 @@
       defaults.goldenrange = 83;
       return defaults;
     }
+    /**
+     * @param {string} key
+     * @param {any} value
+     */
     save(key, value) {
       const info = this.getInfo();
       info.set[key] = value;
@@ -1192,6 +1264,12 @@
         this.onSave();
       }
     }
+    /**
+     * @param {string} group
+     * @param {string} name
+     * @param {{ createToggle: (text: string, cb: (control: any) => Promise<void>) => any, fy: (key: string) => string }} ui
+     * @returns {any}
+     */
     createToggle(group, name, { createToggle: createToggle2, fy: fy2 }) {
       const info = this.getInfo();
       const settingKey = `${group}_${name}`;
@@ -1204,9 +1282,13 @@
       }
       return toggle;
     }
-    createFacade(ui) {
+    /**
+     * @param {{ createToggle: (text: string, cb: (control: any) => Promise<void>) => any, fy: (key: string) => string }} ui
+     * @param {() => boolean} [isPhoneHelper]
+     */
+    createFacade(ui, isPhoneHelper) {
       return {
-        init: () => this.init(typeof isPhone === "function" ? isPhone() : false),
+        init: () => this.init(typeof isPhoneHelper === "function" ? isPhoneHelper() : false),
         save: (key, value) => this.save(key, value),
         addToggle: (group, name) => this.createToggle(group, name, ui)
       };
@@ -2020,7 +2102,7 @@
       const dictionary = state.localization || {};
       const language = state.language ?? 2;
       if (Array.isArray(key)) {
-        const parts = _.cloneDeep(key);
+        const parts = [...key];
         const dictKey = parts.shift();
         if (!dictKey || !dictionary[dictKey]) return String(dictKey ?? "");
         let text = dictionary[dictKey][language] ?? "";
@@ -2030,18 +2112,19 @@
         }
         return text;
       }
-      if (key.indexOf("{") !== -1) {
+      if (typeof key === "string" && key.indexOf("{") !== -1) {
         let text = key;
-        const placeholders = key.match(/{(.*?)}/g);
+        const placeholders = key.match(/{(.*?)}/g) || [];
         for (const placeholder of placeholders) {
-          const field = placeholder.match(/{(.*?)}/)[1];
-          if (dictionary.hasOwnProperty(field)) {
+          const match = placeholder.match(/{(.*?)}/);
+          const field = match ? match[1] : "";
+          if (field && Object.prototype.hasOwnProperty.call(dictionary, field)) {
             text = text.replace(placeholder, dictionary[field][language]);
           }
         }
         return text;
       }
-      return dictionary.hasOwnProperty(key) ? dictionary[key][language] : key;
+      return Object.prototype.hasOwnProperty.call(dictionary, key) ? dictionary[key][language] : key;
     };
     const eafy = function(key) {
       if (key == null) return "";
@@ -14641,6 +14724,10 @@
   };
 
   // src/fsu/domain/PlayerValueService.js
+  var ItemRarity = {
+    NONE: 0,
+    RARE: 1
+  };
   var PlayerValueService = class {
     /**
      * @param {() => { base: { price: Record<number, number> } }} getInfo
@@ -14653,11 +14740,13 @@
      * @param {number} flag - ItemRarity flag
      * @param {number} price
      * @param {number} type - price source type (0 = market)
+     * @returns {boolean}
      */
     isPrecious(rating, flag, price, type) {
       if ((Number(flag) === ItemRarity.NONE || Number(flag) === ItemRarity.RARE) && type === 0) {
         const info = this.getInfo();
-        if (price == 0 || _.gte(price, 2 * info.base.price[rating])) {
+        const basePrice = info.base?.price?.[rating] ?? 0;
+        if (price === 0 || price >= 2 * basePrice) {
           return true;
         }
         return false;
@@ -20848,6 +20937,11 @@
 
   // src/fsu/domain/SbcPlayerMatchService.js
   var SbcPlayerMatchService = class {
+    /**
+     * @param {any} controller
+     * @param {any} helpers
+     * @returns {any[]}
+     */
     findMeetsPlayers(controller, helpers) {
       const {
         calculateChemistry,
@@ -20855,7 +20949,7 @@
         getItemBy,
         createVirtualChallenge
       } = helpers;
-      const targetChemistry = controller.squad._fsu.hasChemistry;
+      const targetChemistry = controller.squad._fsu?.hasChemistry;
       const index = controller.viewmodel.current().index;
       const playerRating = controller.viewmodel.current().item.rating;
       const excludeList = controller.squad.getPlayers().map((slot) => slot.getItem().definitionId).filter(Boolean);
@@ -20866,8 +20960,7 @@
         NEdatabaseId: excludeList
       };
       if (targetChemistry) {
-        const players = _.map(
-          controller.squad.getFieldPlayers(),
+        const players = (controller.squad.getFieldPlayers() || []).map(
           (slot) => slot.inPossiblePosition ? slot.item : { teamId: -1, leagueId: -1, nationId: -1 }
         );
         const chemistry = calculateChemistry(players, index);
@@ -20890,8 +20983,13 @@
       } else {
         searchCriteriaList.push(baseCriteria);
       }
-      let result = _.flatMap(searchCriteriaList, (criteria) => getItemBy(2, criteria));
-      result = _.uniqBy(result, "id");
+      const flatResults = searchCriteriaList.flatMap((criteria) => getItemBy(2, criteria) || []);
+      const seenIds = /* @__PURE__ */ new Set();
+      const result = flatResults.filter((player) => {
+        if (!player || !player.id || seenIds.has(player.id)) return false;
+        seenIds.add(player.id);
+        return true;
+      });
       const newChallenge = createVirtualChallenge(controller.challenge);
       if (!newChallenge) return [];
       const currentList = newChallenge.squad.getPlayers().map((slot) => slot.getItem());
@@ -20909,12 +21007,24 @@
 
   // src/fsu/domain/SbcSquadFillService.js
   var SbcSquadFillService = class {
+    /**
+     * @param {any} challenge
+     * @param {any[]} list
+     * @param {number} type
+     * @param {any} helpers
+     * @returns {Promise<any>}
+     */
     async fillFromPlayerList(challenge, list, type, helpers) {
       const { showLoader, getFormation, ignorePosition, loadPlayerInfo, saveSquad, saveOldSquad } = helpers;
       showLoader();
       const substitute = Array.from(list);
       const squadFormation = getFormation(challenge.formation);
-      const squadBuild = new UTSquadBuilderViewModel();
+      const SquadBuilderViewModelClass = (
+        /** @type {any} */
+        window.UTSquadBuilderViewModel || function() {
+        }
+      );
+      const squadBuild = new SquadBuilderViewModelClass();
       const squadBestPos = squadFormation.generalPositions.concat(Array(12).fill(-1));
       const playerlist = squadBestPos.map((position, slotIndex) => {
         const slot = challenge.squad ? challenge.squad.getSlot(slotIndex) : null;

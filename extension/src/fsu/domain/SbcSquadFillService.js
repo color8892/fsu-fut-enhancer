@@ -1,4 +1,14 @@
+/**
+ * Service for filling an SBC squad from a given list of player items.
+ */
 export class SbcSquadFillService {
+  /**
+   * @param {any} challenge
+   * @param {any[]} list
+   * @param {number} type
+   * @param {any} helpers
+   * @returns {Promise<any>}
+   */
   async fillFromPlayerList(challenge, list, type, helpers) {
     const { showLoader, getFormation, ignorePosition, loadPlayerInfo, saveSquad, saveOldSquad } = helpers;
 
@@ -6,10 +16,11 @@ export class SbcSquadFillService {
 
     const substitute = Array.from(list);
     const squadFormation = getFormation(challenge.formation);
-    const squadBuild = new UTSquadBuilderViewModel();
+    const SquadBuilderViewModelClass = /** @type {any} */ (window).UTSquadBuilderViewModel || function() {};
+    const squadBuild = new SquadBuilderViewModelClass();
     const squadBestPos = squadFormation.generalPositions.concat(Array(12).fill(-1));
 
-    const playerlist = squadBestPos.map((position, slotIndex) => {
+    const playerlist = squadBestPos.map((/** @type {any} */ position, /** @type {number} */ slotIndex) => {
       const slot = challenge.squad ? challenge.squad.getSlot(slotIndex) : null;
 
       if (!slot || slot.isBrick()) {
@@ -48,3 +59,4 @@ export class SbcSquadFillService {
     return result;
   }
 }
+

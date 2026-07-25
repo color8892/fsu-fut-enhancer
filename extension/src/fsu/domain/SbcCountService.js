@@ -1,6 +1,16 @@
 const STORAGE_KEY = "SBCCount";
 
+/**
+ * Service for tracking and displaying daily completed SBC counts.
+ */
 export class SbcCountService {
+  /**
+   * @param {{
+   *   store: { getObject: (key: string, fallback: any) => any, setJson: (key: string, val: any) => void },
+   *   getInfo: () => any,
+   *   debug: { log: (...args: any[]) => void }
+   * }} options
+   */
   constructor({ store, getInfo, debug }) {
     this.store = store;
     this.getInfo = getInfo;
@@ -26,6 +36,9 @@ export class SbcCountService {
     info.SBCCount = state;
   }
 
+  /**
+   * @returns {number}
+   */
   getStartOfDayTimestamp() {
     const now = new Date();
     now.setHours(0, 0, 0, 0);
@@ -47,10 +60,13 @@ export class SbcCountService {
     return info.SBCCount;
   }
 
+  /**
+   * @param {any} ui
+   */
   updateNavLabel(ui) {
     const info = this.getInfo();
 
-    if (!_.has(info.nave, "SBCCount")) {
+    if (!info.nave || !Object.prototype.hasOwnProperty.call(info.nave, "SBCCount")) {
       return;
     }
 
@@ -61,17 +77,21 @@ export class SbcCountService {
     info.nave.SBCCount.setText(label);
   }
 
+  /**
+   * @param {any} navElement
+   * @param {any} ui
+   */
   mountNavButton(navElement, ui) {
     const info = this.getInfo();
     info.nave = navElement;
 
-    if (!_.has(info.nave, "SBCCount")) {
+    if (!Object.prototype.hasOwnProperty.call(info.nave, "SBCCount")) {
       const label = ui.isPhone()
         ? String(info.SBCCount.count)
         : ui.fy(["sbccount.btntext", info.SBCCount.count]);
 
       info.nave.SBCCount = ui.createButton(
-        new UTButtonControl(),
+        new (/** @type {any} */ (window).UTButtonControl || function() {})(),
         label,
         async () => {
           ui.popup(ui.fy("sbccount.popupt"), ui.fy("sbccount.popupm"), () => {});
@@ -102,11 +122,14 @@ export class SbcCountService {
     }
   }
 
+  /**
+   * @param {any} ui
+   */
   createFacade(ui) {
     return {
       init: () => this.init(),
       changeCount: () => this.updateNavLabel(ui),
-      createElement: (navElement) => this.mountNavButton(navElement, ui)
+      createElement: (/** @type {any} */ navElement) => this.mountNavButton(navElement, ui)
     };
   }
 }

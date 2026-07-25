@@ -1,4 +1,12 @@
+/**
+ * Service for finding eligible players that satisfy SBC challenge requirements.
+ */
 export class SbcPlayerMatchService {
+  /**
+   * @param {any} controller
+   * @param {any} helpers
+   * @returns {any[]}
+   */
   findMeetsPlayers(controller, helpers) {
     const {
       calculateChemistry,
@@ -7,22 +15,23 @@ export class SbcPlayerMatchService {
       createVirtualChallenge
     } = helpers;
 
-    const targetChemistry = controller.squad._fsu.hasChemistry;
+    const targetChemistry = controller.squad._fsu?.hasChemistry;
     const index = controller.viewmodel.current().index;
     const playerRating = controller.viewmodel.current().item.rating;
     const excludeList = controller.squad
       .getPlayers()
-      .map((slot) => slot.getItem().definitionId)
+      .map((/** @type {any} */ slot) => slot.getItem().definitionId)
       .filter(Boolean);
     const position = controller.viewmodel.current().position.typeId;
     const searchCriteriaList = [];
+    /** @type {Record<string, any>} */
     const baseCriteria = {
       BTWrating: [playerRating - 10, playerRating + 10],
       NEdatabaseId: excludeList
     };
 
     if (targetChemistry) {
-      const players = _.map(controller.squad.getFieldPlayers(), (slot) =>
+      const players = (controller.squad.getFieldPlayers() || []).map((/** @type {any} */ slot) =>
         slot.inPossiblePosition
           ? slot.item
           : { teamId: -1, leagueId: -1, nationId: -1 }
@@ -35,7 +44,7 @@ export class SbcPlayerMatchService {
 
         if (chemistryCriteria.length > 0) {
           searchCriteriaList.push(
-            ...chemistryCriteria.map((criteria) => ({ ...criteria, ...baseCriteria }))
+            ...chemistryCriteria.map((/** @type {any} */ criteria) => ({ ...criteria, ...baseCriteria }))
           );
         } else {
           searchCriteriaList.push(baseCriteria);
@@ -50,12 +59,17 @@ export class SbcPlayerMatchService {
       searchCriteriaList.push(baseCriteria);
     }
 
-    let result = _.flatMap(searchCriteriaList, (criteria) => getItemBy(2, criteria));
-    result = _.uniqBy(result, "id");
+    const flatResults = searchCriteriaList.flatMap((criteria) => getItemBy(2, criteria) || []);
+    const seenIds = new Set();
+    const result = flatResults.filter((player) => {
+      if (!player || !player.id || seenIds.has(player.id)) return false;
+      seenIds.add(player.id);
+      return true;
+    });
 
     const newChallenge = createVirtualChallenge(controller.challenge);
     if (!newChallenge) return [];
-    const currentList = newChallenge.squad.getPlayers().map((slot) => slot.getItem());
+    const currentList = newChallenge.squad.getPlayers().map((/** @type {any} */ slot) => slot.getItem());
     const resultList = [];
 
     for (const player of result) {
@@ -69,3 +83,4 @@ export class SbcPlayerMatchService {
     return resultList;
   }
 }
+

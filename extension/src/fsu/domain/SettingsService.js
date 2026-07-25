@@ -1,17 +1,34 @@
 const STORAGE_KEY = "set";
 
+/**
+ * Service for loading, building default values, and saving user extension settings.
+ */
 export class SettingsService {
+  /**
+   * @param {{
+   *   store: { getObject: (key: string, fallback: any) => any, setJson: (key: string, val: any) => void },
+   *   getInfo: () => any,
+   *   debug: { log: (...args: any[]) => void }
+   * }} options
+   */
   constructor({ store, getInfo, debug }) {
     this.store = store;
     this.getInfo = getInfo;
     this.debug = debug;
+    /** @type {(() => void) | null} */
     this.onSave = null;
   }
 
+  /**
+   * @param {() => void} callback
+   */
   setOnSave(callback) {
     this.onSave = callback;
   }
 
+  /**
+   * @param {boolean} [isPhone]
+   */
   init(isPhone = false) {
     const info = this.getInfo();
     const defaults = this.buildDefaults(info.setfield, isPhone);
@@ -27,11 +44,18 @@ export class SettingsService {
     info.set = stored;
   }
 
+  /**
+   * @param {Record<string, string[]>} setfield
+   * @param {boolean} isPhone
+   * @returns {Record<string, any>}
+   */
   buildDefaults(setfield, isPhone) {
+    /** @type {Record<string, any>} */
     const defaults = { card_style: 2 };
 
     for (const group in setfield) {
-      for (const item of setfield[group]) {
+      const items = setfield[group] || [];
+      for (const item of items) {
         defaults[`${group}_${item}`] = true;
       }
     }
@@ -45,6 +69,10 @@ export class SettingsService {
     return defaults;
   }
 
+  /**
+   * @param {string} key
+   * @param {any} value
+   */
   save(key, value) {
     const info = this.getInfo();
     info.set[key] = value;
@@ -55,6 +83,12 @@ export class SettingsService {
     }
   }
 
+  /**
+   * @param {string} group
+   * @param {string} name
+   * @param {{ createToggle: (text: string, cb: (control: any) => Promise<void>) => any, fy: (key: string) => string }} ui
+   * @returns {any}
+   */
   createToggle(group, name, { createToggle, fy }) {
     const info = this.getInfo();
     const settingKey = `${group}_${name}`;
@@ -71,11 +105,15 @@ export class SettingsService {
     return toggle;
   }
 
-  createFacade(ui) {
+  /**
+   * @param {{ createToggle: (text: string, cb: (control: any) => Promise<void>) => any, fy: (key: string) => string }} ui
+   * @param {() => boolean} [isPhoneHelper]
+   */
+  createFacade(ui, isPhoneHelper) {
     return {
-      init: () => this.init(typeof isPhone === "function" ? isPhone() : false),
-      save: (key, value) => this.save(key, value),
-      addToggle: (group, name) => this.createToggle(group, name, ui)
+      init: () => this.init(typeof isPhoneHelper === "function" ? isPhoneHelper() : false),
+      save: (/** @type {string} */ key, /** @type {any} */ value) => this.save(key, value),
+      addToggle: (/** @type {string} */ group, /** @type {string} */ name) => this.createToggle(group, name, ui)
     };
   }
 }
